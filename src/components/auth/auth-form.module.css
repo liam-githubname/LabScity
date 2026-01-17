@@ -1,0 +1,79 @@
+/**
+ * Auth Form Styles - CSS Module
+ * 
+ * Shared styles for login and signup forms.
+ * 
+ * Design token values (scaled to ~60% of Figma):
+ * - Font sizes: label 1.8rem, input 1.35rem
+ * - Spacing: input height 2.75rem, button height 3rem, input width 22rem
+ * - Border radius: card 0.75rem, input/button 0.56rem
+ * - Components: form max-width 58.625rem, form min-height 92.75rem, logo size 23rem
+ * 
+ * Theme colors use Mantine's CSS variables (e.g., --mantine-color-navy-0).
+ */
+
+/* Form Container */
+.formContainer {
+  width: 100%;
+  max-width: 58.625rem; /* 938px → 562.8px (card width) */
+  min-height: 92.75rem; /* 1484px → 890.4px (card height) */
+  background-color: var(--mantine-color-navy-0); /* card background */
+  border-radius: 0.75rem; /* 20px → 12px */
+  padding: 2rem;
+}
+
+/* Input Field Styles */
+.input {
+  height: 2.75rem; /* 74px → 44.4px */
+  width: 22rem; /* 592px → 355.2px */
+  border-radius: 0.56rem; /* 15px → 9px */
+  background-color: var(--mantine-color-gray-0); /* white */
+  font-size: 1.35rem; /* 36px → 21.6px */
+  font-family: var(--mantine-font-family);
+  color: var(--mantine-color-navy-8); /* primary text */
+}
+
+.input::placeholder {
+  color: var(--mantine-color-gray-6); /* secondary text/placeholder */
+}
+
+.input:focus {
+  border-color: var(--mantine-color-navy-7); /* primary navy */
+}
+
+/* Label Styles */
+.label {
+  font-size: 1.8rem; /* 48px → 28.8px */
+  font-family: var(--mantine-font-family);
+  color: var(--mantine-color-navy-8); /* primary text */
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* Button Styles */
+.button {
+  height: 3rem; /* 82px → 49.2px */
+  border-radius: 0.56rem; /* 15px → 9px */
+  background-color: var(--mantine-color-navy-7); /* primary navy */
+  color: var(--mantine-color-navy-0); /* button text */
+  font-size: 1.35rem; /* 36px → 21.6px */
+  font-family: var(--mantine-font-family);
+  font-weight: 400;
+}
+
+.button:hover {
+  background-color: var(--mantine-color-navy-6);
+}
+
+.button:active {
+  background-color: var(--mantine-color-navy-9);
+}
+
+/* Logo Container */
+.logoBox {
+  width: 23rem; /* 368px → 220.8px */
+  height: 23rem; /* 368px → 220.8px */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

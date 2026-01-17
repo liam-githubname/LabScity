@@ -1,14 +1,12 @@
 "use client";
 
-import { Paper, Stack, useMantineTheme } from "@mantine/core";
+import { Paper, Stack } from "@mantine/core";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginValues } from "@/lib/validations/auth";
-import { getAuthFormStyles } from "@/lib/styles/auth-form-styles";
+import classes from "./auth-form.module.css";
 
 export function LoginForm() {
-  const theme = useMantineTheme();
-  const styles = getAuthFormStyles(theme);
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -18,7 +16,7 @@ export function LoginForm() {
   });
 
   return (
-    <Paper style={styles.formContainer}>
+    <Paper className={classes.formContainer}>
       <Stack gap="md">
         {/* Form fields will be added in subsequent steps */}
       </Stack>
