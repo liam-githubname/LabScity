@@ -61,6 +61,7 @@ export function getAuthFormStyles(theme: MantineTheme) {
 
     // Form container styles
     formContainer: {
+      width: "100%",
       maxWidth: components.form.maxWidth,
       minHeight: components.form.minHeight,
       backgroundColor: theme.colors.navy[0], // card background (EFF4F6)
