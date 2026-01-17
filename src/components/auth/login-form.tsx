@@ -1,13 +1,16 @@
 "use client";
 
-import { Paper, Stack, Box, Text, TextInput, PasswordInput, Anchor, Button } from "@mantine/core";
+import { Paper, Stack, Box, Text, TextInput, PasswordInput, Anchor, Button, Alert } from "@mantine/core";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
 import Link from "next/link";
 import { loginSchema, type LoginValues } from "@/lib/validations/auth";
 import classes from "./auth-form.module.css";
 
 export function LoginForm() {
+  const [serverError, setServerError] = useState<string | null>(null);
+
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     mode: "onBlur", // Validate on blur (loses focus) for better UX
@@ -18,8 +21,19 @@ export function LoginForm() {
   });
 
   const onSubmit = async (data: LoginValues) => {
+    setServerError(null); // Clear previous errors
+    
     // Placeholder for server action - will be implemented later
-    console.log("Form submitted:", data);
+    // Expected format: { success: boolean, error?: string }
+    try {
+      // const result = await loginAction(data);
+      // if (!result.success && result.error) {
+      //   setServerError(result.error);
+      // }
+      console.log("Form submitted:", data); // delete this later
+    } catch (error) {
+      setServerError("An unexpected error occurred. Please try again.");
+    }
   };
 
   return (
@@ -31,6 +45,11 @@ export function LoginForm() {
             LS
           </Text>
         </Box>
+        {serverError && (
+          <Alert color="red" title="Error">
+            {serverError}
+          </Alert>
+        )}
         <div className={classes.fieldContainer}>
           <Text className={classes.label}>Email</Text>
           <Controller
@@ -76,7 +95,6 @@ export function LoginForm() {
             Sign Up
           </Anchor>
         </Text>
-        {/* Additional form fields will be added in subsequent steps */}
       </Stack>
       </form>
     </Paper>
