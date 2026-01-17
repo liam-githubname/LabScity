@@ -1,6 +1,6 @@
 "use client";
 
-import { Paper, Stack, Box, Text, TextInput, PasswordInput, Anchor } from "@mantine/core";
+import { Paper, Stack, Box, Text, TextInput, PasswordInput, Anchor, Button } from "@mantine/core";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
@@ -17,9 +17,15 @@ export function LoginForm() {
     },
   });
 
+  const onSubmit = async (data: LoginValues) => {
+    // Placeholder for server action - will be implemented later
+    console.log("Form submitted:", data);
+  };
+
   return (
     <Paper className={classes.formContainer}>
-      <Stack gap="md" align="center">
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <Stack gap="md" align="center">
         <Box className={classes.logoBox}>
           <Text c="navy.0" size="xl" fw={600}>
             LS
@@ -57,8 +63,22 @@ export function LoginForm() {
         <Anchor component={Link} href="/forgot-password">
           Forgot Password?
         </Anchor>
+        <Button
+          type="submit"
+          className={classes.button}
+          loading={form.formState.isSubmitting}
+        >
+          Sign In
+        </Button>
+        <Text>
+          Don't have an account?{" "}
+          <Anchor component={Link} href="/signup">
+            Sign Up
+          </Anchor>
+        </Text>
         {/* Additional form fields will be added in subsequent steps */}
       </Stack>
+      </form>
     </Paper>
   );
 }
