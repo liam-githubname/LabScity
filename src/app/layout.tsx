@@ -1,6 +1,6 @@
 import "@mantine/core/styles.css"; 
 import { ColorSchemeScript, MantineProvider } from "@mantine/core";
-import { theme } from "@/app/theme"; 
+import { theme } from "@/lib/constants/theme"; 
 
 export const metadata = {
   title: "LabScity",
