@@ -24,7 +24,7 @@ export function SignupForm() {
 
   const onSubmit = async (data: SignupValues) => {
     setServerError(null); // Clear previous errors
-    
+
     // Placeholder for server action - will be implemented later
     // Expected format: { success: boolean, error?: string }
     try {
