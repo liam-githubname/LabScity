@@ -1,0 +1,98 @@
+/**
+ * Auth Form Styles - CSS Module
+ * 
+ * Shared styles for login and signup forms.
+ * 
+ * Design token values (scaled to 50% of Figma):
+ * - Card: width 469px (29.3125rem), height 742px (46.375rem), border-radius 10px (0.625rem)
+ * - Logo: width 184px (11.5rem), height 184px (11.5rem)
+ * - Input: width 296px (18.5rem), height 37px (2.3125rem), border-radius 7.5px (0.46875rem)
+ * - Label font-size: 24px (1.5rem)
+ * - Input font-size: 18px (1.125rem)
+ * - Button: width 167.5px (10.46875rem), height 41px (2.5625rem), border-radius 7.5px (0.46875rem), font-size 18px (1.125rem)
+ * 
+ * Theme colors use Mantine's CSS variables (e.g., --mantine-color-navy-0).
+ */
+
+/* Form Container */
+.formContainer {
+  width: 100%;
+  max-width: 29.3125rem; /* 938px → 469px (50% of card width) */
+  min-height: 46.375rem; /* 1484px → 742px (50% of card height) */
+  background-color: var(--mantine-color-navy-0); /* card background */
+  border-radius: 0.625rem; /* 20px → 10px (50%) */
+  padding: 2rem;
+}
+
+/* Input Field Styles */
+.input {
+  height: 2.3125rem; /* 74px → 37px (50%) */
+  width: 100%;
+  border-radius: 0.46875rem; /* 15px → 7.5px (50%) */
+  background-color: var(--mantine-color-gray-0); /* white */
+  font-size: 1.125rem; /* 36px → 18px (50%) */
+  font-family: var(--mantine-font-family);
+  color: var(--mantine-color-navy-8); /* primary text */
+}
+
+.inputRoot {
+  width: 100%;
+}
+
+.input::placeholder {
+  color: var(--mantine-color-gray-6); /* secondary text/placeholder */
+}
+
+.input:focus {
+  border-color: var(--mantine-color-navy-7); /* primary navy */
+}
+
+/* Label Styles */
+.label {
+  font-size: 1.5rem; /* 48px → 24px (50%) */
+  font-family: var(--mantine-font-family);
+  color: var(--mantine-color-navy-8); /* primary text */
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/* Button Styles */
+.button {
+  width: 10.46875rem; /* 335px → 167.5px (50%) */
+  height: 2.5625rem; /* 82px → 41px (50%) */
+  border-radius: 0.46875rem; /* 15px → 7.5px (50%) */
+  background-color: var(--mantine-color-navy-7); /* primary navy */
+  color: var(--mantine-color-navy-0); /* button text */
+  font-size: 1.125rem; /* 36px → 18px (50%) */
+  font-family: var(--mantine-font-family);
+  font-weight: 400;
+}
+
+.button:hover {
+  background-color: var(--mantine-color-navy-6);
+}
+
+.button:active {
+  background-color: var(--mantine-color-navy-9);
+}
+
+/* Logo Container */
+.logoBox {
+  width: 11.5rem; /* 368px → 184px (50%) */
+  height: 11.5rem; /* 368px → 184px (50%) */
+  border-radius: 50%; /* circular */
+  background-color: var(--mantine-color-navy-7); /* primary navy */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Form Field Container */
+.fieldContainer {
+  width: 100%;
+  max-width: 18.5rem; /* 296px (50% of 592px) */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
