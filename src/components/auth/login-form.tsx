@@ -8,6 +8,9 @@ import Link from "next/link";
 import { loginSchema, type LoginValues } from "@/lib/validations/auth";
 import classes from "./auth-form.module.css";
 
+import { loginAction } from "@/lib/actions/auth";
+
+
 export function LoginForm() {
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -26,10 +29,13 @@ export function LoginForm() {
     // Placeholder for server action - will be implemented later
     // Expected format: { success: boolean, error?: string }
     try {
-      // const result = await loginAction(data);
-      // if (!result.success && result.error) {
-      //   setServerError(result.error);
-      // }
+      const formData = new FormData();
+      formData.append("email", data.email);
+      formData.append("password", data.password);
+      const result = await loginAction(formData);
+      if (!result.success && result.error) {
+        setServerError(result.error);
+      }
       console.log("Form submitted:", data); // delete this later
     } catch (error) {
       setServerError("An unexpected error occurred. Please try again.");
