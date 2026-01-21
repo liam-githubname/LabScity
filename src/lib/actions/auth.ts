@@ -17,7 +17,6 @@ export async function loginAction(formData: FormData) {
       password: parsed.password,
     });
 
-    console.log("made it after the auth signin", data);
 
     if (error) {
       console.error("Error signing in: ", error);
@@ -70,7 +69,6 @@ export async function signupAction(formData: FormData) {
       };
     }
 
-    console.log("makes it past the try catch:", data);
     return { success: true, data };
   } catch (error) {
     if (error instanceof z.ZodError) {
