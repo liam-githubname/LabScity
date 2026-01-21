@@ -1,13 +1,49 @@
 "use server";
 
-// Placeholder action
+import { supabase } from "./SupabaseClient";
+
 export async function loginAction(formData: FormData) {
-  console.log("Login action triggered");
-  return { success: true };
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+
+  if (!email || !password) {
+    return { success: false, error: "Email and password are required" };
+  }
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email.toLowerCase(),
+    password: password,
+  });
+
+  console.log("made it after the auth signin", data);
+
+  if (error) {
+    console.error("Error signing up: ", error);
+    return { success: false, error };
+  }
+
+  console.log("makes it past the try catch:", data);
+  return { success: true, data };
 }
 
-// Placeholder action
 export async function signupAction(formData: FormData) {
-  console.log("Signup action triggered");
-  return { success: true };
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+
+  if (!email || !password) {
+    return { success: false, error: "Email and password are required" };
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email: email.toLowerCase(),
+    password: password,
+  });
+
+  if (error) {
+    console.error("Error signing up: ", error);
+    return { success: false, error };
+  }
+
+  console.log("makes it past the try catch:", data);
+  return { success: true, data };
 }
