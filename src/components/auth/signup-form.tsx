@@ -1,9 +1,10 @@
 "use client";
 
-import { Paper, Stack, Box, Text, TextInput, PasswordInput, Button, Alert } from "@mantine/core";
+import { Paper, Stack, Box, Text, TextInput, PasswordInput, Anchor, Button, Alert } from "@mantine/core";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
+import Link from "next/link";
 import Image from "next/image";
 import { signupSchema, type SignupValues } from "@/lib/validations/auth";
 import classes from "./auth-form.module.css";
@@ -150,6 +151,12 @@ export function SignupForm({
           >
             Create Account
           </Button>
+          <Text>
+            Already have an account?{" "}
+            <Anchor component={Link} href="/login">
+              Sign In
+            </Anchor>
+          </Text>
         </Stack>
       </form>
     </Paper>
