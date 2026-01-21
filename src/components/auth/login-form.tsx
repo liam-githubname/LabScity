@@ -105,19 +105,7 @@ export function LoginForm() {
           <Anchor component={Link} href="/signup">
             Sign Up
           </Anchor>
-          <Button
-            type="submit"
-            className={classes.button}
-            loading={form.formState.isSubmitting}
-          >
-            Sign In
-          </Button>
-          <Text>
-            Don't have an account?{" "}
-            <Anchor component={Link} href="/signup">
-              Sign Up
-            </Anchor>
-          </Text>
+        </Text>
         </Stack>
       </form>
     </Paper>
