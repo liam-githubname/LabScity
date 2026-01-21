@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { loginSchema } from "@/lib/validations/auth";
+import { loginSchema, signupSchema } from "@/lib/validations/auth";
 import { supabase } from "./SupabaseClient";
 
 export async function loginAction(formData: FormData) {
@@ -43,24 +43,42 @@ export async function loginAction(formData: FormData) {
 export async function signupAction(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
+  const firstName = formData.get("firstName") as string;
+  const lastName = formData.get("lastName") as string;
+  const confirmPassword = formData.get("confirmPassword") as string;
 
-  if (!email || !password) {
-    return { success: false, error: "Email and password are required" };
+  // Validate with Zod schema
+  try {
+    const parsed = signupSchema.parse({
+      email,
+      password,
+      confirmPassword: confirmPassword,
+      firstName,
+      lastName,
+    });
+
+    const { data, error } = await supabase.auth.signUp({
+      email: parsed.email.toLowerCase(),
+      password: parsed.password,
+    });
+
+    if (error) {
+      console.error("Error signing up: ", error);
+      return {
+        success: false,
+        error: error.message ?? "Failed to create account",
+      };
+    }
+
+    console.log("makes it past the try catch:", data);
+    return { success: true, data };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return {
+        success: false,
+        error: error.issues[0]?.message ?? "Validation failed",
+      };
+    }
+    return { success: false, error: "Invalid input" };
   }
-
-  const { data, error } = await supabase.auth.signUp({
-    email: email.toLowerCase(),
-    password: password,
-  });
-
-  if (error) {
-    console.error("Error signing up: ", error);
-    return {
-      success: false,
-      error: error.message ?? "Failed to create account",
-    };
-  }
-
-  console.log("makes it past the try catch:", data);
-  return { success: true, data };
 }
