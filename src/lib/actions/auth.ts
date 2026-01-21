@@ -1,32 +1,43 @@
 "use server";
 
+import { z } from "zod";
+import { loginSchema } from "@/lib/validations/auth";
 import { supabase } from "./SupabaseClient";
 
 export async function loginAction(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
-  if (!email || !password) {
-    return { success: false, error: "Email and password are required" };
+  // Validate with Zod schema
+  try {
+    const parsed = loginSchema.parse({ email, password });
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: parsed.email.toLowerCase(),
+      password: parsed.password,
+    });
+
+    console.log("made it after the auth signin", data);
+
+    if (error) {
+      console.error("Error signing in: ", error);
+      return {
+        success: false,
+        error: error.message ?? "Invalid email or password",
+      };
+    }
+
+    console.log("makes it past the try catch:", data);
+    return { success: true, data };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return {
+        success: false,
+        error: error.issues[0]?.message ?? "Validation failed",
+      };
+    }
+    return { success: false, error: "Invalid input" };
   }
-
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: email.toLowerCase(),
-    password: password,
-  });
-
-  console.log("made it after the auth signin", data);
-
-  if (error) {
-    console.error("Error signing in: ", error);
-    return {
-      success: false,
-      error: error.message ?? "Invalid email or password",
-    };
-  }
-
-  console.log("makes it past the try catch:", data);
-  return { success: true, data };
 }
 
 export async function signupAction(formData: FormData) {
