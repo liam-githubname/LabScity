@@ -2,14 +2,14 @@
 
 import { z } from "zod";
 import { loginSchema, signupSchema } from "@/lib/validations/auth";
-import { createClient } from "@/supabase/client";
+import { createClient } from "@/supabase/server";
 // import { supabase } from "./SupabaseClient";
 
 export async function loginAction(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
-  const supabase = createClient();
-
+  const supabase = await createClient();
+  
   // Validate with Zod schema
   try {
     const parsed = loginSchema.parse({ email, password });
@@ -47,7 +47,7 @@ export async function signupAction(formData: FormData) {
   const firstName = formData.get("firstName") as string;
   const lastName = formData.get("lastName") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Validate with Zod schema
   try {
