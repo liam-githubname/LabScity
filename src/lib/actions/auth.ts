@@ -2,16 +2,18 @@
 
 import { z } from "zod";
 import { loginSchema, signupSchema } from "@/lib/validations/auth";
-import { supabase } from "./SupabaseClient";
+import { createClient } from "@/supabase/client";
+// import { supabase } from "./SupabaseClient";
 
 export async function loginAction(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
+  const supabase = createClient();
 
   // Validate with Zod schema
   try {
     const parsed = loginSchema.parse({ email, password });
-    
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email: parsed.email.toLowerCase(),
       password: parsed.password,
@@ -45,6 +47,7 @@ export async function signupAction(formData: FormData) {
   const firstName = formData.get("firstName") as string;
   const lastName = formData.get("lastName") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
+  const supabase = createClient();
 
   // Validate with Zod schema
   try {
