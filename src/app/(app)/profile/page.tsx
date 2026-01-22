@@ -1,6 +1,6 @@
-import ProfileWidget from "@/components/profile/profile-widget"
 import Post from "@/components/profile/post"
 import ProfileListWidget from "@/components/profile/profile-list-widget";
+import ProfileWidget from "@/components/profile/profile-widget"
 import ViewSelector from "@/components/profile/view-selector";
 
 export default function ProfilePage() {

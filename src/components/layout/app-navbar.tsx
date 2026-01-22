@@ -1,12 +1,12 @@
 "use client";
 
 import { ActionIcon, Box, Group } from "@mantine/core";
-import { IconHome, IconSearch, IconPlus, IconHeart, IconUser } from "@tabler/icons-react";
+import { IconFlaskFilled, IconUser } from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navigation = [
-  { href: "/", icon: IconHome },
+  { href: "/", icon: IconFlaskFilled },
   { href: "/profile", icon: IconUser },
 ];
 
