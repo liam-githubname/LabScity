@@ -8,17 +8,14 @@ export default function HomeLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<Box className={classes.container} bg="navy.2">
+		<Box className={classes.container} bg="gray.2">
 			<Header />
 			<Box className={classes.grid}>
-				<Box className={classes.leftSidebar}>
-					{/* Left sidebar (~15%) - User widget will go here */}
-				</Box>
-				<Box className={classes.center}>
+				<Box className={classes.feed}>
 					{children}
 				</Box>
 				<Box className={classes.rightSidebar}>
-					{/* Right sidebar (~20%) - Trending and User profile will go here */}
+					{/* Right sidebar (~35%) - Trending and User profile will go here */}
 				</Box>
 			</Box>
 		</Box>

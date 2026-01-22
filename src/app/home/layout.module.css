@@ -5,25 +5,22 @@
 .grid {
 	display: grid;
 	grid-template-columns: 1fr;
-	gap: 0;
-	margin: 0;
+	gap: 2rem;
+	max-width: 1080px;
+	margin: 0 auto;
 	padding: 1rem;
 }
 
-@media (min-width: 576px) {
+@media (min-width: 768px) {
 	.grid {
-		grid-template-columns: 2fr 8fr 2fr;
+		grid-template-columns: 65% 35%;
 	}
 }
 
-.leftSidebar {
-	padding: 1rem;
-}
-
-.center {
-	padding: 1rem;
+.feed {
+	padding: 0;
 }
 
 .rightSidebar {
-	padding: 1rem;
+	padding: 0;
 }
