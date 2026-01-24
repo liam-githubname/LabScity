@@ -29,3 +29,60 @@ export interface DataResponse<T> {
 export interface GetPostByIdInput {
   postID: string;
 }
+
+export interface FeedResponse {
+  posts: Post[];
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+    nextOffset?: number;
+  };
+  filters?: {
+    category?: string;
+    userId?: string;
+  };
+}
+
+export interface GetFeedInput {
+  limit?: number;
+  offset?: number;
+  category?: string;
+  userId?: string;
+  sortBy?: "created_at" | "like_amount";
+  sortOrder?: "asc" | "desc";
+}
+
+export interface SearchFeedInput {
+  query: string;
+  limit?: number;
+  offset?: number;
+  filters?: {
+    category?: string;
+    userId?: string;
+    dateRange?: {
+      from?: string;
+      to?: string;
+    };
+  };
+}
+
+export interface GetUserPostsInput {
+  userID: string;
+  limit?: number;
+  cursor?: string; // ISO datetime string for cursor position
+  category?: string;
+  sortBy?: "created_at" | "like_amount";
+  sortOrder?: "asc" | "desc";
+}
+
+export interface UserPostsResponse {
+  posts: Post[];
+  pagination: {
+    limit: number;
+    hasMore: boolean;
+    nextCursor?: string;
+    prevCursor?: string;
+  };
+}
