@@ -71,6 +71,46 @@ export async function signupAction(formData: FormData) {
         error: error.message ?? "Failed to create account",
       };
     }
+    
+    // Insert user data into Users table
+    if (data.user) {
+      const { error: userInsertError } = await supabase
+        .from("Users")
+        .insert([
+          {
+            email: parsed.email.toLowerCase(),
+            first_name: parsed.firstName,
+            last_name: parsed.lastName,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+
+      if (userInsertError) {
+        console.error("Error inserting user: ", userInsertError);
+        return {
+          success: false,
+          error: "Failed to create user",
+        };
+      }
+
+      // Insert mostly empty profile into Profile table
+      const { error: profileInsertError } = await supabase
+        .from("Profile")
+        .insert([
+          {
+            first_name: parsed.firstName,
+            last_name: parsed.lastName,
+          },
+        ]);
+
+      if (profileInsertError) {
+        console.error("Error inserting profile: ", profileInsertError);
+        return {
+          success: false,
+          error: "Failed to create profile",
+        };
+      }
+    }
 
     return { success: true, data };
   } catch (error) {
