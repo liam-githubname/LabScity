@@ -27,8 +27,6 @@ export async function loginAction(formData: FormData) {
         error: error.message ?? "Invalid email or password",
       };
     }
-
-    console.log("makes it past the try catch:", data);
     return { success: true, data };
   } catch (error) {
     if (error instanceof z.ZodError) {
