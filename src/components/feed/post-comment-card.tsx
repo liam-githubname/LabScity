@@ -1,5 +1,5 @@
 import { Avatar, Box, Paper, Text, UnstyledButton } from "@mantine/core";
-import { IconHeart, IconHeartFilled, IconMessageCircle, IconShare3 } from "@tabler/icons-react";
+import { IconHeart, IconHeartFilled } from "@tabler/icons-react";
 import type { FeedCommentItem } from "@/lib/types/feed";
 import classes from "./post-comment-card.module.css";
 
@@ -44,14 +44,14 @@ export function PostCommentCard({ comment, onLikeClick }: PostCommentCardProps) 
 					)}
 					<Text component="span">Like</Text>
 				</UnstyledButton>
-				<UnstyledButton className={classes.actionButton}>
+				{/* <UnstyledButton className={classes.actionButton}>
 					<IconMessageCircle size={16} className={classes.actionIcon} />
 					<Text component="span">Comment</Text>
-				</UnstyledButton>
-				<UnstyledButton className={classes.actionButton}>
+				</UnstyledButton> */}
+				{/* <UnstyledButton className={classes.actionButton}>
 					<IconShare3 size={16} className={classes.actionIcon} />
 					<Text component="span">Share</Text>
-				</UnstyledButton>
+				</UnstyledButton> */}
 			</Box>
 		</Paper>
 	);

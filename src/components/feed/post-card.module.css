@@ -2,7 +2,7 @@
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.2);
-  background: var(--mantine-color-gray-2);
+  background: var(--mantine-color-gray-0);
 }
 
 .header {
@@ -62,7 +62,7 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   padding: 14px 20px;
-  background: var(--mantine-color-gray-2);
+  background: var(--mantine-color-gray-0);
 }
 
 .actionButton {
@@ -72,7 +72,7 @@
   gap: 8px;
   padding: 6px 10px;
   border-radius: 999px;
-  color: var(--mantine-color-navy-7);
+  color: var(--mantine-color-navy-8);
   font-weight: 600;
 }
 

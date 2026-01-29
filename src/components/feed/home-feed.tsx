@@ -197,13 +197,14 @@ export function HomeFeed({ initialPosts }: HomeFeedProps) {
 									/>
 								) : null}
 								{post.comments.map((comment) => (
-									<PostCommentCard
-										key={comment.id}
-										comment={comment}
-										onLikeClick={(commentId) =>
-											handleToggleCommentLike(post.id, commentId)
-										}
-									/>
+									<div key={comment.id} className={classes.commentItem}>
+										<PostCommentCard
+											comment={comment}
+											onLikeClick={(commentId) =>
+												handleToggleCommentLike(post.id, commentId)
+											}
+										/>
+									</div>
 								))}
 							</Stack>
 						) : null}

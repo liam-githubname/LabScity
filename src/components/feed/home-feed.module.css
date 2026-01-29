@@ -27,6 +27,7 @@
 }
 
 .postStack {
+  position: relative;
   gap: 18px;
 }
 
@@ -35,18 +36,49 @@
   display: grid;
   gap: 12px;
   margin-left: 12px;
-  padding-left: 18px;
+  padding-left: 0;
+  width: 100%;
 }
 
 .commentSection::before {
   content: "";
   position: absolute;
-  left: 4px;
-  top: -8px;
+  left: 0;
+  top: -14px;
   bottom: 0;
   width: 2px;
   background: var(--mantine-color-navy-7);
   border-radius: 999px;
+}
+
+.commentItem {
+  position: relative;
+  margin-left: 22px;
+  width: calc(100% - 22px);
+}
+
+.commentItem::before {
+  content: "";
+  position: absolute;
+  left: -22px;
+  top: 50%;
+  width: 18px;
+  height: 2px;
+  background: var(--mantine-color-navy-7);
+  border-radius: 999px;
+  transform: translateY(-50%);
+}
+
+.commentItem:last-child::after {
+  content: "";
+  position: absolute;
+  left: -2px;
+  top: 50%;
+  width: 4px;
+  height: calc(50% + 20px);
+  background: var(--mantine-color-gray-2);
+  border-radius: 999px;
+  transform: translateY(0);
 }
 
 .commentComposer {

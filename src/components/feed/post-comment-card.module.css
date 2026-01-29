@@ -3,6 +3,7 @@
   box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.18);
   background: var(--mantine-color-gray-0);
   padding: 12px 16px;
+  width: 100%;
 }
 
 .header {
@@ -53,7 +54,7 @@
   gap: 6px;
   padding: 4px 8px;
   border-radius: 999px;
-  color: var(--mantine-color-navy-7);
+  color: var(--mantine-color-navy-8);
   font-weight: 600;
   font-size: 0.8rem;
 }
