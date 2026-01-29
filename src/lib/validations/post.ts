@@ -44,5 +44,17 @@ export const feedFilterSchema = z.object({
 	limit: z.number().int().positive().max(50).optional().default(20),
 });
 
+export const createCommentSchema = z.object({
+	userName: z
+		.string()
+		.min(1, { message: "Name is required" })
+		.max(80, { message: "Name must be less than 80 characters" }),
+	content: z
+		.string()
+		.min(1, { message: "Comment is required" })
+		.max(2000, { message: "Comment must be less than 2000 characters" }),
+});
+
 export type CreatePostValues = z.infer<typeof createPostSchema>;
 export type FeedFilterValues = z.infer<typeof feedFilterSchema>;
+export type CreateCommentValues = z.infer<typeof createCommentSchema>;

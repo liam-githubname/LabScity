@@ -25,3 +25,33 @@
   display: flex;
   justify-content: flex-end;
 }
+
+.postStack {
+  gap: 18px;
+}
+
+.commentSection {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  margin-left: 12px;
+  padding-left: 18px;
+}
+
+.commentSection::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: -8px;
+  bottom: 0;
+  width: 2px;
+  background: var(--mantine-color-navy-7);
+  border-radius: 999px;
+}
+
+.commentComposer {
+  border-radius: 12px;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.12);
+  background: var(--mantine-color-gray-0);
+  padding: 12px 16px;
+}

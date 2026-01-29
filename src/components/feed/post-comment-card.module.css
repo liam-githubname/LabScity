@@ -1,0 +1,67 @@
+.card {
+  border-radius: 14px;
+  box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.18);
+  background: var(--mantine-color-gray-0);
+  padding: 12px 16px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.headerMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.name {
+  font-weight: 700;
+  color: var(--mantine-color-navy-8);
+  line-height: 1.1;
+}
+
+
+.time {
+  color: var(--mantine-color-navy-7);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.content {
+  margin-top: 8px;
+  color: var(--mantine-color-navy-7);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.actionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: var(--mantine-color-navy-7);
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.actionIcon {
+  color: var(--mantine-color-navy-7);
+}
+
+.likedIcon {
+  color: #e03131;
+}

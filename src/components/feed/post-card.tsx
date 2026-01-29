@@ -1,5 +1,5 @@
 import { Avatar, Box, Group, Paper, Text, UnstyledButton } from "@mantine/core";
-import { IconHeart, IconMessageCircle, IconShare3 } from "@tabler/icons-react";
+import { IconHeart, IconHeartFilled, IconMessageCircle, IconShare3 } from "@tabler/icons-react";
 import classes from "./post-card.module.css";
 
 interface PostCardProps {
@@ -10,6 +10,9 @@ interface PostCardProps {
   mediaLabel?: string | null;
   mediaUrl?: string | null;
   avatarUrl?: string | null;
+  onCommentClick?: () => void;
+  onLikeClick?: () => void;
+  isLiked?: boolean;
 }
 
 export function PostCard({
@@ -20,6 +23,9 @@ export function PostCard({
   mediaLabel,
   mediaUrl,
   avatarUrl,
+  onCommentClick,
+  onLikeClick,
+  isLiked = false,
 }: PostCardProps) {
   const initials = userName
     .split(" ")
@@ -60,11 +66,15 @@ export function PostCard({
       ) : null}
 
       <Box className={classes.actions}>
-        <UnstyledButton className={classes.actionButton}>
-          <IconHeart size={18} className={classes.actionIcon} />
+        <UnstyledButton className={classes.actionButton} onClick={onLikeClick}>
+          {isLiked ? (
+            <IconHeartFilled size={18} className={classes.likedIcon} />
+          ) : (
+            <IconHeart size={18} className={classes.actionIcon} />
+          )}
           <Text component="span">Like</Text>
         </UnstyledButton>
-        <UnstyledButton className={classes.actionButton}>
+        <UnstyledButton className={classes.actionButton} onClick={onCommentClick}>
           <IconMessageCircle size={18} className={classes.actionIcon} />
           <Text component="span">Comment</Text>
         </UnstyledButton>

@@ -73,4 +73,14 @@ export interface FeedPostItem {
 	timeAgo: string;
 	mediaUrl?: string | null;
 	mediaLabel?: string | null;
+	comments: FeedCommentItem[];
+	isLiked?: boolean;
+}
+
+export interface FeedCommentItem {
+	id: string;
+	userName: string;
+	content: string;
+	timeAgo: string;
+	isLiked?: boolean;
 }

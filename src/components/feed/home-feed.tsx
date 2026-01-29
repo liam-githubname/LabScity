@@ -6,8 +6,9 @@ import { IconPlus } from "@tabler/icons-react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PostCard } from "@/components/feed/post-card";
-import type { FeedPostItem } from "@/lib/types/feed";
-import { createPostSchema, type CreatePostValues } from "@/lib/validations/post";
+import { PostCommentCard } from "@/components/feed/post-comment-card";
+import type { FeedCommentItem, FeedPostItem } from "@/lib/types/feed";
+import { createCommentSchema, createPostSchema, type CreateCommentValues, type CreatePostValues } from "@/lib/validations/post";
 import classes from "./home-feed.module.css";
 
 interface HomeFeedProps {
@@ -17,6 +18,7 @@ interface HomeFeedProps {
 export function HomeFeed({ initialPosts }: HomeFeedProps) {
 	const [isComposerOpen, setIsComposerOpen] = useState(false);
 	const [posts, setPosts] = useState<FeedPostItem[]>(initialPosts);
+	const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null);
 
 	const {
 		control,
@@ -49,6 +51,8 @@ export function HomeFeed({ initialPosts }: HomeFeedProps) {
 			content: values.content.trim(),
 			timeAgo: "Just now",
 			mediaUrl,
+			comments: [],
+			isLiked: false,
 		};
 
 		setPosts((current) => [newPost, ...current]);
@@ -63,6 +67,48 @@ export function HomeFeed({ initialPosts }: HomeFeedProps) {
 		});
 		setIsComposerOpen(false);
 	});
+
+	const handleAddComment = (postId: string, values: CreateCommentValues) => {
+		const newComment: FeedCommentItem = {
+			id: crypto.randomUUID(),
+			userName: values.userName.trim(),
+			content: values.content.trim(),
+			timeAgo: "Just now",
+			isLiked: false,
+		};
+
+		setPosts((current) =>
+			current.map((post) =>
+				post.id === postId ? { ...post, comments: [newComment, ...post.comments] } : post,
+			),
+		);
+		setActiveCommentPostId(null);
+	};
+
+	const handleTogglePostLike = (postId: string) => {
+		setPosts((current) =>
+			current.map((post) =>
+				post.id === postId ? { ...post, isLiked: !post.isLiked } : post,
+			),
+		);
+	};
+
+	const handleToggleCommentLike = (postId: string, commentId: string) => {
+		setPosts((current) =>
+			current.map((post) =>
+				post.id === postId
+					? {
+							...post,
+							comments: post.comments.map((comment) =>
+								comment.id === commentId
+									? { ...comment, isLiked: !comment.isLiked }
+									: comment,
+							),
+						}
+					: post,
+			),
+		);
+	};
 
 	return (
 		<Stack gap="lg">
@@ -127,17 +173,99 @@ export function HomeFeed({ initialPosts }: HomeFeedProps) {
 
 			<Stack gap="lg">
 				{posts.map((post) => (
-					<PostCard
-						key={post.id}
-						userName={post.userName}
-						field={post.scientificField}
-						timeAgo={post.timeAgo}
-						content={post.content}
-						mediaUrl={post.mediaUrl ?? null}
-						mediaLabel={post.mediaLabel ?? null}
-					/>
+					<Stack key={post.id} className={classes.postStack}>
+						<PostCard
+							userName={post.userName}
+							field={post.scientificField}
+							timeAgo={post.timeAgo}
+							content={post.content}
+							mediaUrl={post.mediaUrl ?? null}
+							mediaLabel={post.mediaLabel ?? null}
+							onCommentClick={() =>
+								setActiveCommentPostId((current) => (current === post.id ? null : post.id))
+							}
+							onLikeClick={() => handleTogglePostLike(post.id)}
+							isLiked={post.isLiked ?? false}
+						/>
+
+						{activeCommentPostId === post.id || post.comments.length > 0 ? (
+							<Stack className={classes.commentSection}>
+								{activeCommentPostId === post.id ? (
+									<CommentComposer
+										postId={post.id}
+										onAddComment={handleAddComment}
+									/>
+								) : null}
+								{post.comments.map((comment) => (
+									<PostCommentCard
+										key={comment.id}
+										comment={comment}
+										onLikeClick={(commentId) =>
+											handleToggleCommentLike(post.id, commentId)
+										}
+									/>
+								))}
+							</Stack>
+						) : null}
+					</Stack>
 				))}
 			</Stack>
 		</Stack>
+	);
+}
+
+interface CommentComposerProps {
+	postId: string;
+	onAddComment: (postId: string, values: CreateCommentValues) => void;
+}
+
+function CommentComposer({ postId, onAddComment }: CommentComposerProps) {
+	const {
+		handleSubmit,
+		register,
+		reset,
+		formState: { errors, isSubmitting, isValid },
+	} = useForm<CreateCommentValues>({
+		resolver: zodResolver(createCommentSchema),
+		mode: "onChange",
+		defaultValues: {
+			userName: "",
+			content: "",
+		},
+	});
+
+	const onCommentSubmit = handleSubmit((values) => {
+		onAddComment(postId, values);
+		reset({
+			userName: "",
+			content: "",
+		});
+	});
+
+	return (
+		<Paper className={classes.commentComposer}>
+			<form onSubmit={onCommentSubmit}>
+				<Stack gap="sm">
+					<TextInput
+						label="Name"
+						placeholder="Dr. Ada Lovelace"
+						error={errors.userName?.message}
+						{...register("userName")}
+					/>
+					<Textarea
+						label="Comment"
+						placeholder="Share a thought..."
+						minRows={2}
+						error={errors.content?.message}
+						{...register("content")}
+					/>
+					<Group className={classes.formActions}>
+						<Button type="submit" disabled={!isValid || isSubmitting} loading={isSubmitting}>
+							Comment
+						</Button>
+					</Group>
+				</Stack>
+			</form>
+		</Paper>
 	);
 }
