@@ -15,6 +15,13 @@
   line-height: 1.1;
 }
 
+.audienceLabel {
+  margin-left: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--mantine-color-navy-7);
+}
+
 .field {
   color: var(--mantine-color-navy-7);
   font-size: 0.9rem;

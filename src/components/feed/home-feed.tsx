@@ -65,6 +65,7 @@ export function HomeFeed({ initialPosts }: HomeFeedProps) {
 			mediaUrl,
 			comments: [],
 			isLiked: false,
+			audienceLabel: null,
 		};
 
 		setPosts((current) => [newPost, ...current]);
@@ -278,6 +279,8 @@ export function HomeFeed({ initialPosts }: HomeFeedProps) {
 							onLikeClick={() => handleTogglePostLike(post.id)}
 							isLiked={post.isLiked ?? false}
 							onReportClick={() => setReportTarget({ type: "post", postId: post.id })}
+							audienceLabel={post.audienceLabel ?? null}
+							menuId={`post-menu-${post.id}`}
 						/>
 
 						{activeCommentPostId === post.id || post.comments.length > 0 ? (
@@ -295,19 +298,20 @@ export function HomeFeed({ initialPosts }: HomeFeedProps) {
 								{post.comments.map((comment) => (
 									<div key={comment.id} className={classes.commentItem}>
 										<div className={classes.commentCard}>
-											<PostCommentCard
-												comment={comment}
-												onLikeClick={(commentId) =>
-													handleToggleCommentLike(post.id, commentId)
-												}
-												onReportClick={(commentId) =>
-													setReportTarget({
-														type: "comment",
-														postId: post.id,
-														commentId,
-													})
-												}
-											/>
+										<PostCommentCard
+											comment={comment}
+											onLikeClick={(commentId) =>
+												handleToggleCommentLike(post.id, commentId)
+											}
+											onReportClick={(commentId) =>
+												setReportTarget({
+													type: "comment",
+													postId: post.id,
+													commentId,
+												})
+											}
+											menuId={`comment-menu-${comment.id}`}
+										/>
 										</div>
 									</div>
 								))}

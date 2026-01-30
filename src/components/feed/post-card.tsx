@@ -22,6 +22,8 @@ interface PostCardProps {
   onReportClick?: () => void;
   showMenu?: boolean;
   showActions?: boolean;
+  audienceLabel?: string | null;
+  menuId?: string;
 }
 
 export function PostCard({
@@ -38,6 +40,8 @@ export function PostCard({
   onReportClick,
   showMenu = true,
   showActions = true,
+  audienceLabel = null,
+  menuId,
 }: PostCardProps) {
   const initials = userName
     .split(" ")
@@ -55,7 +59,14 @@ export function PostCard({
               {initials}
             </Avatar>
             <Box>
-              <Text className={classes.name}>{userName}</Text>
+              <Text className={classes.name}>
+                {userName}
+                {audienceLabel ? (
+                  <Text component="span" className={classes.audienceLabel}>
+                    {audienceLabel}
+                  </Text>
+                ) : null}
+              </Text>
               <Text className={classes.field}>{field}</Text>
             </Box>
           </Group>
@@ -66,6 +77,7 @@ export function PostCard({
                 withinPortal
                 position="bottom-end"
                 classNames={{ dropdown: classes.menuDropdown, item: classes.menuItem }}
+                id={menuId}
               >
                 <Menu.Target>
                   <ActionIcon variant="subtle" className={classes.menuButton} aria-label="Post options">

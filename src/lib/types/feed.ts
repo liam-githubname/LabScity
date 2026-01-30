@@ -75,6 +75,7 @@ export interface FeedPostItem {
 	mediaLabel?: string | null;
 	comments: FeedCommentItem[];
 	isLiked?: boolean;
+	audienceLabel?: string | null;
 }
 
 export interface FeedCommentItem {

@@ -9,6 +9,7 @@ interface PostCommentCardProps {
 	onReportClick?: (commentId: string) => void;
 	showMenu?: boolean;
 	showActions?: boolean;
+	menuId?: string;
 }
 
 export function PostCommentCard({
@@ -17,6 +18,7 @@ export function PostCommentCard({
 	onReportClick,
 	showMenu = true,
 	showActions = true,
+	menuId,
 }: PostCommentCardProps) {
 	const initials = comment.userName
 		.split(" ")
@@ -43,6 +45,7 @@ export function PostCommentCard({
 							withinPortal
 							position="bottom-end"
 							classNames={{ dropdown: classes.menuDropdown, item: classes.menuItem }}
+							id={menuId}
 						>
 							<Menu.Target>
 								<ActionIcon
