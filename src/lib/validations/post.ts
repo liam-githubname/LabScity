@@ -55,6 +55,14 @@ export const createCommentSchema = z.object({
 		.max(2000, { message: "Comment must be less than 2000 characters" }),
 });
 
+export const createReportSchema = z.object({
+	reason: z
+		.string()
+		.min(1, { message: "Reason is required" })
+		.max(2000, { message: "Reason must be less than 2000 characters" }),
+});
+
 export type CreatePostValues = z.infer<typeof createPostSchema>;
 export type FeedFilterValues = z.infer<typeof feedFilterSchema>;
 export type CreateCommentValues = z.infer<typeof createCommentSchema>;
+export type CreateReportValues = z.infer<typeof createReportSchema>;

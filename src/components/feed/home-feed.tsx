@@ -1,14 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { Button, FileInput, Group, Paper, Stack, TextInput, Textarea } from "@mantine/core";
+import { Button, FileInput, Group, Paper, Stack, Text, TextInput, Textarea } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PostCard } from "@/components/feed/post-card";
 import { PostCommentCard } from "@/components/feed/post-comment-card";
 import type { FeedCommentItem, FeedPostItem } from "@/lib/types/feed";
-import { createCommentSchema, createPostSchema, type CreateCommentValues, type CreatePostValues } from "@/lib/validations/post";
+import {
+	createCommentSchema,
+	createPostSchema,
+	createReportSchema,
+	type CreateCommentValues,
+	type CreatePostValues,
+	type CreateReportValues,
+} from "@/lib/validations/post";
 import classes from "./home-feed.module.css";
 
 interface HomeFeedProps {
@@ -19,6 +26,11 @@ export function HomeFeed({ initialPosts }: HomeFeedProps) {
 	const [isComposerOpen, setIsComposerOpen] = useState(false);
 	const [posts, setPosts] = useState<FeedPostItem[]>(initialPosts);
 	const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null);
+	const [reportTarget, setReportTarget] = useState<
+		| { type: "post"; postId: string }
+		| { type: "comment"; postId: string; commentId: string }
+		| null
+	>(null);
 
 	const {
 		control,
@@ -68,6 +80,26 @@ export function HomeFeed({ initialPosts }: HomeFeedProps) {
 		setIsComposerOpen(false);
 	});
 
+	const {
+		handleSubmit: handleReportSubmit,
+		register: registerReport,
+		reset: resetReport,
+		formState: { errors: reportErrors, isSubmitting: isReportSubmitting, isValid: isReportValid },
+	} = useForm<CreateReportValues>({
+		resolver: zodResolver(createReportSchema),
+		mode: "onChange",
+		defaultValues: {
+			reason: "",
+		},
+	});
+
+	const onSubmitReport = handleReportSubmit((values) => {
+		if (!reportTarget) return;
+		// TODO: Submit report to database.
+		setReportTarget(null);
+		resetReport({ reason: "" });
+	});
+
 	const handleAddComment = (postId: string, values: CreateCommentValues) => {
 		const newComment: FeedCommentItem = {
 			id: crypto.randomUUID(),
@@ -112,6 +144,65 @@ export function HomeFeed({ initialPosts }: HomeFeedProps) {
 
 	return (
 		<Stack gap="lg">
+			{reportTarget ? (
+				<div className={classes.reportOverlay}>
+					<div className={classes.reportPanel}>
+						<Text className={classes.reportHeader}>
+							{reportTarget.type === "post" ? "Report post" : "Report comment"}
+						</Text>
+						{reportTarget.type === "post" ? (
+							posts
+								.filter((post) => post.id === reportTarget.postId)
+								.map((post) => (
+									<PostCard
+										key={post.id}
+										userName={post.userName}
+										field={post.scientificField}
+										timeAgo={post.timeAgo}
+										content={post.content}
+										mediaUrl={post.mediaUrl ?? null}
+										mediaLabel={post.mediaLabel ?? null}
+										isLiked={post.isLiked ?? false}
+										showMenu={false}
+										showActions={false}
+									/>
+								))
+						) : (
+							posts
+								.filter((post) => post.id === reportTarget.postId)
+								.flatMap((post) => post.comments)
+								.filter((comment) => comment.id === reportTarget.commentId)
+								.map((comment) => (
+									<PostCommentCard
+										key={comment.id}
+										comment={comment}
+										showMenu={false}
+										showActions={false}
+									/>
+								))
+						)}
+						<form onSubmit={onSubmitReport}>
+							<Stack gap="sm">
+								<Textarea
+									label="Reason"
+									placeholder="Describe why you are reporting this post..."
+									minRows={3}
+									error={reportErrors.reason?.message}
+									{...registerReport("reason")}
+								/>
+								<Group justify="flex-end">
+									<Button variant="default" onClick={() => setReportTarget(null)}>
+										Cancel
+									</Button>
+									<Button type="submit" disabled={!isReportValid || isReportSubmitting}>
+										Submit
+									</Button>
+								</Group>
+							</Stack>
+						</form>
+					</div>
+				</div>
+			) : null}
 			<Button
 				className={classes.newPostButton}
 				leftSection={<IconPlus size={14} />}
@@ -186,6 +277,7 @@ export function HomeFeed({ initialPosts }: HomeFeedProps) {
 							}
 							onLikeClick={() => handleTogglePostLike(post.id)}
 							isLiked={post.isLiked ?? false}
+							onReportClick={() => setReportTarget({ type: "post", postId: post.id })}
 						/>
 
 						{activeCommentPostId === post.id || post.comments.length > 0 ? (
@@ -202,6 +294,13 @@ export function HomeFeed({ initialPosts }: HomeFeedProps) {
 											comment={comment}
 											onLikeClick={(commentId) =>
 												handleToggleCommentLike(post.id, commentId)
+											}
+											onReportClick={(commentId) =>
+												setReportTarget({
+													type: "comment",
+													postId: post.id,
+													commentId,
+												})
 											}
 										/>
 									</div>

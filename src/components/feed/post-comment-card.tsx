@@ -1,14 +1,23 @@
-import { Avatar, Box, Paper, Text, UnstyledButton } from "@mantine/core";
-import { IconHeart, IconHeartFilled } from "@tabler/icons-react";
+import { ActionIcon, Avatar, Box, Menu, Paper, Text, UnstyledButton } from "@mantine/core";
+import { IconDots, IconHeart, IconHeartFilled } from "@tabler/icons-react";
 import type { FeedCommentItem } from "@/lib/types/feed";
 import classes from "./post-comment-card.module.css";
 
 interface PostCommentCardProps {
 	comment: FeedCommentItem;
 	onLikeClick?: (commentId: string) => void;
+	onReportClick?: (commentId: string) => void;
+	showMenu?: boolean;
+	showActions?: boolean;
 }
 
-export function PostCommentCard({ comment, onLikeClick }: PostCommentCardProps) {
+export function PostCommentCard({
+	comment,
+	onLikeClick,
+	onReportClick,
+	showMenu = true,
+	showActions = true,
+}: PostCommentCardProps) {
 	const initials = comment.userName
 		.split(" ")
 		.filter(Boolean)
@@ -27,32 +36,56 @@ export function PostCommentCard({ comment, onLikeClick }: PostCommentCardProps) 
 						<Text className={classes.name}>{comment.userName}</Text>
 					</Box>
 				</Box>
-				<Text className={classes.time}>{comment.timeAgo}</Text>
+				<Box className={classes.headerActions}>
+					<Text className={classes.time}>{comment.timeAgo}</Text>
+					{showMenu ? (
+						<Menu
+							withinPortal
+							position="bottom-end"
+							classNames={{ dropdown: classes.menuDropdown, item: classes.menuItem }}
+						>
+							<Menu.Target>
+								<ActionIcon
+									variant="subtle"
+									className={classes.menuButton}
+									aria-label="Comment options"
+								>
+									<IconDots size={18} />
+								</ActionIcon>
+							</Menu.Target>
+							<Menu.Dropdown>
+								<Menu.Item onClick={() => onReportClick?.(comment.id)}>Report</Menu.Item>
+							</Menu.Dropdown>
+						</Menu>
+					) : null}
+				</Box>
 			</Box>
 
 			<Text className={classes.content}>{comment.content}</Text>
 
-			<Box className={classes.actions}>
-				<UnstyledButton
-					className={classes.actionButton}
-					onClick={() => onLikeClick?.(comment.id)}
-				>
-					{comment.isLiked ? (
-						<IconHeartFilled size={16} className={classes.likedIcon} />
-					) : (
-						<IconHeart size={16} className={classes.actionIcon} />
-					)}
-					<Text component="span">Like</Text>
-				</UnstyledButton>
-				{/* <UnstyledButton className={classes.actionButton}>
-					<IconMessageCircle size={16} className={classes.actionIcon} />
-					<Text component="span">Comment</Text>
-				</UnstyledButton> */}
-				{/* <UnstyledButton className={classes.actionButton}>
-					<IconShare3 size={16} className={classes.actionIcon} />
-					<Text component="span">Share</Text>
-				</UnstyledButton> */}
-			</Box>
+			{showActions ? (
+				<Box className={classes.actions}>
+					<UnstyledButton
+						className={classes.actionButton}
+						onClick={() => onLikeClick?.(comment.id)}
+					>
+						{comment.isLiked ? (
+							<IconHeartFilled size={16} className={classes.likedIcon} />
+						) : (
+							<IconHeart size={16} className={classes.actionIcon} />
+						)}
+						<Text component="span">Like</Text>
+					</UnstyledButton>
+					{/* <UnstyledButton className={classes.actionButton}>
+						<IconMessageCircle size={16} className={classes.actionIcon} />
+						<Text component="span">Comment</Text>
+					</UnstyledButton> */}
+					{/* <UnstyledButton className={classes.actionButton}>
+						<IconShare3 size={16} className={classes.actionIcon} />
+						<Text component="span">Share</Text>
+					</UnstyledButton> */}
+				</Box>
+			) : null}
 		</Paper>
 	);
 }

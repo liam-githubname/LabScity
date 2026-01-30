@@ -81,6 +81,35 @@
   transform: translateY(0);
 }
 
+.reportOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 56, 105, 0.15);
+  z-index: 200;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 24px 16px;
+  overflow-y: auto;
+}
+
+.reportPanel {
+  width: min(720px, 100%);
+  background: var(--mantine-color-gray-0);
+  border-radius: 16px;
+  box-shadow: 0px 6px 14px rgba(0, 0, 0, 0.2);
+  padding: 16px 20px;
+  display: grid;
+  gap: 16px;
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+}
+
+.reportHeader {
+  font-weight: 700;
+  color: var(--mantine-color-navy-8);
+}
+
 .commentComposer {
   border-radius: 12px;
   box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.12);

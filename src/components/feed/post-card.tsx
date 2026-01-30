@@ -1,5 +1,11 @@
-import { Avatar, Box, Group, Paper, Text, UnstyledButton } from "@mantine/core";
-import { IconHeart, IconHeartFilled, IconMessageCircle, IconShare3 } from "@tabler/icons-react";
+import { ActionIcon, Avatar, Box, Group, Menu, Paper, Text, UnstyledButton } from "@mantine/core";
+import {
+	IconDots,
+	IconHeart,
+	IconHeartFilled,
+	IconMessageCircle,
+	IconShare3,
+} from "@tabler/icons-react";
 import classes from "./post-card.module.css";
 
 interface PostCardProps {
@@ -13,6 +19,9 @@ interface PostCardProps {
   onCommentClick?: () => void;
   onLikeClick?: () => void;
   isLiked?: boolean;
+  onReportClick?: () => void;
+  showMenu?: boolean;
+  showActions?: boolean;
 }
 
 export function PostCard({
@@ -26,6 +35,9 @@ export function PostCard({
   onCommentClick,
   onLikeClick,
   isLiked = false,
+  onReportClick,
+  showMenu = true,
+  showActions = true,
 }: PostCardProps) {
   const initials = userName
     .split(" ")
@@ -47,7 +59,25 @@ export function PostCard({
               <Text className={classes.field}>{field}</Text>
             </Box>
           </Group>
-          <Text className={classes.time}>{timeAgo}</Text>
+          <Box className={classes.headerActions}>
+            <Text className={classes.time}>{timeAgo}</Text>
+            {showMenu ? (
+              <Menu
+                withinPortal
+                position="bottom-end"
+                classNames={{ dropdown: classes.menuDropdown, item: classes.menuItem }}
+              >
+                <Menu.Target>
+                  <ActionIcon variant="subtle" className={classes.menuButton} aria-label="Post options">
+                    <IconDots size={18} />
+                  </ActionIcon>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Item onClick={onReportClick}>Report</Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
+            ) : null}
+          </Box>
         </Group>
       </Box>
 
@@ -65,24 +95,26 @@ export function PostCard({
         </Box>
       ) : null}
 
-      <Box className={classes.actions}>
-        <UnstyledButton className={classes.actionButton} onClick={onLikeClick}>
-          {isLiked ? (
-            <IconHeartFilled size={18} className={classes.likedIcon} />
-          ) : (
-            <IconHeart size={18} className={classes.actionIcon} />
-          )}
-          <Text component="span">Like</Text>
-        </UnstyledButton>
-        <UnstyledButton className={classes.actionButton} onClick={onCommentClick}>
-          <IconMessageCircle size={18} className={classes.actionIcon} />
-          <Text component="span">Comment</Text>
-        </UnstyledButton>
-        <UnstyledButton className={classes.actionButton}>
-          <IconShare3 size={18} className={classes.actionIcon} />
-          <Text component="span">Share</Text>
-        </UnstyledButton>
-      </Box>
+      {showActions ? (
+        <Box className={classes.actions}>
+          <UnstyledButton className={classes.actionButton} onClick={onLikeClick}>
+            {isLiked ? (
+              <IconHeartFilled size={18} className={classes.likedIcon} />
+            ) : (
+              <IconHeart size={18} className={classes.actionIcon} />
+            )}
+            <Text component="span">Like</Text>
+          </UnstyledButton>
+          <UnstyledButton className={classes.actionButton} onClick={onCommentClick}>
+            <IconMessageCircle size={18} className={classes.actionIcon} />
+            <Text component="span">Comment</Text>
+          </UnstyledButton>
+          <UnstyledButton className={classes.actionButton}>
+            <IconShare3 size={18} className={classes.actionIcon} />
+            <Text component="span">Share</Text>
+          </UnstyledButton>
+        </Box>
+      ) : null}
     </Paper>
   );
 }
