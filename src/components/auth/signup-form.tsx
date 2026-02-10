@@ -10,12 +10,14 @@ import { signupSchema, type SignupValues } from "@/lib/validations/auth";
 import classes from "./auth-form.module.css";
 import type { signupAction } from "@/lib/actions/auth";
 
+import { useRouter } from "next/navigation"; // NOTE: added for routing
+
 type SignupAction = typeof signupAction;
 
-export function SignupForm({ 
-  signupAction 
-}: { 
-  signupAction: SignupAction 
+export function SignupForm({
+  signupAction
+}: {
+  signupAction: SignupAction
 }) {
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -31,21 +33,29 @@ export function SignupForm({
     },
   });
 
+  // NOTE: PROFILE CREATE SUBMIT
   const onSubmit = async (data: SignupValues) => {
     setServerError(null); // Clear previous errors
 
     try {
       const formData = new FormData();
+
       formData.append("email", data.email);
       formData.append("password", data.password);
       formData.append("firstName", data.firstName);
       formData.append("lastName", data.lastName);
       formData.append("confirmPassword", data.confirmPassword);
-      
+
       const result = await signupAction(formData);
       if (!result.success && result.error) {
         setServerError(result.error);
       }
+
+      // TODO: if OK, redirect to login AND display message asking for verification
+
+      const router = useRouter();
+      router.push("/login"); // i.e. navigate to ""
+
     } catch (error) {
       setServerError("An unexpected error occurred. Please try again.");
     }
@@ -56,9 +66,9 @@ export function SignupForm({
       <form onSubmit={form.handleSubmit(onSubmit)}>
         <Stack gap="md" align="center">
           <Box className={classes.logoBox}>
-            <Image 
-              src="/logo.png" 
-              alt="LabScity Logo" 
+            <Image
+              src="/logo.png"
+              alt="LabScity Logo"
               width={200}
               height={200}
               priority
