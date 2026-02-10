@@ -1,13 +1,16 @@
 "use client";
 
 import { ActionIcon, Box, Group } from "@mantine/core";
-import { IconFlaskFilled, IconUser } from "@tabler/icons-react";
+import { IconFlaskFilled, IconMessage, IconUser } from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navigation = [
-  { href: "/", icon: IconFlaskFilled },
+  // TO ADD A NEW ROUTE:
+  // simply add its path under here; add an icon as well
+  // the order in the navbar will match the order here!
   { href: "/profile", icon: IconUser },
+  { href: "/messenger", icon: IconMessage },
 ];
 
 export function AppNavbar() {
