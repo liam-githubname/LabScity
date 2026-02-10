@@ -1,5 +1,6 @@
 /*
  * TODO: who sent the last message in a gc
+ * TODO: assign placeholder colors! where do they come from?
  */
 
 "use client"
