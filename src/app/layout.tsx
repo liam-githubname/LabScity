@@ -3,9 +3,10 @@ import "@mantine/notifications/styles.css";
 import { ColorSchemeScript, MantineProvider } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { theme } from "@/lib/constants/theme";
-import { QueryProvider } from "@/components/providers/query-provider"; 
+import { QueryProvider } from "@/components/providers/query-provider";
+import { Metadata } from "next"
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "LabScity",
   description: "Social Media for Scientists",
 };
@@ -27,7 +28,7 @@ export default function RootLayout({
             {children}
           </MantineProvider>
         </QueryProvider>
-      </body>
-    </html>
+      </body >
+    </html >
   );
 }

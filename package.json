@@ -13,6 +13,7 @@
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@mantine/core": "^8.3.12",
+    "@mantine/form": "^8.3.14",
     "@mantine/hooks": "^8.3.12",
     "@mantine/notifications": "^8.3.14",
     "@supabase/ssr": "^0.8.0",
