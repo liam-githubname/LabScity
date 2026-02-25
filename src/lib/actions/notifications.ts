@@ -3,6 +3,7 @@
 // TODO: remove the console.logs (MOVE THEM TO CONSOLE.ERRORS PRO)
 
 import { createClient } from "@/supabase/server";
+import { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Sets a notification preference for the current user.
@@ -316,6 +317,53 @@ export async function unmuteItem(
 
   if (error) {
     console.error(`Failed to unmute ${itemType}:`, error.message);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}
+
+// TODO: fix the documentation for this
+/**
+ * Marks a single notification as read.
+ */
+export async function markNotificationAsRead(notificationId: string): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: 'Not authenticated' };
+
+  const { error } = await supabase
+    .from('notifications')
+    .update({ is_read: true })
+    .eq('id', notificationId)
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error('Failed to mark notification as read:', error.message);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}
+
+/**
+ * Marks all of the user's unread notifications as read.
+ */
+export async function markAllNotificationsAsRead(): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: 'Not authenticated' };
+
+  const { error } = await supabase
+    .from('notifications')
+    .update({ is_read: true })
+    .eq('user_id', user.id)
+    .eq('is_read', false);
+
+  if (error) {
+    console.error('Failed to mark all as read:', error.message);
     return { success: false, error: error.message };
   }
 
