@@ -179,28 +179,72 @@ export default function ChatPage() {
       {/* ======================================= */}
       {/* SIDEBAR AREA (Tests getChatsWithPreview) */}
       {/* ======================================= */}
-      <AppShell.Navbar bg="gray.1" style={{ borderRight: '1px solid #e9ecef' }}>
-        <Paper p="md" radius={0} shadow="xs" style={{ zIndex: 10 }}>
-          <Title order={4}>My Conversations</Title>
+      <AppShell.Navbar p="md" bg="transparent">
+        <Paper
+          radius="lg"
+          shadow="sm"
+          h="100%"
+          withBorder
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+        >
+          <Box p="md" pb="sm" style={{ display: 'flex', justifyContent: 'center' }}>
+        <Title order={3} c="navy.8" ta="center">
+          My Conversations
+        </Title>
+      </Box>
+
+          {/* Search bar */}
+          <Box px="md" pb="md">
+            <TextInput
+              placeholder="Search"
+              radius="xl"
+              size="md"
+            />
+          </Box>
+
+          <ScrollArea flex={1}>
+            {chats.length === 0 ? (
+              <Center p="xl">
+                <Text c="dimmed">No chats found.</Text>
+              </Center>
+            ) : (
+              chats.map((chat) => (
+                <NavLink
+                  key={chat.conversation_id}
+                  href={`/chat/${chat.conversation_id}`}
+                  active={chat.conversation_id + "" === chat_id}
+                  c="navy.8"
+                  px="md"
+                  py="sm"
+                  label={
+                    <Text fw={600}>
+                      {chat.name || `Chat #${chat.conversation_id}`}
+                    </Text>
+                  }
+                  description={
+                    <Text size="xs" c="dimmed">
+                      {chat.message?.content as string || 'No messages yet'}
+                    </Text>
+                  }
+                  leftSection={
+                    <Avatar
+                      radius="xl"
+                      size="md"
+                    />
+                  }
+                  style={{
+                    borderRadius: 12,
+                    margin: '4px 8px',
+                  }}
+                />
+              ))
+            )}
+          </ScrollArea>
         </Paper>
-        <ScrollArea flex={1}>
-          {chats.length === 0 ? (
-            <Center p="xl"><Text c="dimmed">No chats found.</Text></Center>
-          ) : (
-            chats.map((chat) => (
-              <NavLink
-                key={chat.conversation_id}
-                href={`/chat/${chat.conversation_id}`}
-                active={chat.conversation_id + "" === chat_id}
-                label={<Text fw={600}>{chat.name || `Chat #${chat.conversation_id}`}</Text>}
-                description={<Text size="xs"> {chat.message?.content as string || 'No messages yet'}</Text>}
-                leftSection={<Avatar radius="xl" size="sm" color="blue" />}
-                p="md"
-                style={{ borderBottom: '1px solid #e9ecef' }}
-              />
-            ))
-          )}
-        </ScrollArea>
       </AppShell.Navbar>
 
       {/* ======================================= */}
@@ -208,36 +252,37 @@ export default function ChatPage() {
       {/* ======================================= */}
       <AppShell.Main>
         {!chat_id ? (
-          <Center h="100vh"><Text c="dimmed">Select a chat from the sidebar to start testing.</Text></Center>
+          <Center h="100vh">
+            <Text c="dimmed">Select a chat from the sidebar to start testing.</Text>
+          </Center>
         ) : (
           <Container fluid h="100vh" p={0}>
             <Stack h="100%" gap={0} bg="gray.0">
 
               {/* HEADER */}
-              <Paper p="md" shadow="xs" radius={0} withBorder style={{ zIndex: 10 }}>
-                <Group justify="space-between">
-                  <Group>
-                    <Avatar color="blue" radius="xl"><IconMessageCircle2 size="1.5rem" /></Avatar>
-                    <div>
-                      <button onClick={() => console.log(supabase.getChannels())}>
-                        Log Active Channels
-                      </button>
-                      <Title order={5}>Chat Room {chat_id}</Title>
-                      <Group gap={6}>
-                        <Indicator color={isConnected ? 'green' : 'yellow'} position="middle-start" size={6} processing>
-                          <Text size="xs" c="dimmed" ml={10}>
-                            {isConnected ? 'Live' : 'Connecting...'}
-                          </Text>
-                        </Indicator>
-                      </Group>
-                    </div>
+              <Paper p="md" shadow="sm" radius="lg" withBorder style={{ zIndex: 10 }}>
+                <Stack gap={4} align="center">
+                  {/* Chat Room Title - centered */}
+                  <Title order={3} c="navy.8" style={{ margin: 0 }}>
+                    Chat Room {chat_id}
+                  </Title>
+
+                  <Group align="center" style={{ gap: 6 }}>
+                    <Indicator
+                      color={isConnected ? 'green' : 'yellow'}
+                      size={8}
+                      processing
+                    />
+                    <Text size="xs" c="dimmed">
+                      {isConnected ? 'Live' : 'Connecting...'}
+                    </Text>
                   </Group>
-                </Group>
+                </Stack>
               </Paper>
 
               {/* MESSAGES AREA */}
               <ScrollArea flex={1} p="md" viewportRef={viewport}>
-                <Stack gap="sm">
+                <Stack gap="md">
                   {messages.length === 0 && (
                     <Center h={200}>
                       <Text c="dimmed" size="sm">No messages yet. Say hello!</Text>
@@ -248,20 +293,18 @@ export default function ChatPage() {
                     const isMe = msg.sender_id === userId
                     return (
                       <Group key={msg.id} justify={isMe ? 'flex-end' : 'flex-start'} align="flex-end" gap="xs">
-                        {!isMe && <Avatar radius="xl" size="sm" />}
+                        {!isMe && <Avatar radius="xl" size="md" />}
 
                         <Paper
-                          p="xs"
+                          p="sm"
                           px="md"
                           radius="lg"
-                          bg={isMe ? 'blue.6' : 'white'}
-                          c={isMe ? 'white' : 'black'}
+                          bg={isMe ? 'gray.6' : 'gray.2'}
+                          c={isMe ? 'gray.2' : 'navy.8'}
+                          shadow="sm"
                           style={{
                             maxWidth: '70%',
-                            borderBottomRightRadius: isMe ? 0 : undefined,
-                            borderBottomLeftRadius: !isMe ? 0 : undefined
                           }}
-                          shadow="xs"
                         >
                           <Text size="sm">{msg.content}</Text>
                         </Paper>
@@ -272,7 +315,7 @@ export default function ChatPage() {
               </ScrollArea>
 
               {/* INPUT AREA */}
-              <Paper p="md" withBorder radius={0}>
+              <Paper p="md" withBorder radius="md">
                 <Group align="flex-end">
                   <TextInput
                     placeholder="Type a message..."
@@ -280,7 +323,7 @@ export default function ChatPage() {
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyDown={handleKeyDown}
                     style={{ flex: 1 }}
-                    radius="md"
+                    radius="md" 
                     size="md"
                     disabled={!isConnected}
                   />
