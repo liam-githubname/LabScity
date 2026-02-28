@@ -17,3 +17,10 @@ export const profileKeys = {
   following: (user_id: string) => [...profileKeys.all, "following", user_id] as const,
   posts: (user_id: string) => [...profileKeys.all, "posts", user_id] as const,
 }
+
+export const chatKeys = {
+  all: ["chat"] as const,
+  oldMessages: (conversation_id: number, cursor?: string) => [...chatKeys.all, "oldMessages", conversation_id, cursor] as const,
+  chatsWithPreview: () => [...chatKeys.all, "chatsWithPreview"] as const,
+
+}
