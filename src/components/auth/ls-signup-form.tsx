@@ -27,6 +27,7 @@ export function LSSignupForm({
   signupAction: SignupAction
 }) {
   const [serverError, setServerError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const form = useForm<SignupValues>({
     resolver: zodResolver(signupSchema),
@@ -42,6 +43,7 @@ export function LSSignupForm({
 
   const onSubmit = async (data: SignupValues) => {
     setServerError(null); // Clear previous errors
+    setSuccessMessage(null); // Clear previous success message
 
     try {
       const formData = new FormData();
@@ -54,7 +56,10 @@ export function LSSignupForm({
       const result = await signupAction(formData);
       if (!result.success && result.error) {
         setServerError(result.error);
+        return;
       }
+
+      setSuccessMessage("Check your email to verify your account before signing in.");
     } catch (error) {
       setServerError("An unexpected error occurred. Please try again.");
     }
@@ -88,6 +93,11 @@ export function LSSignupForm({
           {serverError && (
             <Alert color="red" title="Error">
               {serverError}
+            </Alert>
+          )}
+          {successMessage && (
+            <Alert color="green" title="Success">
+              {successMessage}
             </Alert>
           )}
           <Box
