@@ -23,8 +23,9 @@ import {
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 import { useIsMobile } from "@/app/use-is-mobile";
+import { useMarkNotificationAsRead } from "@/components/notifications/use-notifications";
+import { useNotificationStore } from "@/store/notificationStore";
 
 const navigation = [
   { href: "/home", icon: IconFlaskFilled, label: "Home" },
@@ -33,82 +34,68 @@ const navigation = [
   { href: "/notifications", icon: IconBell, label: "Notifications" },
 ];
 
-//Stuff for notif types
-type NavbarNotificationType = "like" | "comment" | "message" | "group_invite";
-
-type NavbarNotification = {
-  id: string;
-  actor: string;
-  message: string;
-  timestamp: string;
-  type: NavbarNotificationType;
-};
-
-//Static notifs for testing dropdown
-const recentNotifications: NavbarNotification[] = [
-  {
-    id: "n1",
-    actor: "Colton Santiago",
-    message: "liked your post.",
-    timestamp: "2m ago",
-    type: "like",
-  },
-  {
-    id: "n2",
-    actor: "Liam",
-    message: "commented on your post.",
-    timestamp: "14m ago",
-    type: "comment",
-  },
-  {
-    id: "n3",
-    actor: "Chris",
-    message: "sent you a message.",
-    timestamp: "1h ago",
-    type: "message",
-  },
-  {
-    id: "n4",
-    actor: "Big Group",
-    message: "invited you to join their group.",
-    timestamp: "3h ago",
-    type: "group_invite",
-  },
-];
-
-function notificationIcon(type: NavbarNotificationType) {
+function getNotificationIcon(type: string) {
   switch (type) {
-    case "like":
+    case "post_like":
       return IconHeartFilled;
-    case "comment":
+    case "new_comment":
       return IconMessageCircleFilled;
-    case "message":
-      return IconMessageFilled;
+    case "new_follow":
+      return IconUserFilled;
     case "group_invite":
       return IconUserFilled;
+    case "new_message":
+      return IconMessageFilled;
     default:
       return IconBell;
   }
 }
 
-//Likes stay red else use navy 
-function notificationIconColor(type: NavbarNotificationType) {
-  return type === "like"
+function getNotificationIconColor(type: string) {
+  return type === "post_like"
     ? "var(--mantine-color-red-6)"
     : "var(--mantine-color-navy-7)";
 }
 
-function NotificationsDropdown({ active, isMobile }: { active: boolean, isMobile: boolean }) {
-  // Local UI state for preview dismiss, wire this to backend notifications later.
-  const [notifications, setNotifications] = useState(recentNotifications);
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMins < 1) return "just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+
+function NotificationsDropdown({
+  active,
+  isMobile,
+}: {
+  active: boolean;
+  isMobile: boolean;
+}) {
+  const { notifications, dismissNotification } = useNotificationStore();
+  const markAsReadMutation = useMarkNotificationAsRead();
   const visibleNotifications = notifications.slice(0, 5);
 
-  const dismissNotification = (id: string) => {
-    setNotifications((current) => current.filter((item) => item.id !== id));
+  const handleDismiss = (id: string) => {
+    markAsReadMutation.mutate(id);
+    dismissNotification(id);
   };
 
   return (
-    <Menu shadow="md" width={360} position="bottom" offset={8} zIndex={999999999}>
+    <Menu
+      shadow="md"
+      width={360}
+      position="bottom"
+      offset={8}
+      zIndex={999999999}
+    >
       {/* notifications navbar entry */}
       <Menu.Target>
         <Button
@@ -131,45 +118,71 @@ function NotificationsDropdown({ active, isMobile }: { active: boolean, isMobile
               No notifications.
             </Text>
           ) : (
-            visibleNotifications.map((notification) => {
-              const NotificationIcon = notificationIcon(notification.type);
-
-              return (
-                <Group
-                  key={notification.id}
-                  justify="space-between"
-                  align="flex-start"
-                  wrap="nowrap"
-                >
-                  <Group align="flex-start" wrap="nowrap" gap={8}>
-                    <NotificationIcon
-                      size={18}
-                      color={notificationIconColor(notification.type)}
-                    />
-                    <Box>
-                      <Text size="sm">
-                        <Text span fw={600}>
-                          {notification.actor}
-                        </Text>{" "}
-                        {notification.message}
+            visibleNotifications.map((notification) => (
+              <Group
+                key={notification.id}
+                justify="space-between"
+                align="flex-start"
+                wrap="nowrap"
+              >
+                <Group align="flex-start" wrap="nowrap" gap={8}>
+                  {(() => {
+                    const NotificationIcon = getNotificationIcon(
+                      notification.type,
+                    );
+                    return (
+                      <NotificationIcon
+                        size={18}
+                        color={getNotificationIconColor(notification.type)}
+                      />
+                    );
+                  })()}
+                  <Box>
+                    {notification.link ? (
+                      <Link
+                        href={notification.link}
+                        style={{ textDecoration: "none" }}
+                      >
+                        <Text size="sm" fw={600} style={{ cursor: "pointer" }}>
+                          {notification.title}
+                          {notification.bundleCount &&
+                            notification.bundleCount > 1 && (
+                              <Text span c="dimmed">
+                                {" "}
+                                (+{notification.bundleCount - 1} more)
+                              </Text>
+                            )}
+                        </Text>
+                      </Link>
+                    ) : (
+                      <Text size="sm" fw={600}>
+                        {notification.title}
+                        {notification.bundleCount &&
+                          notification.bundleCount > 1 && (
+                            <Text span c="dimmed">
+                              {" "}
+                              (+{notification.bundleCount - 1} more)
+                            </Text>
+                          )}
                       </Text>
-                      <Text size="xs" c="dimmed">
-                        {notification.timestamp}
-                      </Text>
-                    </Box>
-                  </Group>
-                  <ActionIcon
-                    variant="subtle"
-                    color="gray"
-                    size="sm"
-                    aria-label="Dismiss notification"
-                    onClick={() => dismissNotification(notification.id)}
-                  >
-                    <IconX size={14} />
-                  </ActionIcon>
+                    )}
+                    <Text size="sm">{notification.content}</Text>
+                    <Text size="xs" c="dimmed">
+                      {formatRelativeTime(notification.created_at)}
+                    </Text>
+                  </Box>
                 </Group>
-              );
-            })
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  size="sm"
+                  aria-label="Dismiss notification"
+                  onClick={() => handleDismiss(notification.id)}
+                >
+                  <IconX size={14} />
+                </ActionIcon>
+              </Group>
+            ))
           )}
         </Stack>
         <Divider my={4} />
