@@ -39,34 +39,34 @@ export function HomeFeed(props: HomeFeedProps) {
         preview={
           reportTarget?.type === "post"
             ? posts
-                .filter((post) => post.id === reportTarget.postId)
-                .map((post) => (
-                  <PostCard
-                    key={post.id}
-                    userId={post.userId}
-                    userName={post.userName}
-                    field={post.scientificField}
-                    timeAgo={post.timeAgo}
-                    content={post.content}
-                    mediaUrl={post.mediaUrl ?? null}
-                    mediaLabel={post.mediaLabel ?? null}
-                    isLiked={post.isLiked ?? false}
-                    showMenu={false}
-                    showActions={false}
-                  />
-                ))
+              .filter((post) => post.id === reportTarget.postId)
+              .map((post) => (
+                <PostCard
+                  key={post.id}
+                  userId={post.userId}
+                  userName={post.userName}
+                  field={post.scientificField}
+                  timeAgo={post.timeAgo}
+                  content={post.content}
+                  mediaUrl={post.mediaUrl ?? null}
+                  mediaLabel={post.mediaLabel ?? null}
+                  isLiked={post.isLiked ?? false}
+                  showMenu={false}
+                  showActions={false}
+                />
+              ))
             : posts
-                .filter((post) => post.id === reportTarget?.postId)
-                .flatMap((post) => post.comments)
-                .filter((comment) => comment.id === reportTarget?.commentId)
-                .map((comment) => (
-                  <PostCommentCard
-                    key={comment.id}
-                    comment={comment}
-                    showMenu={false}
-                    showActions={false}
-                  />
-                ))
+              .filter((post) => post.id === reportTarget?.postId)
+              .flatMap((post) => post.comments)
+              .filter((comment) => comment.id === reportTarget?.commentId)
+              .map((comment) => (
+                <PostCommentCard
+                  key={comment.id}
+                  comment={comment}
+                  showMenu={false}
+                  showActions={false}
+                />
+              ))
         }
         onClose={() => setReportTarget(null)}
         onSubmit={onSubmitReport}
@@ -77,15 +77,9 @@ export function HomeFeed(props: HomeFeedProps) {
         radius="xl"
         variant="default"
         size="sm"
-        c="navy.7"
+        c="gray.0"
         fw={700}
-        bg="gray.0"
-        style={{
-          alignSelf: "flex-start",
-          boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.2)",
-          border: "1px solid var(--mantine-color-navy-3)",
-          height: "auto",
-        }}
+        bg="navy.8"
         onClick={() => setIsComposerOpen((open) => !open)}
       >
         New Post

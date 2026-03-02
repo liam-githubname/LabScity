@@ -1,5 +1,4 @@
 import { Box, Stack } from "@mantine/core";
-import { UserProfileWidget } from "@/components/sidebar/user-profile-widget";
 import { TrendingWidget } from "@/components/sidebar/trending-widget";
 import classes from "./layout.module.css";
 
@@ -16,7 +15,6 @@ export default function HomeLayout({
         </Box>
         <Box className={classes.rightSidebar}>
           <Stack gap="md">
-            <UserProfileWidget />
             <TrendingWidget />
           </Stack>
         </Box>
