@@ -1,6 +1,6 @@
 "use client"
 
-import { ActionIcon, Button, Menu, Image, Flex, TextInput, Paper, Stack, Text, Loader, Box } from "@mantine/core"
+import { ActionIcon, Button, Menu, Image, Flex, TextInput, Paper, Stack, Text, Loader } from "@mantine/core"
 import { useDebouncedValue } from "@mantine/hooks"
 import { IconBell, IconBellFilled, IconLogout, IconSearch, IconSettings, IconSettingsFilled, IconX } from "@tabler/icons-react"
 import { usePathname, useRouter } from "next/navigation"
@@ -63,16 +63,15 @@ const LSAppTopBar = () => {
       bg="gray.0"
       top={0}
       left={isMobile ? 0 : 60}
-      h={60}
+      h={12000}
       w="100%"
       justify="center"
       align="center"
-      style={{ borderBottom: "1px solid var(--mantine-color-gray-3)", zIndex: 100 }}
+      style={{ borderBottom: "1px solid var(--mantine-color-gray-3)", zIndex: 100, overflow: "hidden" }}
     >
       {searchOpen ? (
         /* search mode — input spans the topbar */
-        // NOTE: height here MUST match height on flex to keep size consistent in search mode! idk why
-        <Flex align="center" w="100%" h={60} pl={8} pr={8} gap="sm" pos="relative">
+        <Flex align="center" w="100%" h="100%" pl={8} pr={8} gap="sm" pos="relative">
           <TextInput
             ref={inputRef}
             value={query}
@@ -86,35 +85,17 @@ const LSAppTopBar = () => {
             <IconX size={18} />
           </ActionIcon>
 
-          {/* dim overlay (desktop only) — clicking it closes search */}
-          {!isMobile && (
-            <Box
-              pos="fixed"
-              top={60}
-              left={0}
-              right={0}
-              bottom={0}
-              onClick={closeSearch}
-              style={{ background: "rgba(0,0,0,0.4)", zIndex: 150 }}
-            />
-          )}
-
-          {/* results panel */}
+          {/* results dropdown */}
           {(results.length > 0 || (debounced && !searching)) && (
             <Paper
-              pos="fixed"
-              top={68}
-              left={isMobile ? 0 : "25%"}
-              right={isMobile ? 0 : "25%"}
-              bottom={isMobile ? 0 : undefined}
+              pos="absolute"
+              top={48}
+              left={0}
+              right={0}
               shadow="md"
-              radius={isMobile ? 0 : "md"}
+              radius="md"
               p="sm"
-              style={{
-                zIndex: 151,
-                overflowY: "auto",
-                maxHeight: isMobile ? undefined : "60vh",
-              }}
+              style={{ zIndex: 200 }}
             >
               {results.length === 0 ? (
                 <Text size="sm" c="navy.5" ta="center">No results found</Text>
