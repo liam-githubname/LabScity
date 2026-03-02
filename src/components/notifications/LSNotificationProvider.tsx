@@ -1,67 +1,62 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { createClient } from '@/supabase/client';
+import { useEffect, useRef } from "react";
+import {
+  type Notification,
+  useNotificationStore,
+} from "@/store/notificationStore";
+import { createClient } from "@/supabase/client";
 
-export default function NotificationProvider({ children }: { children: React.ReactNode }) {
-  const [notifications, setNotifications] = useState<any[]>([]);
+export default function NotificationProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { setNotifications, addNotification } = useNotificationStore();
   const supabase = createClient();
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  // NOTE: You must make sure the user has been identified first.
-  // WARN: This should be being passed down by a parent component probably
   useEffect(() => {
-
-    let channel: ReturnType<typeof supabase.channel>;
-
     const initializeNotifications = async () => {
-
-      // NOTE: this is an async function and because we need to have user be defined we must make it wait
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        return;
-      }
-
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
 
       const { data } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('is_read', false)
-        .order('created_at', { ascending: false });
+        .from("notifications")
+        .select("*")
+        .eq("is_read", false)
+        .order("created_at", { ascending: false });
 
       if (data) setNotifications(data);
 
-      channel = supabase
+      channelRef.current = supabase
         .channel(`notifications_${user.id}`)
         .on(
-          'postgres_changes',
+          "postgres_changes",
           {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${user.id}`
+            event: "INSERT",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${user.id}`,
           },
           (payload) => {
-            console.log(payload)
-            setNotifications((prev) => [payload.new, ...prev]);
-          }
+            console.log(payload);
+            addNotification(payload.new as Notification);
+          },
         )
-        .subscribe((status) => {
-        });
+        .subscribe();
     };
 
     initializeNotifications();
 
     return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
       }
     };
-  }, [supabase]);
+  }, [supabase, setNotifications, addNotification]);
 
-  return (
-    <>
-      {/* You could render a <NotificationToast /> component here */}
-      {children}
-    </>
-  );
+  return <>{children}</>;
 }

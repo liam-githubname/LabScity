@@ -321,3 +321,73 @@ export async function unmuteItem(
 
   return { success: true };
 }
+
+/**
+ * Marks a notification as read by updating its is_read status to true.
+ *
+ * @param notificationId - The ID of the notification to mark as read
+ * @returns Promise resolving to an object with success status and optional error message
+ *
+ * @example
+ * ```typescript
+ * await markNotificationAsRead("notification-uuid-here");
+ * ```
+ */
+export async function markNotificationAsRead(
+  notificationId: string,
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("notifications")
+    .update({ is_read: true })
+    .eq("id", notificationId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    console.error("Failed to mark notification as read:", error.message);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}
+
+/**
+ * Marks a notification as unread by updating its is_read status to false.
+ *
+ * @param notificationId - The ID of the notification to mark as unread
+ * @returns Promise resolving to an object with success status and optional error message
+ *
+ * @example
+ * ```typescript
+ * await unmarkNotificationAsRead("notification-uuid-here");
+ * ```
+ */
+export async function unmarkNotificationAsRead(
+  notificationId: string,
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("notifications")
+    .update({ is_read: false })
+    .eq("id", notificationId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    console.error("Failed to mark notification as unread:", error.message);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}
