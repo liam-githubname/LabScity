@@ -9,6 +9,13 @@ import {
   getUserFollowing,
   getUserFriends,
 } from "@/lib/actions/profile";
+import {
+  createComment,
+  createPost,
+  createReport,
+  likeComment,
+  likePost,
+} from "@/lib/actions/feed";
 import { profileKeys } from "@/lib/query-keys";
 import { LSProfileView } from "@/components/profile/ls-profile-view";
 import { createClient } from "@/supabase/server";
@@ -16,6 +23,7 @@ import { createClient } from "@/supabase/server";
 // Server component for /profile/[user_id].
 // Uses the dynamic route param to decide which profile to show,
 // then hydrates TanStack Query cache for the client LSProfileView.
+
 interface ProfilePageProps {
   // In React 19 / latest Next, params is passed as a Promise
   // and must be awaited before accessing its properties.
@@ -92,7 +100,15 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   return (
     <HydrationBoundary state={dehydratedState}>
-      <LSProfileView userId={userId} isOwnProfile={isOwnProfile} />
+      <LSProfileView
+        userId={userId}
+        isOwnProfile={isOwnProfile}
+        createPostAction={createPost}
+        createCommentAction={createComment}
+        createReportAction={createReport}
+        likePostAction={likePost}
+        likeCommentAction={likeComment}
+      />
     </HydrationBoundary>
   );
 }

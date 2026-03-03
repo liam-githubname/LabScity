@@ -9,10 +9,22 @@ import { useUserFollowing, useUserFriends, useUserPosts, useUserProfile } from "
 import LSMiniProfileList from "@/components/profile/ls-mini-profile-list";
 import LSPost from "@/components/profile/ls-post";
 import LSProfileHero from "@/components/profile/ls-profile-hero";
+import type {
+  CreateCommentAction,
+  CreatePostAction,
+  CreateReportAction,
+  LikeCommentAction,
+  LikePostAction,
+} from "@/components/feed/home-feed.types";
 
 interface LSProfileViewProps {
   userId: string;
   isOwnProfile: boolean;
+  createPostAction: CreatePostAction;
+  createCommentAction: CreateCommentAction;
+  createReportAction: CreateReportAction;
+  likePostAction: LikePostAction;
+  likeCommentAction: LikeCommentAction;
 }
 
 const LSProfileMobileLayout = ({ userId }: { userId: string }) => {
@@ -141,7 +153,15 @@ const LSProfileDesktopLayout = ({ userId }: { userId: string }) => {
   );
 };
 
-export function LSProfileView({ userId, isOwnProfile }: LSProfileViewProps) {
+export function LSProfileView({
+  userId,
+  isOwnProfile,
+  createPostAction,
+  createCommentAction,
+  createReportAction,
+  likePostAction,
+  likeCommentAction,
+}: LSProfileViewProps) {
   const isMobile = useIsMobile();
 
   return isMobile ? (
@@ -150,4 +170,3 @@ export function LSProfileView({ userId, isOwnProfile }: LSProfileViewProps) {
     <LSProfileDesktopLayout userId={userId} />
   );
 }
-
