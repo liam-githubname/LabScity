@@ -71,8 +71,6 @@ export function useUserFollowing(user_id: string) {
     queryFn: async () => getUserFollowing(user_id)
   })
 
-  console.log(data?.data)
-
   return {
     status: status,
     error: error || undefined,
@@ -82,7 +80,7 @@ export function useUserFollowing(user_id: string) {
 
 export function useUserFriends(user_id: string) {
   const { status, data, error } = useQuery({
-    queryKey: profileKeys.following(user_id),
+    queryKey: profileKeys.friends(user_id),
     queryFn: async () => getUserFriends(user_id)
   })
 
