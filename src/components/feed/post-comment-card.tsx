@@ -2,6 +2,7 @@ import { ActionIcon, Avatar, Box, Group, Menu, Text, UnstyledButton } from "@man
 import Link from "next/link";
 import { IconDots, IconHeart, IconHeartFilled } from "@tabler/icons-react";
 import type { FeedCommentItem } from "@/lib/types/feed";
+import linkClasses from "./user-name-link.module.css";
 
 interface PostCommentCardProps {
   comment: FeedCommentItem;
@@ -28,7 +29,7 @@ export function PostCommentCard({
     .join("");
 
   const nameNode = comment.userId ? (
-    <Link href={`/profile/${comment.userId}`} style={{ textDecoration: "none", color: "inherit" }}>
+    <Link href={`/profile/${comment.userId}`} className={linkClasses.nameLink} style={{ color: "inherit" }}>
       <Text component="span" fw="bold" c="navy.7" size="sm" style={{ cursor: "pointer" }}>
         {comment.userName}
       </Text>
@@ -40,7 +41,7 @@ export function PostCommentCard({
   return (
     <Group align="flex-start" gap="sm" w="100%" wrap="nowrap">
       {/* avatar */}
-      <Avatar size={36} radius="xl" color="navy.7" style={{ flexShrink: 0 }}>
+      <Avatar size={36} radius="xl" color="navy.7" src={comment.avatarUrl || undefined} style={{ flexShrink: 0 }}>
         {initials}
       </Avatar>
 

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { getFeed } from "@/lib/actions/feed";
 import type { FeedPostItem } from "@/lib/types/feed";
 import { feedKeys } from "@/lib/query-keys";
+import { createClient } from "@/supabase/client";
 import {
   feedFilterSchema,
   type CreateCommentValues,
@@ -15,9 +16,13 @@ import {
 import type { HomeFeedProps } from "./home-feed.types";
 
 const defaultFeedFilter = feedFilterSchema.parse({});
+const maxPostImageBytes = 5 * 1024 * 1024;
+const allowedImageMimeTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+const postMediaBucket = "post_images";
 
 export function useHomeFeed({
   createPostAction,
+  createPostImageUploadUrlAction,
   createCommentAction,
   createReportAction,
   likePostAction,
@@ -49,13 +54,40 @@ export function useHomeFeed({
   });
 
   const createPostMutation = useMutation({
-    mutationFn: async (values: CreatePostValues) => {
+    mutationFn: async (values: CreatePostValues & { mediaFile?: File | null }) => {
+      let mediaPath: string | undefined;
+
+      if (values.mediaFile) {
+        if (!allowedImageMimeTypes.has(values.mediaFile.type)) {
+          throw new Error("Only JPG, PNG, WEBP, and GIF images are allowed");
+        }
+
+        if (values.mediaFile.size > maxPostImageBytes) {
+          throw new Error("Image must be 5MB or smaller");
+        }
+
+        const uploadInfo = await createPostImageUploadUrlAction(values.mediaFile.type);
+        if (!uploadInfo.success || !uploadInfo.data) {
+          throw new Error(uploadInfo.error ?? "Could not prepare image upload");
+        }
+
+        const supabase = createClient();
+        const { error: uploadError } = await supabase.storage
+          .from(postMediaBucket)
+          .uploadToSignedUrl(uploadInfo.data.path, uploadInfo.data.token, values.mediaFile);
+
+        if (uploadError) {
+          throw new Error(uploadError.message || "Image upload failed");
+        }
+
+        mediaPath = uploadInfo.data.path;
+      }
+
       const payload = {
         scientificField: values.scientificField,
         content: values.content,
         category: values.category,
-        mediaUrl: values.mediaUrl ?? "",
-        link: values.link ?? "",
+        mediaPath,
       };
       const result = await createPostAction(payload);
       if (!result.success) {
@@ -68,9 +100,19 @@ export function useHomeFeed({
       setIsComposerOpen(false);
     },
     onError: (error) => {
+      const message = error instanceof Error ? error.message : "Something went wrong";
+      const isUploadIssue =
+        message.includes("upload") ||
+        message.includes("Image") ||
+        message.includes("JPG") ||
+        message.includes("PNG") ||
+        message.includes("WEBP") ||
+        message.includes("GIF") ||
+        message.includes("5MB");
+
       notifications.show({
-        title: "Could not create post",
-        message: error instanceof Error ? error.message : "Something went wrong",
+        title: isUploadIssue ? "Could not upload image" : "Could not create post",
+        message,
         color: "red",
       });
     },
@@ -178,7 +220,7 @@ export function useHomeFeed({
 
   const posts: FeedPostItem[] = feedData?.posts ?? [];
 
-  const handleSubmitPost = (values: CreatePostValues) => {
+  const handleSubmitPost = (values: CreatePostValues & { mediaFile?: File | null }) => {
     createPostMutation.mutate(values);
   };
 

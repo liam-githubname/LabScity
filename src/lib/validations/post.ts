@@ -12,24 +12,7 @@ export const createPostSchema = z.object({
 	category: z.enum(["formal", "natural", "social", "applied", "general"], {
 		message: "Category is required",
 	}),
-	mediaFile: z
-		.any()
-		.optional()
-		.refine(
-			(file) =>
-				!file ||
-				(typeof file === "object" &&
-					"type" in file &&
-					typeof file.type === "string" &&
-					file.type.startsWith("image/")),
-			{ message: "Only image uploads are supported" },
-		),
-	mediaUrl: z
-		.union([z.url({ message: "Invalid media URL" }), z.literal("")])
-		.optional(),
-	link: z
-		.union([z.url({ message: "Invalid link URL" }), z.literal("")])
-		.optional(),
+	mediaPath: z.string().min(1).optional(),
 });
 
 export const feedFilterSchema = z.object({

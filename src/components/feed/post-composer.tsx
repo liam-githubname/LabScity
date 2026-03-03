@@ -3,10 +3,15 @@
 import { Button, Card, FileInput, Group, Paper, Select, Stack, TextInput, Textarea } from "@mantine/core";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   createPostSchema,
   type CreatePostValues,
 } from "@/lib/validations/post";
+
+const postComposerSchema = createPostSchema.extend({
+  mediaFile: z.any().optional().nullable(),
+});
 
 const SCIENCE_CATEGORIES = [
   "Acoustics",
@@ -65,7 +70,7 @@ const SCIENCE_CATEGORIES = [
 ];
 
 export interface PostComposerProps {
-  onSubmit: (values: CreatePostValues) => void | Promise<void>;
+  onSubmit: (values: CreatePostValues & { mediaFile?: File | null }) => void | Promise<void>;
   isPending: boolean;
 }
 
@@ -75,16 +80,15 @@ export function PostComposer({ onSubmit: onSubmitProp, isPending }: PostComposer
     handleSubmit,
     formState: { errors, isSubmitting, isValid },
     register,
-  } = useForm<CreatePostValues>({
-    resolver: zodResolver(createPostSchema),
+  } = useForm<CreatePostValues & { mediaFile?: File | null }>({
+    resolver: zodResolver(postComposerSchema),
     mode: "onChange",
     defaultValues: {
       scientificField: "",
       content: "",
       category: "general",
       mediaFile: undefined,
-      mediaUrl: "",
-      link: "",
+      mediaPath: undefined,
     },
   });
 

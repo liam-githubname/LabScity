@@ -82,6 +82,8 @@ export const postSchema = z.object({
     .min(1, "Post text is required")
     .max(5000, "Post text too long")
     .optional(),
+  media_path: z.string().nullable().optional(),
+  media_url: z.string().nullable().optional(),
   created_at: z.string(),
   category: z.string().optional(),
   like_amount: z.number().min(0, "Like amount cannot be negative"),

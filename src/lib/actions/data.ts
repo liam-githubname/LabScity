@@ -130,6 +130,7 @@ export async function getUserPosts(input: GetUserPostsInput, supabaseClient?: Su
         created_at,
         category,
         text,
+        media_path,
         like_amount
       `);
 
@@ -190,11 +191,18 @@ export async function getUserPosts(input: GetUserPostsInput, supabaseClient?: Su
       ? validatedPosts.slice(0, validatedInput.limit)
       : validatedPosts;
 
+    const returnedPostsWithMedia = returnedPosts.map((post) => ({
+      ...post,
+      media_url: post.media_path
+        ? supabase.storage.from("post_images").getPublicUrl(post.media_path).data.publicUrl
+        : null,
+    }));
+
     // Calculate next cursor from last returned post
     const nextCursor =
-      returnedPosts.length > 0
+      returnedPostsWithMedia.length > 0
         ? String(
-          returnedPosts[returnedPosts.length - 1][
+          returnedPostsWithMedia[returnedPostsWithMedia.length - 1][
           validatedInput.sortBy as keyof (typeof returnedPosts)[0]
           ],
         )
@@ -202,9 +210,9 @@ export async function getUserPosts(input: GetUserPostsInput, supabaseClient?: Su
 
     // For backward navigation, you might want prev cursor from first item
     const prevCursor =
-      returnedPosts.length > 0
+      returnedPostsWithMedia.length > 0
         ? String(
-          returnedPosts[0][
+          returnedPostsWithMedia[0][
           validatedInput.sortBy as keyof (typeof returnedPosts)[0]
           ],
         )
@@ -213,7 +221,7 @@ export async function getUserPosts(input: GetUserPostsInput, supabaseClient?: Su
     return {
       success: true,
       data: {
-        posts: returnedPosts,
+        posts: returnedPostsWithMedia,
         pagination: {
           limit: validatedInput.limit,
           hasMore,
@@ -336,8 +344,32 @@ export async function getUser(user_id: string, supabaseClient?: SupabaseClient):
     }
 
 
+    const user = data[0];
+    const { data: profileData, error: profileError } = await supabase
+      .from("profile")
+      .select("header_pic_path")
+      .eq("user_id", user_id)
+      .maybeSingle();
+
+    if (profileError) {
+      return { success: false, error: `Error in getUser profile lookup ${profileError.message}` };
+    }
+
+    const avatarUrl = user.profile_pic_path
+      ? supabase.storage.from("profile_pictures").getPublicUrl(user.profile_pic_path).data.publicUrl
+      : null;
+    const profileHeaderUrl = profileData?.header_pic_path
+      ? supabase.storage.from("profile_header").getPublicUrl(profileData.header_pic_path).data.publicUrl
+      : null;
+
     return {
-      success: true, data: data[0]
+      success: true,
+      data: {
+        ...user,
+        profile_header_path: profileData?.header_pic_path ?? null,
+        avatar_url: avatarUrl,
+        profile_header_url: profileHeaderUrl,
+      },
     }
 
   } catch (error) {

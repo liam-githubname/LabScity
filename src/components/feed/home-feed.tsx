@@ -46,6 +46,7 @@ export function HomeFeed(props: HomeFeedProps) {
                   key={post.id}
                   userId={post.userId}
                   userName={post.userName}
+                  avatarUrl={post.avatarUrl ?? null}
                   field={post.scientificField}
                   timeAgo={post.timeAgo}
                   content={post.content}
@@ -112,6 +113,7 @@ export function HomeFeed(props: HomeFeedProps) {
             key={post.id}
             userId={post.userId}
             userName={post.userName}
+            avatarUrl={post.avatarUrl ?? null}
             field={post.scientificField}
             timeAgo={post.timeAgo}
             content={post.content}

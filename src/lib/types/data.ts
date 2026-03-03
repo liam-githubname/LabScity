@@ -5,6 +5,8 @@ export interface Post {
   post_id: number;
   user_id: string;
   text?: string;
+  media_path?: string | null;
+  media_url?: string | null;
   created_at: string;
   category?: string;
   like_amount: number;

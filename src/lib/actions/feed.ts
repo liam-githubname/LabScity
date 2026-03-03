@@ -15,6 +15,59 @@ import {
 import { createClient } from "@/supabase/server";
 
 const idSchema = z.string().min(1, "ID is required");
+const postMediaBucket = "post_images";
+const allowedImageTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
+
+function extensionFromMime(mimeType: string) {
+	switch (mimeType) {
+		case "image/jpeg":
+			return "jpg";
+		case "image/png":
+			return "png";
+		case "image/webp":
+			return "webp";
+		case "image/gif":
+			return "gif";
+		default:
+			return "bin";
+	}
+}
+
+export async function createPostImageUploadUrl(contentType: string, supabaseClient?: any) {
+	try {
+		if (!allowedImageTypes.includes(contentType as (typeof allowedImageTypes)[number])) {
+			return { success: false, error: "Only image uploads are supported" };
+		}
+
+		const supabase = supabaseClient ?? (await createClient());
+		const { data: authData } = await supabase.auth.getUser();
+
+		if (!authData.user) {
+			return { success: false, error: "Authentication required" };
+		}
+
+		const extension = extensionFromMime(contentType);
+		const path = `${authData.user.id}/${crypto.randomUUID()}.${extension}`;
+
+		const { data, error } = await supabase.storage
+			.from(postMediaBucket)
+			.createSignedUploadUrl(path);
+
+		if (error || !data) {
+			return { success: false, error: error?.message ?? "Failed to prepare upload" };
+		}
+
+		return {
+			success: true,
+			data: {
+				path,
+				token: data.token,
+			},
+		};
+	} catch {
+		return { success: false, error: "Failed to prepare upload" };
+	}
+}
 
 /**
  * Insert a new post into the database with the given content and scientific field. The user must be authenticated to create a post.
@@ -52,6 +105,7 @@ export async function createPost(input: CreatePostValues, supabaseClient?: any) 
 				scientific_field: parsed.scientificField,
 				category: parsed.category,
 				text: parsed.content,
+				media_path: parsed.mediaPath ?? null,
 			})
 			.select()
 			.single();
@@ -102,6 +156,27 @@ export async function deletePost(postId: string, supabaseClient?: any) {
 		
 		if (!authData.user) {
 			return { success: false, error: "Authentication required" };
+		}
+
+		const { data: postData, error: postDataError } = await supabase
+			.from("posts")
+			.select("media_path")
+			.eq("post_id", postIdStr)
+			.eq("user_id", authData.user.id)
+			.maybeSingle();
+
+		if (postDataError) {
+			return { success: false, error: postDataError.message };
+		}
+
+		if (postData?.media_path) {
+			const { error: removeMediaError } = await supabase.storage
+				.from(postMediaBucket)
+				.remove([postData.media_path]);
+
+			if (removeMediaError) {
+				return { success: false, error: removeMediaError.message };
+			}
 		}
 
 		// Delete post from database (only if user owns it)
@@ -167,7 +242,8 @@ export async function getFeed(input: FeedFilterValues, supabaseClient?: any) {
 				like_amount,
 				scientific_field,
 				user_id,
-				users:user_id(user_id, first_name, last_name),
+				media_path,
+				users:user_id(user_id, first_name, last_name, profile_pic_path),
 				likes(user_id)
 			`
 			)
@@ -226,7 +302,7 @@ export async function getFeed(input: FeedFilterValues, supabaseClient?: any) {
 						text,
 						created_at,
 						user_id,
-						users:user_id(user_id, first_name, last_name),
+						users:user_id(user_id, first_name, last_name, profile_pic_path),
 						comment_likes(user_id)
 					`
 					)
@@ -238,17 +314,30 @@ export async function getFeed(input: FeedFilterValues, supabaseClient?: any) {
 		);
 
 		// Format the response
-		const formattedPosts = postsWithComments.map(({ post, comments }: any) => ({
+		const formattedPosts = postsWithComments.map(({ post, comments }: any) => {
+			const mediaUrl = post.media_path
+				? supabase.storage.from(postMediaBucket).getPublicUrl(post.media_path).data.publicUrl
+				: null;
+			const postAvatarUrl = post.users?.profile_pic_path
+				? supabase.storage.from("profile_pictures").getPublicUrl(post.users.profile_pic_path).data.publicUrl
+				: null;
+
+			return {
 			id: post.post_id,
 			userId: post.user_id,
 			userName: `${post.users?.first_name} ${post.users?.last_name}`.trim(),
+			avatarUrl: postAvatarUrl,
 			scientificField: post.scientific_field,
 			content: post.text,
+			mediaUrl,
 			timeAgo: getTimeAgo(post.created_at),
 			comments: comments.map((comment: any) => ({
 				id: comment.comment_id,
 				userId: comment.user_id,
 				userName: `${comment.users?.first_name} ${comment.users?.last_name}`.trim(),
+				avatarUrl: comment.users?.profile_pic_path
+					? supabase.storage.from("profile_pictures").getPublicUrl(comment.users.profile_pic_path).data.publicUrl
+					: null,
 				content: comment.text,
 				timeAgo: getTimeAgo(comment.created_at),
 				isLiked: authData.user
@@ -258,7 +347,8 @@ export async function getFeed(input: FeedFilterValues, supabaseClient?: any) {
 			isLiked: post.likes && post.likes.length > 0 && authData.user
 				? post.likes.some((like: any) => like.user_id === authData.user?.id)
 				: false,
-		}));
+			};
+		});
 
 		const data: GetFeedResult = {
 			posts: formattedPosts,

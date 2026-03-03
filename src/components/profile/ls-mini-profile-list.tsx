@@ -18,7 +18,7 @@ export default function LSMiniProfileList({ widgetTitle, profiles }: LSMiniProfi
         posterEmail={profile.email}
         posterName={profile.first_name + " " + profile.last_name}
         posterResearchInterest={profile.research_interests?.at(0) || ""}
-        posterProfilePicURL={profile.avatar_url || "default url"}
+        posterProfilePicURL={profile.avatar_url || undefined}
       />
     </li>
   )

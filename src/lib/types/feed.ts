@@ -14,7 +14,10 @@ export interface User {
   last_name: string;
   email: string;
   research_interests?: string[];
+  profile_pic_path?: string | null;
+  profile_header_path?: string | null;
   avatar_url?: string | null;
+  profile_header_url?: string | null;
 }
 
 /**
@@ -70,6 +73,7 @@ export interface FeedPostItem {
   id: string;
   userId: string;
   userName: string;
+  avatarUrl?: string | null;
   scientificField: string;
   content: string;
   timeAgo: string;
@@ -84,6 +88,7 @@ export interface FeedCommentItem {
   id: string;
   userId: string;
   userName: string;
+  avatarUrl?: string | null;
   content: string;
   timeAgo: string;
   isLiked?: boolean;

@@ -8,6 +8,7 @@ import { HomeFeed } from "@/components/feed/home-feed";
 import {
   createComment,
   createPost,
+  createPostImageUploadUrl,
   createReport,
   getFeed,
   likeComment,
@@ -43,6 +44,7 @@ export default async function HomePage() {
     <HydrationBoundary state={dehydratedState}>
       <HomeFeed
         createPostAction={createPost}
+        createPostImageUploadUrlAction={createPostImageUploadUrl}
         createCommentAction={createComment}
         createReportAction={createReport}
         likePostAction={likePost}
