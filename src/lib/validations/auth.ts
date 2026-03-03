@@ -20,6 +20,8 @@ export const signupSchema = z.object({
     .email("Invalid email address")
     .min(1, { message: "Email is required" })
     .endsWith(".edu", { message: "Only .edu email addresses are allowed" }),
+  occupation: z.string().min(2, { message: "Occupation must be at least 2 characters" }),
+  workplace: z.string().min(2, { message: "Workplace must be at least 2 characters" }),
   password: z
     .string()
     .min(8, { message: "Password must be at least 8 characters" })

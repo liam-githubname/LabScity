@@ -27,6 +27,7 @@ export function LSSignupForm({
   signupAction: SignupAction
 }) {
   const [serverError, setServerError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const form = useForm<SignupValues>({
     resolver: zodResolver(signupSchema),
@@ -35,6 +36,8 @@ export function LSSignupForm({
       firstName: "",
       lastName: "",
       email: "",
+      occupation: "",
+      workplace: "",
       password: "",
       confirmPassword: "",
     },
@@ -42,6 +45,7 @@ export function LSSignupForm({
 
   const onSubmit = async (data: SignupValues) => {
     setServerError(null); // Clear previous errors
+    setSuccessMessage(null); // Clear previous success message
 
     try {
       const formData = new FormData();
@@ -49,12 +53,17 @@ export function LSSignupForm({
       formData.append("password", data.password);
       formData.append("firstName", data.firstName);
       formData.append("lastName", data.lastName);
+      formData.append("occupation", data.occupation);
+      formData.append("workplace", data.workplace);
       formData.append("confirmPassword", data.confirmPassword);
 
       const result = await signupAction(formData);
       if (!result.success && result.error) {
         setServerError(result.error);
+        return;
       }
+
+      setSuccessMessage("Check your email to verify your account before signing in.");
     } catch (error) {
       setServerError("An unexpected error occurred. Please try again.");
     }
@@ -88,6 +97,11 @@ export function LSSignupForm({
           {serverError && (
             <Alert color="red" title="Error">
               {serverError}
+            </Alert>
+          )}
+          {successMessage && (
+            <Alert color="green" title="Success">
+              {successMessage}
             </Alert>
           )}
           <Box
@@ -135,6 +149,42 @@ export function LSSignupForm({
             <Text fz="md" fw={600} c="navy.7" lh={1.5}>Email</Text>
             <Controller
               name="email"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <TextInput
+                  {...field}
+                  styles={{ input: inputStyles, root: { width: "100%" } }}
+                  error={fieldState.error?.message}
+                />
+              )}
+            />
+          </Box>
+          <Box
+            w="100%"
+            maw="18.5rem"
+            style={{ display: "flex", flexDirection: "column", gap: "0.1rem", alignItems: "flex-start" }}
+          >
+            <Text fz="md" fw={600} c="navy.7" lh={1.5}>Occupation</Text>
+            <Controller
+              name="occupation"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <TextInput
+                  {...field}
+                  styles={{ input: inputStyles, root: { width: "100%" } }}
+                  error={fieldState.error?.message}
+                />
+              )}
+            />
+          </Box>
+          <Box
+            w="100%"
+            maw="18.5rem"
+            style={{ display: "flex", flexDirection: "column", gap: "0.1rem", alignItems: "flex-start" }}
+          >
+            <Text fz="md" fw={600} c="navy.7" lh={1.5}>Workplace</Text>
+            <Controller
+              name="workplace"
               control={form.control}
               render={({ field, fieldState }) => (
                 <TextInput

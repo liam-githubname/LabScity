@@ -43,6 +43,8 @@ export async function signupAction(formData: FormData) {
   const password = formData.get("password") as string;
   const firstName = formData.get("firstName") as string;
   const lastName = formData.get("lastName") as string;
+  const occupation = formData.get("occupation") as string;
+  const workplace = formData.get("workplace") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
   const supabase = await createClient();
 
@@ -54,6 +56,8 @@ export async function signupAction(formData: FormData) {
       confirmPassword: confirmPassword,
       firstName,
       lastName,
+      occupation,
+      workplace,
     });
 
     const { data, error } = await supabase.auth.signUp({
@@ -63,6 +67,8 @@ export async function signupAction(formData: FormData) {
         data: {
           first_name: parsed.firstName,
           last_name: parsed.lastName,
+          occupation: parsed.occupation,
+          workplace: parsed.workplace,
         },
       },
     });
