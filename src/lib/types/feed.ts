@@ -6,7 +6,7 @@
 export type PostCategory = "formal" | "natural" | "social" | "applied" | "general";
 
 /**
- * User/Profile type from the profiles table
+ * User/Profile type from the users/profile tables
  */
 export interface User {
   user_id: string;
@@ -15,6 +15,13 @@ export interface User {
   email: string;
   research_interests?: string[];
   avatar_url?: string | null;
+  // Extended profile fields (from public.profile), all optional so callers
+  // can safely consume them even if the current query doesn't join profile.
+  about?: string | null;
+  occupation?: string | null;
+  workplace?: string | null;
+  skills?: string[] | null;
+  banner_pic_url?: string | null;
 }
 
 /**
