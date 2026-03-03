@@ -1,9 +1,165 @@
 "use server";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
 import type { User } from "@/lib/types/feed";
 import { createClient } from "@/supabase/server";
 import type { DataResponse } from "../types/data";
+
+const profilePictureBucket = "profile_pictures";
+const maxProfilePictureBytes = 1024 * 1024;
+const allowedProfilePictureTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
+
+const contentTypeSchema = z
+  .string()
+  .refine((value) => allowedProfilePictureTypes.includes(value as (typeof allowedProfilePictureTypes)[number]), {
+    message: "Only JPG, PNG, WEBP, and GIF images are allowed",
+  });
+
+const profilePicPathSchema = z.string().min(1, "Profile picture path is required");
+
+function extensionFromMime(mimeType: string) {
+  switch (mimeType) {
+    case "image/jpeg":
+      return "jpg";
+    case "image/png":
+      return "png";
+    case "image/webp":
+      return "webp";
+    case "image/gif":
+      return "gif";
+    default:
+      return "bin";
+  }
+}
+
+function mapUserWithAvatarUrl(user: User, supabase: SupabaseClient): User {
+  if (!user.profile_pic_path) {
+    return { ...user, avatar_url: null };
+  }
+
+  const avatarUrl = supabase.storage
+    .from(profilePictureBucket)
+    .getPublicUrl(user.profile_pic_path).data.publicUrl;
+
+  return { ...user, avatar_url: avatarUrl };
+}
+
+export async function createProfilePictureUploadUrl(contentType: string, supabaseClient?: SupabaseClient) {
+  try {
+    const validatedContentType = contentTypeSchema.parse(contentType);
+    const supabase = supabaseClient || (await createClient());
+    const { data: authData } = await supabase.auth.getUser();
+
+    if (!authData.user) {
+      return { success: false, error: "Authentication required" };
+    }
+
+    const extension = extensionFromMime(validatedContentType);
+    const path = `${authData.user.id}/${crypto.randomUUID()}.${extension}`;
+
+    const { data, error } = await supabase.storage
+      .from(profilePictureBucket)
+      .createSignedUploadUrl(path);
+
+    if (error || !data) {
+      return { success: false, error: error?.message ?? "Failed to prepare profile picture upload" };
+    }
+
+    return {
+      success: true,
+      data: {
+        bucket: profilePictureBucket,
+        path,
+        token: data.token,
+        maxBytes: maxProfilePictureBytes,
+      },
+    };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return { success: false, error: error.issues[0]?.message ?? "Invalid content type" };
+    }
+    return { success: false, error: "Failed to prepare profile picture upload" };
+  }
+}
+
+export async function updateOwnProfilePicture(profilePicPath: string, supabaseClient?: SupabaseClient) {
+  try {
+    const validatedPath = profilePicPathSchema.parse(profilePicPath);
+    const supabase = supabaseClient || (await createClient());
+    const { data: authData } = await supabase.auth.getUser();
+
+    if (!authData.user) {
+      return { success: false, error: "Authentication required" };
+    }
+
+    if (!validatedPath.startsWith(`${authData.user.id}/`)) {
+      return { success: false, error: "Invalid profile picture path" };
+    }
+
+    const { data: currentUser, error: currentUserError } = await supabase
+      .from("users")
+      .select("profile_pic_path")
+      .eq("user_id", authData.user.id)
+      .maybeSingle();
+
+    if (currentUserError) {
+      return { success: false, error: currentUserError.message };
+    }
+
+    if (!currentUser) {
+      return {
+        success: false,
+        error: "User profile row was not found in public.users for the authenticated user",
+      };
+    }
+
+    const { error: updateError } = await supabase
+      .from("users")
+      .update({ profile_pic_path: validatedPath })
+      .eq("user_id", authData.user.id);
+
+    if (updateError) {
+      return { success: false, error: updateError.message };
+    }
+
+    const { data: updatedUser, error: updatedUserError } = await supabase
+      .from("users")
+      .select("profile_pic_path")
+      .eq("user_id", authData.user.id)
+      .maybeSingle();
+
+    if (updatedUserError) {
+      return { success: false, error: updatedUserError.message };
+    }
+
+    if (!updatedUser || updatedUser.profile_pic_path !== validatedPath) {
+      return {
+        success: false,
+        error: "Profile picture path update did not persist to public.users",
+      };
+    }
+
+    if (currentUser?.profile_pic_path && currentUser.profile_pic_path !== validatedPath) {
+      await supabase.storage.from(profilePictureBucket).remove([currentUser.profile_pic_path]);
+    }
+
+    const avatarUrl = supabase.storage.from(profilePictureBucket).getPublicUrl(validatedPath).data.publicUrl;
+
+    return {
+      success: true,
+      data: {
+        profilePicPath: validatedPath,
+        avatarUrl,
+      },
+    };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return { success: false, error: error.issues[0]?.message ?? "Validation failed" };
+    }
+    return { success: false, error: "Failed to update profile picture" };
+  }
+}
 
 export async function getUserFollowers(
   user_id: string,
@@ -31,6 +187,7 @@ export async function getUserFollowers(
       data:
         (data as unknown as { users: User }[])
           .map((row) => row.users)
+          .map((user) => mapUserWithAvatarUrl(user, supabase))
           .filter(Boolean) || [],
     };
   } catch (error) {
@@ -68,6 +225,7 @@ export async function getUserFollowing(
       data:
         (data as unknown as { users: User }[])
           .map((row) => row.users)
+          .map((user) => mapUserWithAvatarUrl(user, supabase))
           .filter(Boolean) || [],
     };
   } catch (error) {
@@ -99,6 +257,7 @@ export async function getUserFriends(
       data:
         (data as unknown as { users: User }[])
           .map((row) => row.users)
+          .map((user) => mapUserWithAvatarUrl(user, supabase))
           .filter(Boolean) || [],
     }
 

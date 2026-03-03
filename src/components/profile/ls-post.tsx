@@ -117,7 +117,7 @@ interface LSPostProps {
   posterName: string,
   posterResearchInterest: string,
   posterProfilePicURL: string,
-  attachmentPreviewURL: string,
+  attachmentPreviewURL?: string,
   timestamp: string,
   postText: string
 }
@@ -163,9 +163,11 @@ export default function LSPost({
           {postText}
         </Text>
         {/* image preview */}
-        <Center>
-          <Image radius="md" w="50%" src={attachmentPreviewURL} />
-        </Center>
+        {attachmentPreviewURL ? (
+          <Center>
+            <Image radius="md" w="50%" src={attachmentPreviewURL} />
+          </Center>
+        ) : null}
         <Text size="sm" c="navy.5" ml={2} my={12}>
           {timestamp}
         </Text>

@@ -1,5 +1,6 @@
-import { Group, Badge, Button, Text, Image, Card, Box, Avatar, Popover, TextInput, Input, Select, Autocomplete, MultiSelect, Textarea, Stack } from "@mantine/core";
+import { Group, Badge, Button, Text, Image, Card, Box, Avatar, Popover, TextInput, Input, Select, Autocomplete, MultiSelect, Textarea, Stack, FileButton, Loader } from "@mantine/core";
 import { IconPencil } from "@tabler/icons-react";
+import { useState } from "react";
 
 import { useDisclosure } from '@mantine/hooks';
 import { Modal } from '@mantine/core';
@@ -97,11 +98,28 @@ interface LSProfileHeroProps {
   profileAbout?: string,
   profileSkills?: string[],
   profileHeaderImageURL?: string,
-  profilePicURL?: string
+  profilePicURL?: string,
+  isOwnProfile?: boolean,
+  onProfilePicSelect?: (file: File | null) => void,
+  isUploadingProfilePic?: boolean,
 }
 
 {/*Needs to be refactored if we want conditional rendering of the hero based on the status of the query if we don't want to wrap it in an another component*/ }
-export default function LSProfileHero({ profileName, profileInstitution, profileRole, profileResearchInterest, profileAbout, profileSkills, profileHeaderImageURL, profilePicURL }: LSProfileHeroProps) {
+export default function LSProfileHero({
+  profileName,
+  profileInstitution,
+  profileRole,
+  profileResearchInterest,
+  profileAbout,
+  profileSkills,
+  profileHeaderImageURL,
+  profilePicURL,
+  isOwnProfile = false,
+  onProfilePicSelect,
+  isUploadingProfilePic = false,
+}: LSProfileHeroProps) {
+  const [isAvatarHovered, setIsAvatarHovered] = useState(false);
+
   return (
     <Card shadow="sm" padding="none" radius="md">
 
@@ -127,13 +145,62 @@ export default function LSProfileHero({ profileName, profileInstitution, profile
           {/* use custom placeholder images for header + avatar
               default avatar icon from mantine fucks up z ordering
               this approach ensures image is atop header even if supplied url is bad */}
-          <Image
-            src={profilePicURL}
-            fallbackSrc="https://placehold.co/100x100?text=PFP"
-            w={80}
-            h={80}
-            radius="50%"
-          />
+          {isOwnProfile && onProfilePicSelect ? (
+            <FileButton onChange={onProfilePicSelect} accept="image/jpeg,image/png,image/webp,image/gif">
+              {(props) => (
+                <button
+                  type="button"
+                  {...props}
+                  onMouseEnter={() => setIsAvatarHovered(true)}
+                  onMouseLeave={() => setIsAvatarHovered(false)}
+                  style={{
+                    border: "none",
+                    padding: 0,
+                    background: "transparent",
+                    cursor: "pointer",
+                    position: "relative",
+                    width: 80,
+                    height: 80,
+                    borderRadius: "50%",
+                    overflow: "hidden",
+                  }}
+                >
+                  <Image
+                    src={profilePicURL}
+                    fallbackSrc="https://placehold.co/100x100?text=PFP"
+                    w={80}
+                    h={80}
+                    radius="50%"
+                  />
+                  {(isAvatarHovered || isUploadingProfilePic) ? (
+                    <Box
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        background: "rgba(0,0,0,0.45)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "white",
+                        fontSize: 12,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {isUploadingProfilePic ? <Loader size="xs" color="white" /> : "Change"}
+                    </Box>
+                  ) : null}
+                </button>
+              )}
+            </FileButton>
+          ) : (
+            <Image
+              src={profilePicURL}
+              fallbackSrc="https://placehold.co/100x100?text=PFP"
+              w={80}
+              h={80}
+              radius="50%"
+            />
+          )}
           <Stack gap="0">
             <Text c="navy.7" size="xl" fw={600}>{profileName}</Text>
             <Text c="navy.7" size="md">{profileResearchInterest}</Text>

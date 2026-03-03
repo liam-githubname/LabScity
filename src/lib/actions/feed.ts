@@ -243,7 +243,7 @@ export async function getFeed(input: FeedFilterValues, supabaseClient?: any) {
 				scientific_field,
 				user_id,
 				media_path,
-				users:user_id(user_id, first_name, last_name),
+				users:user_id(user_id, first_name, last_name, profile_pic_path),
 				likes(user_id)
 			`
 			)
@@ -302,7 +302,7 @@ export async function getFeed(input: FeedFilterValues, supabaseClient?: any) {
 						text,
 						created_at,
 						user_id,
-						users:user_id(user_id, first_name, last_name),
+						users:user_id(user_id, first_name, last_name, profile_pic_path),
 						comment_likes(user_id)
 					`
 					)
@@ -318,11 +318,15 @@ export async function getFeed(input: FeedFilterValues, supabaseClient?: any) {
 			const mediaUrl = post.media_path
 				? supabase.storage.from(postMediaBucket).getPublicUrl(post.media_path).data.publicUrl
 				: null;
+			const postAvatarUrl = post.users?.profile_pic_path
+				? supabase.storage.from("profile_pictures").getPublicUrl(post.users.profile_pic_path).data.publicUrl
+				: null;
 
 			return {
 			id: post.post_id,
 			userId: post.user_id,
 			userName: `${post.users?.first_name} ${post.users?.last_name}`.trim(),
+			avatarUrl: postAvatarUrl,
 			scientificField: post.scientific_field,
 			content: post.text,
 			mediaUrl,
@@ -331,6 +335,9 @@ export async function getFeed(input: FeedFilterValues, supabaseClient?: any) {
 				id: comment.comment_id,
 				userId: comment.user_id,
 				userName: `${comment.users?.first_name} ${comment.users?.last_name}`.trim(),
+				avatarUrl: comment.users?.profile_pic_path
+					? supabase.storage.from("profile_pictures").getPublicUrl(comment.users.profile_pic_path).data.publicUrl
+					: null,
 				content: comment.text,
 				timeAgo: getTimeAgo(comment.created_at),
 				isLiked: authData.user

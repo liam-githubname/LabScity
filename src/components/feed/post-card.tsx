@@ -7,6 +7,7 @@ import {
   IconMessageCircle,
   IconShare3,
 } from "@tabler/icons-react";
+import linkClasses from "./user-name-link.module.css";
 
 interface PostCardProps {
   userId?: string;
@@ -65,7 +66,7 @@ export function PostCard({
       <Stack gap={-1}>
         {/* name of the poster, audience label ( ??? )*/}
         {userId ? (
-          <Link href={`/profile/${userId}`} style={{ textDecoration: "none", color: "inherit" }}>
+          <Link href={`/profile/${userId}`} className={linkClasses.nameLink} style={{ color: "inherit" }}>
             <Text component="span" fw={700} c="navy.7" lh={1.1} style={{ cursor: "pointer" }}>
               {userName}
               {audienceLabel ? (
