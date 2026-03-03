@@ -12,6 +12,7 @@ import {
 } from "@mantine/core";
 import {
   IconBell,
+  IconCircleFilled,
   IconHeartFilled,
   IconMessageCircleFilled,
   IconMessageFilled,
@@ -19,9 +20,12 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { useIsMobile } from "@/app/use-is-mobile";
 import { useMarkNotificationAsRead } from "@/components/notifications/use-notifications";
 import { useNotificationStore } from "@/store/notificationStore";
+
+const LAST_VISITED_NOTIFICATIONS_KEY = "labscity:last-visited-notifications-at";
 
 function getNotificationIcon(type: string) {
   switch (type) {
@@ -63,18 +67,32 @@ function formatRelativeTime(dateString: string): string {
 
 function NotificationCard({
   notification,
+  isNew,
   onDismiss,
 }: {
   notification: ReturnType<
     typeof useNotificationStore.getState
   >["notifications"][number];
+  isNew: boolean;
   onDismiss: (id: string) => void;
 }) {
   const Icon = getNotificationIcon(notification.type);
   const iconColor = getNotificationIconColor(notification.type);
 
   return (
-    <Paper withBorder radius="md" p="md" pr={64} pos="relative" bg="white">
+    <Paper
+      withBorder
+      radius="md"
+      p="md"
+      pr={64}
+      pos="relative"
+      bg="white"
+      style={
+        isNew
+          ? { borderColor: "var(--mantine-color-navy-7)", borderWidth: 1.5 }
+          : undefined
+      }
+    >
       <ActionIcon
         variant="subtle"
         color="gray"
@@ -120,6 +138,14 @@ function NotificationCard({
           <Text size="xs" c="dimmed">
             {formatRelativeTime(notification.created_at)}
           </Text>
+          {isNew && (
+            <Group gap={4}>
+              <IconCircleFilled size={8} color="var(--mantine-color-navy-7)" />
+              <Text size="xs" c="navy.7" fw={600}>
+                New
+              </Text>
+            </Group>
+          )}
         </Stack>
       </Group>
     </Paper>
@@ -136,7 +162,11 @@ function NotificationsHeader({ totalCount }: { totalCount: number }) {
   );
 }
 
-const LSNotificationsMobileLayout = () => {
+const LSNotificationsMobileLayout = ({
+  isNotificationNew,
+}: {
+  isNotificationNew: (notificationCreatedAt: string) => boolean;
+}) => {
   const notifications = useNotificationStore((state) => state.notifications);
   const dismissNotification = useNotificationStore(
     (state) => state.dismissNotification,
@@ -156,6 +186,7 @@ const LSNotificationsMobileLayout = () => {
         <NotificationCard
           key={notification.id}
           notification={notification}
+          isNew={isNotificationNew(notification.created_at)}
           onDismiss={handleDismiss}
         />
       ))}
@@ -163,7 +194,11 @@ const LSNotificationsMobileLayout = () => {
   );
 };
 
-const LSNotificationsDesktopLayout = () => {
+const LSNotificationsDesktopLayout = ({
+  isNotificationNew,
+}: {
+  isNotificationNew: (notificationCreatedAt: string) => boolean;
+}) => {
   const notifications = useNotificationStore((state) => state.notifications);
   const dismissNotification = useNotificationStore(
     (state) => state.dismissNotification,
@@ -189,6 +224,7 @@ const LSNotificationsDesktopLayout = () => {
           <NotificationCard
             key={notification.id}
             notification={notification}
+            isNew={isNotificationNew(notification.created_at)}
             onDismiss={handleDismiss}
           />
         ))}
@@ -199,10 +235,57 @@ const LSNotificationsDesktopLayout = () => {
 
 export default function NotificationsPage() {
   const isMobile = useIsMobile();
+  const [previousVisitAtMs, setPreviousVisitAtMs] = useState<number | null>(
+    null,
+  );
+  const [visitStartedAtMs, setVisitStartedAtMs] = useState<number | null>(null);
+
+  useEffect(() => {
+    const currentVisitStartedAtMs = Date.now();
+    setVisitStartedAtMs(currentVisitStartedAtMs);
+
+    const previousVisitedAtRaw = window.localStorage.getItem(
+      LAST_VISITED_NOTIFICATIONS_KEY,
+    );
+    const parsedPreviousVisitAtMs = previousVisitedAtRaw
+      ? Number.parseInt(previousVisitedAtRaw, 10)
+      : Number.NaN;
+    setPreviousVisitAtMs(
+      Number.isFinite(parsedPreviousVisitAtMs) ? parsedPreviousVisitAtMs : null,
+    );
+
+    window.localStorage.setItem(
+      LAST_VISITED_NOTIFICATIONS_KEY,
+      String(currentVisitStartedAtMs),
+    );
+  }, []);
+
+  const isNotificationNew = useMemo(
+    () => (notificationCreatedAt: string) => {
+      const notificationCreatedAtMs = Date.parse(notificationCreatedAt);
+      if (!Number.isFinite(notificationCreatedAtMs)) {
+        return false;
+      }
+
+      if (
+        visitStartedAtMs !== null &&
+        notificationCreatedAtMs > visitStartedAtMs
+      ) {
+        return false;
+      }
+
+      if (previousVisitAtMs === null) {
+        return true;
+      }
+
+      return notificationCreatedAtMs > previousVisitAtMs;
+    },
+    [previousVisitAtMs, visitStartedAtMs],
+  );
 
   return isMobile ? (
-    <LSNotificationsMobileLayout />
+    <LSNotificationsMobileLayout isNotificationNew={isNotificationNew} />
   ) : (
-    <LSNotificationsDesktopLayout />
+    <LSNotificationsDesktopLayout isNotificationNew={isNotificationNew} />
   );
 }
