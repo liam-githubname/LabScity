@@ -267,7 +267,7 @@ const LSProfileMobileLayout = ({ userId, isOwnProfile, actions, editProfile, fol
         <PostCard
           userId={post.user_id}
           userName={username ?? "Unknown User"}
-          field={post.category ?? "profileResearchInterest n/a"}
+          field={post.category ?? "—"}
           timeAgo={new Date(post.created_at).toLocaleString()}
           content={post.text ?? ""}
           onLikeClick={() => actions.handleTogglePostLike(postId)}
@@ -295,7 +295,7 @@ const LSProfileMobileLayout = ({ userId, isOwnProfile, actions, editProfile, fol
     <Stack p={8}>
       <LSProfileHero
         profileName={username ?? "Unknown User"}
-        profileResearchInterest="profileResearchInterest n/a"
+        profileResearchInterest={profile?.research_interests?.[0] ?? ""}
         profileAbout={profile?.about ?? undefined}
         profileSkills={profile?.skills ?? undefined}
         profilePicURL={profile?.avatar_url ?? undefined}
@@ -384,9 +384,9 @@ const LSProfileDesktopLayout = ({ userId, isOwnProfile, actions, editProfile, fo
         <PostCard
           userId={post.user_id}
           userName={username ?? "Unknown User"}
-          field={post.category ?? "profileResearchInterest n/a"}
+          field={post.category ?? "—"}
           timeAgo={new Date(post.created_at).toLocaleString()}
-          content={post.text ?? "postText n/a"}
+          content={post.text ?? ""}
           onLikeClick={() => actions.handleTogglePostLike(postId)}
           onCommentClick={() =>
             setActiveCommentPostId((current) =>
@@ -414,7 +414,7 @@ const LSProfileDesktopLayout = ({ userId, isOwnProfile, actions, editProfile, fo
         <Box flex={5}>
           <LSProfileHero
             profileName={username ?? "Unknown User"}
-            profileResearchInterest="profileResearchInterest n/a"
+            profileResearchInterest={profile?.research_interests?.[0] ?? ""}
             profileAbout={profile?.about ?? undefined}
             profileSkills={profile?.skills ?? undefined}
             profilePicURL={profile?.avatar_url ?? undefined}
@@ -573,21 +573,25 @@ export function LSProfileView({
     likeCommentAction,
   });
 
-  return isMobile ? (
-    <LSProfileMobileLayout
-      userId={userId}
-      isOwnProfile={isOwnProfile}
-      actions={actions}
-      editProfile={editProfile}
-      followProfile={followProfile}
-    />
-  ) : (
-    <LSProfileDesktopLayout
-      userId={userId}
-      isOwnProfile={isOwnProfile}
-      actions={actions}
-      editProfile={editProfile}
-      followProfile={followProfile}
-    />
+  return (
+    <Box bg="gray.0" mih="100vh">
+      {isMobile ? (
+        <LSProfileMobileLayout
+          userId={userId}
+          isOwnProfile={isOwnProfile}
+          actions={actions}
+          editProfile={editProfile}
+          followProfile={followProfile}
+        />
+      ) : (
+        <LSProfileDesktopLayout
+          userId={userId}
+          isOwnProfile={isOwnProfile}
+          actions={actions}
+          editProfile={editProfile}
+          followProfile={followProfile}
+        />
+      )}
+    </Box>
   );
 }
