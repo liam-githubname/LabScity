@@ -4,6 +4,7 @@ import { Button, Card, FileInput, Group, Paper, Select, Stack, TextInput, Textar
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { SCIENCE_CATEGORIES } from "@/lib/constants/options";
 import {
   createPostSchema,
   type CreatePostValues,
@@ -12,62 +13,6 @@ import {
 const postComposerSchema = createPostSchema.extend({
   mediaFile: z.any().optional().nullable(),
 });
-
-const SCIENCE_CATEGORIES = [
-  "Acoustics",
-  "Aerodynamics",
-  "Anatomy",
-  "Anthropology",
-  "Archaeology",
-  "Astronomy",
-  "Astrophysics",
-  "Biochemistry",
-  "Biology",
-  "Biophysics",
-  "Biotechnology",
-  "Botany",
-  "Chemistry",
-  "Climatology",
-  "Cognitive Science",
-  "Computer Science",
-  "Data Science",
-  "Ecology",
-  "Economics",
-  "Engineering",
-  "Entomology",
-  "Environmental Science",
-  "Epidemiology",
-  "General Sciences",
-  "Genetics",
-  "Geography",
-  "Geology",
-  "Geophysics",
-  "Immunology",
-  "Machine Learning",
-  "Marine Biology",
-  "Materials Science",
-  "Mathematics",
-  "Meteorology",
-  "Microbiology",
-  "Molecular Biology",
-  "Neuroscience",
-  "Oceanography",
-  "Paleontology",
-  "Pathology",
-  "Pharmacology",
-  "Physics",
-  "Physiology",
-  "Psychology",
-  "Quantum Physics",
-  "Robotics",
-  "Seismology",
-  "Sociology",
-  "Statistics",
-  "Toxicology",
-  "Virology",
-  "Zoology",
-  "Other",
-];
 
 export interface PostComposerProps {
   onSubmit: (values: CreatePostValues & { mediaFile?: File | null }) => void | Promise<void>;
