@@ -9,6 +9,7 @@ import {
   getUserFollowing,
   getUserFriends,
   updateProfileAction,
+  toggleFollowAction,
 } from "@/lib/actions/profile";
 import {
   createComment,
@@ -102,7 +103,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const profileViewProps: LSProfileViewProps = {
     userId,
     isOwnProfile,
+    currentUserId: user?.id ?? null,
     updateProfileAction,
+    toggleFollowAction,
     createPostAction: createPost,
     createCommentAction: createComment,
     createReportAction: createReport,

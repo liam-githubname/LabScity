@@ -14,6 +14,7 @@ import { PostCard } from "@/components/feed/post-card";
 import { CommentComposer } from "@/components/feed/comment-composer";
 import { LSSpinner } from "@/components/ui/ls-spinner";
 import {
+  useUserFollowers,
   useUserFollowing,
   useUserFriends,
   useUserPosts,
@@ -32,15 +33,22 @@ import type {
   CreateReportValues,
 } from "@/lib/validations/post";
 import type { UpdateProfileValues } from "@/lib/validations/profile";
-import type { updateProfileAction } from "@/lib/actions/profile";
+import type {
+  updateProfileAction,
+  toggleFollowAction,
+} from "@/lib/actions/profile";
 
 type UpdateProfileAction = typeof updateProfileAction;
+type ToggleFollowAction = typeof toggleFollowAction;
 
 /** Public props expected by the server component wrapper. */
 export interface LSProfileViewProps {
   userId: string;
   isOwnProfile: boolean;
+  /** Current authenticated user id (for deriving isFollowing when viewing others). */
+  currentUserId: string | null;
   updateProfileAction: UpdateProfileAction;
+  toggleFollowAction: ToggleFollowAction;
   createPostAction: CreatePostAction;
   createCommentAction: CreateCommentAction;
   createReportAction: CreateReportAction;
@@ -220,15 +228,22 @@ interface EditProfileHeroProps {
   isEditSubmitting?: boolean;
 }
 
+/** Follow/unfollow props for the hero when viewing another user's profile. */
+interface FollowProfileHeroProps {
+  isFollowing: boolean;
+  onToggleFollow: () => void;
+}
+
 // Mobile layout: stacks hero, posts, and relationship widgets in a column.
 interface LSProfileMobileLayoutProps {
   userId: string;
   isOwnProfile: boolean;
   actions: ProfilePostActionsResult;
   editProfile: EditProfileHeroProps;
+  followProfile?: FollowProfileHeroProps;
 }
 
-const LSProfileMobileLayout = ({ userId, isOwnProfile, actions, editProfile }: LSProfileMobileLayoutProps) => {
+const LSProfileMobileLayout = ({ userId, isOwnProfile, actions, editProfile, followProfile }: LSProfileMobileLayoutProps) => {
   const profileQuery = useUserProfile(userId);
   const profile = profileQuery.data;
   const username =
@@ -294,6 +309,8 @@ const LSProfileMobileLayout = ({ userId, isOwnProfile, actions, editProfile }: L
         editInitialValues={editProfile.editInitialValues}
         onEditSubmit={editProfile.onEditSubmit}
         isEditSubmitting={editProfile.isEditSubmitting}
+        isFollowing={followProfile?.isFollowing}
+        onToggleFollow={followProfile?.onToggleFollow}
       />
       {listPosts}
       {hasMore ? (
@@ -322,9 +339,10 @@ interface LSProfileDesktopLayoutProps {
   isOwnProfile: boolean;
   actions: ProfilePostActionsResult;
   editProfile: EditProfileHeroProps;
+  followProfile?: FollowProfileHeroProps;
 }
 
-const LSProfileDesktopLayout = ({ userId, isOwnProfile, actions, editProfile }: LSProfileDesktopLayoutProps) => {
+const LSProfileDesktopLayout = ({ userId, isOwnProfile, actions, editProfile, followProfile }: LSProfileDesktopLayoutProps) => {
   const profileQuery = useUserProfile(userId);
   const profile = profileQuery.data;
   const username =
@@ -410,6 +428,8 @@ const LSProfileDesktopLayout = ({ userId, isOwnProfile, actions, editProfile }: 
             editInitialValues={editProfile.editInitialValues}
             onEditSubmit={editProfile.onEditSubmit}
             isEditSubmitting={editProfile.isEditSubmitting}
+            isFollowing={followProfile?.isFollowing}
+            onToggleFollow={followProfile?.onToggleFollow}
           />
         </Box>
         <Flex flex={3} direction="column" gap={8}>
@@ -447,7 +467,9 @@ const LSProfileDesktopLayout = ({ userId, isOwnProfile, actions, editProfile }: 
 export function LSProfileView({
   userId,
   isOwnProfile,
+  currentUserId,
   updateProfileAction,
+  toggleFollowAction,
   createPostAction,
   createCommentAction,
   createReportAction,
@@ -459,6 +481,11 @@ export function LSProfileView({
 
   const profileQuery = useUserProfile(userId);
   const profile = profileQuery.data;
+  const followersQuery = useUserFollowers(userId);
+  const followers = followersQuery.data;
+  const isFollowing = Boolean(
+    currentUserId && followers?.some((f) => f.user_id === currentUserId),
+  );
 
   const queryClient = useQueryClient();
   const updateProfileMutation = useMutation({
@@ -487,6 +514,39 @@ export function LSProfileView({
     },
   });
 
+  const toggleFollowMutation = useMutation({
+    mutationFn: async () => {
+      const result = await toggleFollowAction({ targetUserId: userId });
+      if (!result.success) {
+        throw new Error(result.error ?? "Failed to update follow state");
+      }
+      return result;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: profileKeys.followers(userId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: profileKeys.following(userId),
+      });
+      notifications.show({
+        title: data.data?.isFollowing ? "Following" : "Unfollowed",
+        message: data.data?.isFollowing
+          ? "You are now following this user."
+          : "You have unfollowed this user.",
+        color: "green",
+      });
+    },
+    onError: (error: unknown) => {
+      notifications.show({
+        title: "Could not update follow state",
+        message:
+          error instanceof Error ? error.message : "Something went wrong",
+        color: "red",
+      });
+    },
+  });
+
   const editProfile: EditProfileHeroProps = isOwnProfile
     ? {
         onOpenEditProfile: () => setEditModalOpened(true),
@@ -498,6 +558,14 @@ export function LSProfileView({
       }
     : {};
 
+  const followProfile: FollowProfileHeroProps | undefined =
+    !isOwnProfile && currentUserId
+      ? {
+          isFollowing,
+          onToggleFollow: () => toggleFollowMutation.mutate(),
+        }
+      : undefined;
+
   const actions = useProfilePostActions(userId, {
     createCommentAction,
     createReportAction,
@@ -506,8 +574,20 @@ export function LSProfileView({
   });
 
   return isMobile ? (
-    <LSProfileMobileLayout userId={userId} isOwnProfile={isOwnProfile} actions={actions} editProfile={editProfile} />
+    <LSProfileMobileLayout
+      userId={userId}
+      isOwnProfile={isOwnProfile}
+      actions={actions}
+      editProfile={editProfile}
+      followProfile={followProfile}
+    />
   ) : (
-    <LSProfileDesktopLayout userId={userId} isOwnProfile={isOwnProfile} actions={actions} editProfile={editProfile} />
+    <LSProfileDesktopLayout
+      userId={userId}
+      isOwnProfile={isOwnProfile}
+      actions={actions}
+      editProfile={editProfile}
+      followProfile={followProfile}
+    />
   );
 }
