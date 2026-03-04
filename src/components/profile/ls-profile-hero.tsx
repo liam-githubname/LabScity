@@ -1,128 +1,234 @@
-import { Group, Badge, Button, Text, Image, Card, Box, Avatar, Popover, TextInput, Input, Select, Autocomplete, MultiSelect, Textarea, Stack, FileButton, Loader } from "@mantine/core";
+import {
+  Group,
+  Badge,
+  Button,
+  Text,
+  Image,
+  Card,
+  Box,
+  Modal,
+  TextInput,
+  Autocomplete,
+  MultiSelect,
+  Textarea,
+  Stack,
+  FileButton,
+  Loader,
+} from "@mantine/core";
 import { IconPencil } from "@tabler/icons-react";
-import { useState } from "react";
-
-import { useDisclosure } from '@mantine/hooks';
-import { Modal } from '@mantine/core';
-import { useForm } from "@mantine/form"
+import { useState, useEffect } from "react";
+import type { Resolver } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { SCIENCE_CATEGORIES, SKILL_OPTIONS } from "@/lib/constants/options";
+import {
+  updateProfileSchema,
+  type UpdateProfileValues,
+} from "@/lib/validations/profile";
 
 const profileHeaderHeight = 164;
 
-const LSEditProfilePopover = () => {
-  const [opened, { open, close }] = useDisclosure(false) // TODO: what is this doing?
+/** Form values: skills always an array (schema default). */
+type EditProfileFormValues = Omit<UpdateProfileValues, "skills"> & {
+  skills: string[];
+};
 
-  const editProfileForm = useForm({
-    mode: "uncontrolled", // WARNING: SHOULD SWITCH TO CONTROLLED?
-    initialValues: {
-      firstName: "",
-      lastName: "",
-      about: "",
-      institution: "",
-      fieldOfInterest: "",
-      skills: []
-    },
-  })
+/** Default values when parent has not yet wired edit form (e.g. before Commit 4). */
+const defaultEditValues: EditProfileFormValues = {
+  firstName: "",
+  lastName: "",
+  about: "",
+  workplace: "",
+  occupation: "",
+  fieldOfInterest: "",
+  skills: [],
+};
 
-  const handleSave = (values: any) => { // TODO: type
-    // TODO: FILL THIS IN WITH REAL API STUFF
-    console.log("Saving profile info: ", values)
-  }
+/**
+ * Controlled edit-profile modal and trigger button.
+ * Parent supplies initialValues, onSubmit, and open/close state; form uses Workplace/Occupation.
+ */
+export interface LSEditProfileModalProps {
+  opened: boolean;
+  onClose: () => void;
+  initialValues?: UpdateProfileValues;
+  onSubmit?: (values: UpdateProfileValues) => void;
+  isSubmitting?: boolean;
+}
+
+/** Normalize so skills is always an array for form default/reset. */
+function toFormDefaults(v: UpdateProfileValues): EditProfileFormValues {
+  return { ...v, skills: v.skills ?? [] };
+}
+
+export function LSEditProfileModal({
+  opened,
+  onClose,
+  initialValues = defaultEditValues,
+  onSubmit = () => {},
+  isSubmitting = false,
+}: LSEditProfileModalProps) {
+  const defaults = toFormDefaults(initialValues);
+
+  const form = useForm<EditProfileFormValues>({
+    resolver: zodResolver(updateProfileSchema) as Resolver<EditProfileFormValues>,
+    mode: "onBlur",
+    defaultValues: defaults,
+  });
+
+  useEffect(() => {
+    if (opened) {
+      form.reset(toFormDefaults(initialValues));
+    }
+  }, [opened, initialValues]);
+
+  const handleSave = (data: EditProfileFormValues) => {
+    onSubmit(data);
+  };
+
+  const {
+    register,
+    control,
+    formState: { errors },
+    handleSubmit,
+  } = form;
 
   return (
-    <>
-      <Modal opened={opened} onClose={close} title="Edit Profile">
-        <form onSubmit={editProfileForm.onSubmit((values) => handleSave(values))}>
-          <Stack gap={12}>
-
-            <Group grow>
-              {/* grow makes children take up equal width */}
-              <TextInput
-                withAsterisk
-                label="First Name"
-                key={editProfileForm.key("firstName")}
-                {...editProfileForm.getInputProps("firstName")} // this PATTERN automatically inserts additional props to prevent desync
+    <Modal opened={opened} onClose={onClose} title="Edit Profile">
+      <form onSubmit={handleSubmit(handleSave)}>
+        <Stack gap={12}>
+          <Group grow>
+            <TextInput
+              withAsterisk
+              label="First Name"
+              error={errors.firstName?.message}
+              {...register("firstName")}
+            />
+            <TextInput
+              withAsterisk
+              label="Last Name"
+              error={errors.lastName?.message}
+              {...register("lastName")}
+            />
+          </Group>
+          <Textarea
+            label="About"
+            placeholder="Tell others about yourself..."
+            description="Max 256 characters"
+            error={errors.about?.message}
+            {...register("about")}
+          />
+          <Controller
+            name="workplace"
+            control={control}
+            render={({ field, fieldState }) => (
+              <Autocomplete
+                label="Workplace"
+                placeholder="Select or type..."
+                data={["University of Central Florida", "University of Florida", "Harvard", "School of Rock"]}
+                error={fieldState.error?.message}
+                {...field}
               />
-              <TextInput
-                withAsterisk
-                label="Last Name"
-                key={editProfileForm.key("lastName")}
-                {...editProfileForm.getInputProps("lastName")}
+            )}
+          />
+          <Controller
+            name="occupation"
+            control={control}
+            render={({ field, fieldState }) => (
+              <Autocomplete
+                label="Occupation"
+                placeholder="Select or type..."
+                data={["Researcher", "Professor", "PhD Student", "Engineer"]}
+                error={fieldState.error?.message}
+                {...field}
               />
-            </Group>
-            <Textarea
-              label="About"
-              placeholder="Lorem ipsum dolor sit amet..."
-              description="Max 256 characters" // WARNING: this limit is arbitrary! but we should def have one
-              key={editProfileForm.key("about")}
-              {...editProfileForm.getInputProps("about")}
-            />
-
-            {/* WARNING: HOW DO THESE FOLLOWING WORK WITH THEIR DATATYPE ? */}
-
-            <Autocomplete
-              label="Institution"
-              placeholder="Select..."
-              data={["University of Central Florida", "University of Florida", "Harvard", "School of Rock"]} // TODO: What to do if lots of entries?
-              key={editProfileForm.key("institution")}
-              {...editProfileForm.getInputProps("institution")}
-            />
-            <Autocomplete
-              label="Field of Interest"
-              placeholder="Select..."
-              data={["ECMAScript", "JavaScript", "MORE JavaScript"]} // TODO: what to do if lots of entries? ... SELECT SEARCHABLE and LIMIT
-              key={editProfileForm.key("fieldOfInterest")}
-              {...editProfileForm.getInputProps("fieldOfInterest")}
-            />
-            <MultiSelect
-              label="Your Skills"
-              placeholder="Select Multiple..."
-              data={["Web Dev", "C++", "Microbiology", "Unemployment"]}
-              key={editProfileForm.key("skills")}
-              {...editProfileForm.getInputProps("skills")}
-            />
-            <Button type="submit">Save</Button>
-          </Stack>
-        </form>
-      </Modal >
-
-      <Button radius="xl" variant="filled" color="navy.6" onClick={open}>
-        <IconPencil size={18} />
-      </Button>
-    </>
-  )
+            )}
+          />
+          <Controller
+            name="fieldOfInterest"
+            control={control}
+            render={({ field, fieldState }) => (
+              <Autocomplete
+                label="Field of Interest"
+                placeholder="Select or type..."
+                data={[...SCIENCE_CATEGORIES]}
+                error={fieldState.error?.message}
+                {...field}
+              />
+            )}
+          />
+          <Controller
+            name="skills"
+            control={control}
+            render={({ field, fieldState }) => (
+              <MultiSelect
+                label="Your Skills"
+                placeholder="Select multiple..."
+                data={[...SKILL_OPTIONS]}
+                error={fieldState.error?.message}
+                {...field}
+              />
+            )}
+          />
+          <Button type="submit" loading={isSubmitting}>
+            Save
+          </Button>
+        </Stack>
+      </form>
+    </Modal>
+  );
 }
 
-interface LSProfileHeroProps {
-  profileName: string,
-  profileInstitution: string,
-  profileRole: string,
-  profileResearchInterest: string,
-  profileAbout?: string,
-  profileSkills?: string[],
-  profileHeaderImageURL?: string,
-  profilePicURL?: string,
-  isOwnProfile?: boolean,
-  onProfilePicSelect?: (file: File | null) => void,
-  isUploadingProfilePic?: boolean,
-  onProfileHeaderSelect?: (file: File | null) => void,
-  isUploadingProfileHeader?: boolean,
+export interface LSProfileHeroProps {
+  profileName: string;
+  profileResearchInterest: string;
+  profileAbout?: string;
+  profileSkills?: string[];
+  profileHeaderImageURL?: string;
+  profilePicURL?: string;
+  /** Replaces legacy profileRole / profileInstitution. */
+  occupation?: string;
+  workplace?: string;
+  isOwnProfile: boolean;
+  onProfilePicSelect?: (file: File | null) => void;
+  isUploadingProfilePic?: boolean;
+  onProfileHeaderSelect?: (file: File | null) => void;
+  isUploadingProfileHeader?: boolean;
+  /** When own profile: called when user clicks Edit (parent opens modal). */
+  onOpenEditProfile?: () => void;
+  /** When others' profile: edit modal open state and handlers (parent-controlled). */
+  editModalOpened?: boolean;
+  onEditModalClose?: () => void;
+  editInitialValues?: UpdateProfileValues;
+  onEditSubmit?: (values: UpdateProfileValues) => void;
+  isEditSubmitting?: boolean;
+  /** When others' profile: follow state and toggle. */
+  isFollowing?: boolean;
+  onToggleFollow?: () => void;
 }
 
-{/*Needs to be refactored if we want conditional rendering of the hero based on the status of the query if we don't want to wrap it in an another component*/ }
 export default function LSProfileHero({
   profileName,
-  profileInstitution,
-  profileRole,
   profileResearchInterest,
   profileAbout,
   profileSkills,
   profileHeaderImageURL,
   profilePicURL,
-  isOwnProfile = false,
+  occupation,
+  workplace,
+  isOwnProfile,
   onProfilePicSelect,
   isUploadingProfilePic = false,
   onProfileHeaderSelect,
   isUploadingProfileHeader = false,
+  onOpenEditProfile,
+  editModalOpened = false,
+  onEditModalClose,
+  editInitialValues,
+  onEditSubmit,
+  isEditSubmitting = false,
+  isFollowing = false,
+  onToggleFollow,
 }: LSProfileHeroProps) {
   const [isAvatarHovered, setIsAvatarHovered] = useState(false);
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
@@ -263,7 +369,11 @@ export default function LSProfileHero({
           <Stack gap="0">
             <Text c="navy.7" size="xl" fw={600}>{profileName}</Text>
             <Text c="navy.7" size="md">{profileResearchInterest}</Text>
-            <Text c="navy.6" size="md">{profileRole}, {profileInstitution}</Text>
+            {(occupation ?? workplace) ? (
+              <Text c="navy.6" size="md">
+                {[occupation, workplace].filter(Boolean).join(", ")}
+              </Text>
+            ) : null}
           </Stack>
         </Box>
         <Box mb={12}>
@@ -295,7 +405,40 @@ export default function LSProfileHero({
             w="100%"
             style={{ display: "flex", justifyContent: "flex-end" }}
           >
-            <LSEditProfilePopover />
+            {isOwnProfile ? (
+              <>
+                {onOpenEditProfile && (
+                  <Button
+                    radius="xl"
+                    variant="filled"
+                    color="navy.6"
+                    onClick={onOpenEditProfile}
+                  >
+                    <IconPencil size={18} />
+                  </Button>
+                )}
+                {editModalOpened !== undefined && onEditModalClose && (
+                  <LSEditProfileModal
+                    opened={editModalOpened}
+                    onClose={onEditModalClose}
+                    initialValues={editInitialValues}
+                    onSubmit={onEditSubmit}
+                    isSubmitting={isEditSubmitting}
+                  />
+                )}
+              </>
+            ) : (
+              onToggleFollow && (
+                <Button
+                  radius="xl"
+                  variant={isFollowing ? "outline" : "filled"}
+                  color="navy.6"
+                  onClick={onToggleFollow}
+                >
+                  {isFollowing ? "Unfollow" : "Follow"}
+                </Button>
+              )
+            )}
           </Box>
         </Box>
       </Box>

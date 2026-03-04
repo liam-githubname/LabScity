@@ -31,11 +31,16 @@ import type {
   CreateCommentValues,
   CreateReportValues,
 } from "@/lib/validations/post";
+import type { UpdateProfileValues } from "@/lib/validations/profile";
+import type { updateProfileAction } from "@/lib/actions/profile";
 
-// Public props expected by the server component wrapper.
-interface LSProfileViewProps {
+type UpdateProfileAction = typeof updateProfileAction;
+
+/** Public props expected by the server component wrapper. */
+export interface LSProfileViewProps {
   userId: string;
   isOwnProfile: boolean;
+  updateProfileAction: UpdateProfileAction;
   createPostAction: CreatePostAction;
   createCommentAction: CreateCommentAction;
   createReportAction: CreateReportAction;
@@ -44,6 +49,27 @@ interface LSProfileViewProps {
 }
 
 type ProfilePostActionsResult = ReturnType<typeof useProfilePostActions>;
+
+/** Build edit form initial values from profile (User) data. */
+function profileToEditInitialValues(profile: {
+  first_name: string;
+  last_name: string;
+  about?: string | null;
+  workplace?: string | null;
+  occupation?: string | null;
+  research_interests?: string[] | null;
+  skills?: string[] | null;
+}): UpdateProfileValues {
+  return {
+    firstName: profile.first_name ?? "",
+    lastName: profile.last_name ?? "",
+    about: profile.about ?? "",
+    workplace: profile.workplace ?? "",
+    occupation: profile.occupation ?? "",
+    fieldOfInterest: profile.research_interests?.[0] ?? "",
+    skills: profile.skills ?? [],
+  };
+}
 
 // Helper hook that wraps all post-related server actions in
 // React Query mutations and centralizes error handling + cache invalidation.
@@ -184,13 +210,25 @@ function useProfilePostActions(
   };
 }
 
+// Edit modal + form props passed from LSProfileView into the hero.
+interface EditProfileHeroProps {
+  onOpenEditProfile?: () => void;
+  editModalOpened?: boolean;
+  onEditModalClose?: () => void;
+  editInitialValues?: UpdateProfileValues;
+  onEditSubmit?: (values: UpdateProfileValues) => void;
+  isEditSubmitting?: boolean;
+}
+
 // Mobile layout: stacks hero, posts, and relationship widgets in a column.
 interface LSProfileMobileLayoutProps {
   userId: string;
+  isOwnProfile: boolean;
   actions: ProfilePostActionsResult;
+  editProfile: EditProfileHeroProps;
 }
 
-const LSProfileMobileLayout = ({ userId, actions }: LSProfileMobileLayoutProps) => {
+const LSProfileMobileLayout = ({ userId, isOwnProfile, actions, editProfile }: LSProfileMobileLayoutProps) => {
   const profileQuery = useUserProfile(userId);
   const profile = profileQuery.data;
   const username =
@@ -241,14 +279,21 @@ const LSProfileMobileLayout = ({ userId, actions }: LSProfileMobileLayoutProps) 
   return (
     <Stack p={8}>
       <LSProfileHero
-        profileName={username}
-        profileInstitution="profileInstitution n/a"
-        profileRole="profileRole n/a"
+        profileName={username ?? "Unknown User"}
         profileResearchInterest="profileResearchInterest n/a"
-        profileAbout="profileAbout n/a"
-        profileSkills={["profileSkills n/a"]}
-        profilePicURL="profilePicURL n/a"
-        profileHeaderImageURL="profileHeaderImageURL n/a"
+        profileAbout={profile?.about ?? undefined}
+        profileSkills={profile?.skills ?? undefined}
+        profilePicURL={profile?.avatar_url ?? undefined}
+        profileHeaderImageURL={profile?.profile_header_url ?? undefined}
+        occupation={profile?.occupation ?? undefined}
+        workplace={profile?.workplace ?? undefined}
+        isOwnProfile={isOwnProfile}
+        onOpenEditProfile={editProfile.onOpenEditProfile}
+        editModalOpened={editProfile.editModalOpened}
+        onEditModalClose={editProfile.onEditModalClose}
+        editInitialValues={editProfile.editInitialValues}
+        onEditSubmit={editProfile.onEditSubmit}
+        isEditSubmitting={editProfile.isEditSubmitting}
       />
       {listPosts}
       {hasMore ? (
@@ -271,13 +316,15 @@ const LSProfileMobileLayout = ({ userId, actions }: LSProfileMobileLayoutProps) 
   );
 };
 
+// Desktop layout: hero + side widgets row, feed of posts below.
 interface LSProfileDesktopLayoutProps {
   userId: string;
+  isOwnProfile: boolean;
   actions: ProfilePostActionsResult;
+  editProfile: EditProfileHeroProps;
 }
 
-// Desktop layout: hero + side widgets row, feed of posts below.
-const LSProfileDesktopLayout = ({ userId, actions }: LSProfileDesktopLayoutProps) => {
+const LSProfileDesktopLayout = ({ userId, isOwnProfile, actions, editProfile }: LSProfileDesktopLayoutProps) => {
   const profileQuery = useUserProfile(userId);
   const profile = profileQuery.data;
   const username =
@@ -348,14 +395,21 @@ const LSProfileDesktopLayout = ({ userId, actions }: LSProfileDesktopLayoutProps
       <Flex p={8} direction="row" w="100%" gap={8}>
         <Box flex={5}>
           <LSProfileHero
-            profileName={username}
-            profileInstitution="profileInstitution n/a"
-            profileRole="profileRole n/a"
+            profileName={username ?? "Unknown User"}
             profileResearchInterest="profileResearchInterest n/a"
-            profileAbout="profileAbout n/a"
-            profileSkills={["profileSkills n/a"]}
-            profilePicURL="profilePicURL n/a"
-            profileHeaderImageURL="profileHeaderImageURL n/a"
+            profileAbout={profile?.about ?? undefined}
+            profileSkills={profile?.skills ?? undefined}
+            profilePicURL={profile?.avatar_url ?? undefined}
+            profileHeaderImageURL={profile?.profile_header_url ?? undefined}
+            occupation={profile?.occupation ?? undefined}
+            workplace={profile?.workplace ?? undefined}
+            isOwnProfile={isOwnProfile}
+            onOpenEditProfile={editProfile.onOpenEditProfile}
+            editModalOpened={editProfile.editModalOpened}
+            onEditModalClose={editProfile.onEditModalClose}
+            editInitialValues={editProfile.editInitialValues}
+            onEditSubmit={editProfile.onEditSubmit}
+            isEditSubmitting={editProfile.isEditSubmitting}
           />
         </Box>
         <Flex flex={3} direction="column" gap={8}>
@@ -393,6 +447,7 @@ const LSProfileDesktopLayout = ({ userId, actions }: LSProfileDesktopLayoutProps
 export function LSProfileView({
   userId,
   isOwnProfile,
+  updateProfileAction,
   createPostAction,
   createCommentAction,
   createReportAction,
@@ -400,6 +455,48 @@ export function LSProfileView({
   likeCommentAction,
 }: LSProfileViewProps) {
   const isMobile = useIsMobile();
+  const [editModalOpened, setEditModalOpened] = useState(false);
+
+  const profileQuery = useUserProfile(userId);
+  const profile = profileQuery.data;
+
+  const queryClient = useQueryClient();
+  const updateProfileMutation = useMutation({
+    mutationFn: async (values: UpdateProfileValues) => {
+      const result = await updateProfileAction(values);
+      if (!result.success) {
+        throw new Error(result.error ?? "Failed to update profile");
+      }
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: profileKeys.user(userId) });
+      setEditModalOpened(false);
+      notifications.show({
+        title: "Profile updated",
+        message: "Your profile has been saved.",
+        color: "green",
+      });
+    },
+    onError: (error: unknown) => {
+      notifications.show({
+        title: "Could not update profile",
+        message: error instanceof Error ? error.message : "Something went wrong",
+        color: "red",
+      });
+    },
+  });
+
+  const editProfile: EditProfileHeroProps = isOwnProfile
+    ? {
+        onOpenEditProfile: () => setEditModalOpened(true),
+        editModalOpened,
+        onEditModalClose: () => setEditModalOpened(false),
+        editInitialValues: profile ? profileToEditInitialValues(profile) : undefined,
+        onEditSubmit: (values) => updateProfileMutation.mutate(values),
+        isEditSubmitting: updateProfileMutation.isPending,
+      }
+    : {};
 
   const actions = useProfilePostActions(userId, {
     createCommentAction,
@@ -409,8 +506,8 @@ export function LSProfileView({
   });
 
   return isMobile ? (
-    <LSProfileMobileLayout userId={userId} actions={actions} />
+    <LSProfileMobileLayout userId={userId} isOwnProfile={isOwnProfile} actions={actions} editProfile={editProfile} />
   ) : (
-    <LSProfileDesktopLayout userId={userId} actions={actions} />
+    <LSProfileDesktopLayout userId={userId} isOwnProfile={isOwnProfile} actions={actions} editProfile={editProfile} />
   );
 }

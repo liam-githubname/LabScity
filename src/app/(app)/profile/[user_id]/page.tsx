@@ -8,6 +8,7 @@ import {
   getUserFollowers,
   getUserFollowing,
   getUserFriends,
+  updateProfileAction,
 } from "@/lib/actions/profile";
 import {
   createComment,
@@ -17,7 +18,10 @@ import {
   likePost,
 } from "@/lib/actions/feed";
 import { profileKeys } from "@/lib/query-keys";
-import { LSProfileView } from "@/components/profile/ls-profile-view";
+import {
+  LSProfileView,
+  type LSProfileViewProps,
+} from "@/components/profile/ls-profile-view";
 import { createClient } from "@/supabase/server";
 
 interface ProfilePageProps {
@@ -95,17 +99,20 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   const dehydratedState = dehydrate(queryClient);
 
+  const profileViewProps: LSProfileViewProps = {
+    userId,
+    isOwnProfile,
+    updateProfileAction,
+    createPostAction: createPost,
+    createCommentAction: createComment,
+    createReportAction: createReport,
+    likePostAction: likePost,
+    likeCommentAction: likeComment,
+  };
+
   return (
     <HydrationBoundary state={dehydratedState}>
-      <LSProfileView
-        userId={userId}
-        isOwnProfile={isOwnProfile}
-        createPostAction={createPost}
-        createCommentAction={createComment}
-        createReportAction={createReport}
-        likePostAction={likePost}
-        likeCommentAction={likeComment}
-      />
+      <LSProfileView {...profileViewProps} />
     </HydrationBoundary>
   );
 }
