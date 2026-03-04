@@ -312,7 +312,9 @@ const LSProfileMobileLayout = ({ userId, isOwnProfile, actions, editProfile, fol
         isFollowing={followProfile?.isFollowing}
         onToggleFollow={followProfile?.onToggleFollow}
       />
-      {listPosts}
+      <Box component="ul" style={{ listStyle: "none", paddingLeft: 0, margin: 0 }}>
+        {listPosts}
+      </Box>
       {hasMore ? (
         <Button
           variant="subtle"
@@ -447,7 +449,9 @@ const LSProfileDesktopLayout = ({ userId, isOwnProfile, actions, editProfile, fo
       {/* posts */}
       <Divider my={20} color="navy.1" />
       <Stack mt={20} px="20%">
-        {listPosts}
+        <Box component="ul" style={{ listStyle: "none", paddingLeft: 0, margin: 0 }}>
+          {listPosts}
+        </Box>
         {hasMore ? (
           <Button
             variant="subtle"
