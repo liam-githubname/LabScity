@@ -1,0 +1,96 @@
+## Profile branch notes
+
+### 2026-03-03 – Profile server hydration + hooks refactor
+
+- **Extracted profile view into client component**
+  - Created `src/components/profile/ls-profile-view.tsx` as a `"use client"` component that owns the mobile/desktop profile layouts (`LSProfileMobileLayout`, `LSProfileDesktopLayout`).
+  - Moved profile UI and data-fetching logic (profile hero, posts, friends/following lists) out of `src/app/(app)/profile/[user_id]/page.tsx` into `LSProfileView`.
+- **Converted profile route to a server component with TanStack hydration**
+  - Updated `src/app/(app)/profile/[user_id]/page.tsx` to an async **server component** that:
+    - Awaits the dynamic route params (`params: Promise<{ user_id: string }>`), derives `userId`, and uses it as the profile id.
+    - Creates a `QueryClient`, **prefetches** profile-related queries using `profileKeys`:
+      - `profileKeys.user(userId)` → `getUser(userId)`
+      - `profileKeys.posts(userId)` → `getUserPosts({ user_id: userId })`
+      - `profileKeys.followers(userId)` → `getUserFollowers(userId)`
+      - `profileKeys.following(userId)` → `getUserFollowing(userId)`
+      - `profileKeys.friends(userId)` → `getUserFriends(userId)`
+    - Dehydrates the query client and wraps the client component in `<HydrationBoundary state={dehydratedState}>`.
+- **Wired in Supabase auth and `isOwnProfile`**
+  - In `page.tsx`, created a Supabase server client via `createClient` from `src/supabase/server.ts`.
+  - Fetched the authenticated user with `supabase.auth.getUser()` and computed:
+    - `isOwnProfile = user?.id === userId`.
+  - Passed `isOwnProfile` into `LSProfileView` for future conditional UI (own profile vs. other user’s profile).
+- **Refactored profile React Query hooks to return standard query results**
+  - In `src/components/profile/use-profile.ts`:
+    - Changed `useUserProfile`, `useUserPosts`, `useUserFollowers`, `useUserFollowing`, and `useUserFriends` to **return the full React Query result objects** from `useQuery(...)` instead of custom `{ status, data, error }` wrappers.
+    - Updated each `queryFn` to:
+      - Call the corresponding server action (`getUser`, `getUserPosts`, `getUserFollowers`, `getUserFollowing`, `getUserFriends`).
+      - Throw an `Error` if the action result is unsuccessful or lacks `data`, returning the inner `data` shape on success.
+  - Updated `LSProfileView` to consume the new hook shape:
+    - Uses `query.data` and `query.status` from each hook.
+    - Treats `profile` as a `User`, `userPosts` as `UserPostsResponse`, and friends/following as `User[]`.
+    - Ensures list components always receive arrays (e.g. `friends ?? []`, `following ?? []`) to avoid undefined issues.
+- **Naming and structure clean-up**
+  - Renamed the extracted client component/file from `ProfileFeed`/`profile-feed.tsx` to `LSProfileView`/`ls-profile-view.tsx` to better reflect that it renders the entire profile view (hero + feed + sidebars), and to follow the existing `LS`* naming convention.
+  - Added comments in `ls-profile-view.tsx` and `page.tsx` explaining:
+    - That `LSProfileView` is the full client-side profile UI backed by TanStack Query.
+    - That the profile `page.tsx` is a server component using the dynamic route param and TanStack hydration, and that `params` is a Promise in the current Next/React setup.
+
+### 2026-03-03 – Profile posts use shared Home feed PostCard + actions
+
+- **Wired Home feed post server actions into the profile page**
+  - In `src/app/(app)/profile/[user_id]/page.tsx`:
+    - Imported `createPost`, `createComment`, `createReport`, `likePost`, and `likeComment` from `@/lib/actions/feed`, mirroring the Home feed setup.
+    - Passed these server actions into the client `LSProfileView`:
+      - `createPostAction={createPost}`
+      - `createCommentAction={createComment}`
+      - `createReportAction={createReport}`
+      - `likePostAction={likePost}`
+      - `likeCommentAction={likeComment}`
+    - Kept the existing TanStack Query prefetching of `getUser`, `getUserPosts`, and social graph queries unchanged.
+- **Extended LSProfileView props and added a helper hook for post actions**
+  - In `src/components/profile/ls-profile-view.tsx`:
+    - Extended `LSProfileViewProps` to accept the five feed actions, typed via `HomeFeed`’s exported action types:
+      - `CreatePostAction`, `CreateCommentAction`, `CreateReportAction`, `LikePostAction`, `LikeCommentAction` from `@/components/feed/home-feed.types`.
+    - Introduced `useProfilePostActions(userId, actions)`:
+      - Wraps `createCommentAction`, `createReportAction`, `likePostAction`, and `likeCommentAction` in React Query `useMutation` hooks.
+      - Centralizes:
+        - Cache invalidation for `profileKeys.posts(userId)` after successful mutations.
+        - Error handling via Mantine notifications with user-friendly messages.
+      - Returns a small interface consumed by the layouts:
+        - `handleTogglePostLike(postId)`
+        - `handleToggleCommentLike(commentId)` (comment likes stubbed for future UI)
+        - `handleAddComment(postId, values)`
+        - `submitReport(postId, commentId, values)`
+    - `LSProfileView` now calls `useProfilePostActions` and passes the resulting `actions` object into both mobile and desktop layouts.
+- **Replaced legacy LSPost with shared PostCard in profile layouts**
+  - Removed usage of the old, purely-presentational `LSPost` in the profile views.
+  - In the mobile layout (`LSProfileMobileLayout`):
+    - Maps `userPosts?.posts` (from `UserPostsResponse`) into the shared `PostCard`:
+      - `userId={post.user_id}`
+      - `userName` from the profile (`first_name + " " + last_name`), with a safe `"Unknown User"` fallback.
+      - `field` from `post.category` with `"profileResearchInterest n/a"` as a placeholder.
+      - `timeAgo` currently derived via `new Date(post.created_at).toLocaleString()` (future candidate for a shared “time ago” util).
+      - `content={post.text ?? ""}`.
+    - Wires PostCard callbacks to the helper hook:
+      - `onLikeClick={() => actions.handleTogglePostLike(postId)}`.
+      - `onCommentClick` toggles `activeCommentPostId` to show/hide the composer.
+    - Renders a `CommentComposer` inside `PostCard`’s `children` when the card is “active”:
+      - `onAddComment={actions.handleAddComment}` (server-side `createComment`).
+      - `isSubmitting={false}` for now (future improvement: drive this from mutation state).
+  - In the desktop layout (`LSProfileDesktopLayout`):
+    - Mirrors the same `PostCard` mapping and like/comment handling.
+    - Maintains the existing hero + friends/following sidebars layout, with the posts rendered below.
+- **Surfaced UserPostsResponse pagination metadata in the UI**
+  - In both mobile and desktop layouts:
+    - Read `const hasMore = userPosts?.pagination?.hasMore ?? false;`.
+    - After the posts list, conditionally render a disabled Mantine `Button` when `hasMore` is true:
+      - Label: `"More posts available (pagination coming soon)"`.
+    - This makes the cursor-based pagination state visible to users and documents the intent to wire up a proper “Load more” or infinite scroll experience later, without changing query behavior yet.
+- **Deleted redundant LSPost component**
+  - Removed `src/components/profile/ls-post.tsx` after confirming no remaining references (`LSPost` was only used by `ls-profile-view.tsx`).
+  - The profile now fully relies on the shared feed components:
+    - `PostCard` for post UI.
+    - `CommentComposer` for comment entry.
+    - Feed server actions for like/comment/report, consistent with `HomeFeed`.
+
