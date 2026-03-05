@@ -1,4 +1,4 @@
-import { ActionIcon, Avatar, Box, Card, Flex, Group, Menu, Paper, SimpleGrid, Stack, Text, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Anchor, Avatar, Box, Card, Flex, Group, Menu, SimpleGrid, Stack, Text, UnstyledButton } from "@mantine/core";
 import Link from "next/link";
 import {
   IconDots,
@@ -7,7 +7,6 @@ import {
   IconMessageCircle,
   IconShare3,
 } from "@tabler/icons-react";
-import linkClasses from "./user-name-link.module.css";
 
 interface PostCardProps {
   userId?: string;
@@ -66,7 +65,7 @@ export function PostCard({
       <Stack gap={-1}>
         {/* name of the poster, audience label ( ??? )*/}
         {userId ? (
-          <Link href={`/profile/${userId}`} className={linkClasses.nameLink} style={{ color: "inherit" }}>
+          <Anchor component={Link} href={`/profile/${userId}`} underline="hover" c="navy.7">
             <Text component="span" fw={700} c="navy.7" lh={1.1} style={{ cursor: "pointer" }}>
               {userName}
               {audienceLabel ? (
@@ -75,7 +74,7 @@ export function PostCard({
                 </Text>
               ) : null}
             </Text>
-          </Link>
+          </Anchor>
         ) : (
           <Text fw={600} c="navy.7" lh={1.1}>
             {userName}

@@ -1,8 +1,7 @@
-import { ActionIcon, Avatar, Box, Group, Menu, Text, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Anchor, Avatar, Box, Group, Menu, Text, UnstyledButton } from "@mantine/core";
 import Link from "next/link";
 import { IconDots, IconHeart, IconHeartFilled } from "@tabler/icons-react";
 import type { FeedCommentItem } from "@/lib/types/feed";
-import linkClasses from "./user-name-link.module.css";
 
 interface PostCommentCardProps {
   comment: FeedCommentItem;
@@ -29,11 +28,11 @@ export function PostCommentCard({
     .join("");
 
   const nameNode = comment.userId ? (
-    <Link href={`/profile/${comment.userId}`} className={linkClasses.nameLink} style={{ color: "inherit" }}>
+    <Anchor component={Link} href={`/profile/${comment.userId}`} underline="hover" c="navy.7">
       <Text component="span" fw="bold" c="navy.7" size="sm" style={{ cursor: "pointer" }}>
         {comment.userName}
       </Text>
-    </Link>
+    </Anchor>
   ) : (
     <Text component="span" fw="bold" c="navy.7" size="sm">{comment.userName}</Text>
   );
