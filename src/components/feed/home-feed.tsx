@@ -78,7 +78,7 @@ export function HomeFeed(props: HomeFeedProps) {
       <Button
         leftSection={<IconPlus size={14} />}
         radius="xl"
-        variant="default"
+        variant="filled"
         size="sm"
         c="gray.0"
         fw={700}
