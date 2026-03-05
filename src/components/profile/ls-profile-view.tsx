@@ -1,12 +1,7 @@
 "use client";
 
-// Renders the full profile view (hero, posts, friends/following)
-// for a given userId using TanStack Query hooks, with server actions
-// for posts (like, comment, report) threaded from the page.
 import { useState } from "react";
 import { Box, Button, Divider, Flex, Stack } from "@mantine/core";
-import { notifications } from "@mantine/notifications";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIsMobile } from "@/app/use-is-mobile";
 import LSMiniProfileList from "@/components/profile/ls-mini-profile-list";
 import LSProfileHero from "@/components/profile/ls-profile-hero";
@@ -14,13 +9,12 @@ import { PostCard } from "@/components/feed/post-card";
 import { CommentComposer } from "@/components/feed/comment-composer";
 import { LSSpinner } from "@/components/ui/ls-spinner";
 import {
-  useUserFollowers,
   useUserFollowing,
   useUserFriends,
   useUserPosts,
   useUserProfile,
 } from "@/components/profile/use-profile";
-import { profileKeys } from "@/lib/query-keys";
+import { useLSProfileView } from "@/components/profile/use-ls-profile-view";
 import type {
   CreateCommentAction,
   CreatePostAction,
@@ -29,14 +23,14 @@ import type {
   LikePostAction,
 } from "@/components/feed/home-feed.types";
 import type {
-  CreateCommentValues,
-  CreateReportValues,
-} from "@/lib/validations/post";
-import type { UpdateProfileValues } from "@/lib/validations/profile";
-import type {
   updateProfileAction,
   toggleFollowAction,
 } from "@/lib/actions/profile";
+import type {
+  EditProfileHeroProps,
+  FollowProfileHeroProps,
+  ProfilePostActionsResult,
+} from "@/components/profile/use-ls-profile-view";
 
 type UpdateProfileAction = typeof updateProfileAction;
 type ToggleFollowAction = typeof toggleFollowAction;
@@ -56,186 +50,6 @@ export interface LSProfileViewProps {
   likeCommentAction: LikeCommentAction;
 }
 
-type ProfilePostActionsResult = ReturnType<typeof useProfilePostActions>;
-
-/** Build edit form initial values from profile (User) data. */
-function profileToEditInitialValues(profile: {
-  first_name: string;
-  last_name: string;
-  about?: string | null;
-  workplace?: string | null;
-  occupation?: string | null;
-  research_interests?: string[] | null;
-  skills?: string[] | null;
-}): UpdateProfileValues {
-  return {
-    firstName: profile.first_name ?? "",
-    lastName: profile.last_name ?? "",
-    about: profile.about ?? "",
-    workplace: profile.workplace ?? "",
-    occupation: profile.occupation ?? "",
-    fieldOfInterest: profile.research_interests?.[0] ?? "",
-    skills: profile.skills ?? [],
-  };
-}
-
-// Helper hook that wraps all post-related server actions in
-// React Query mutations and centralizes error handling + cache invalidation.
-function useProfilePostActions(
-  userId: string,
-  actions: {
-    createCommentAction: CreateCommentAction;
-    createReportAction: CreateReportAction;
-    likePostAction: LikePostAction;
-    likeCommentAction: LikeCommentAction;
-  },
-) {
-  const queryClient = useQueryClient();
-
-  const invalidatePosts = () =>
-    queryClient.invalidateQueries({ queryKey: profileKeys.posts(userId) });
-
-  const likePostMutation = useMutation({
-    mutationFn: async (postId: string) => {
-      const result = await actions.likePostAction(postId);
-      if (!result.success) {
-        throw new Error(result.error ?? "Failed to update like");
-      }
-      return result;
-    },
-    onSuccess: () => {
-      invalidatePosts();
-    },
-    onError: (error: unknown) => {
-      notifications.show({
-        title: "Could not update like",
-        message:
-          error instanceof Error ? error.message : "Something went wrong",
-        color: "red",
-      });
-    },
-  });
-
-  const likeCommentMutation = useMutation({
-    mutationFn: async (commentId: string) => {
-      const result = await actions.likeCommentAction(commentId);
-      if (!result.success) {
-        throw new Error(result.error ?? "Failed to update like");
-      }
-      return result;
-    },
-    onSuccess: () => {
-      invalidatePosts();
-    },
-    onError: (error: unknown) => {
-      notifications.show({
-        title: "Could not update like",
-        message:
-          error instanceof Error ? error.message : "Something went wrong",
-        color: "red",
-      });
-    },
-  });
-
-  const createCommentMutation = useMutation({
-    mutationFn: async (params: {
-      postId: string;
-      values: CreateCommentValues;
-    }) => {
-      const result = await actions.createCommentAction(
-        params.postId,
-        params.values,
-      );
-      if (!result.success) {
-        throw new Error(result.error ?? "Failed to create comment");
-      }
-      return result;
-    },
-    onSuccess: () => {
-      invalidatePosts();
-    },
-    onError: (error: unknown) => {
-      notifications.show({
-        title: "Could not add comment",
-        message:
-          error instanceof Error ? error.message : "Something went wrong",
-        color: "red",
-      });
-    },
-  });
-
-  const createReportMutation = useMutation({
-    mutationFn: async (params: {
-      postId: string;
-      commentId: string | null;
-      values: CreateReportValues;
-    }) => {
-      const result = await actions.createReportAction(
-        params.postId,
-        params.commentId,
-        params.values,
-      );
-      if (!result.success) {
-        throw new Error(result.error ?? "Failed to submit report");
-      }
-      return result;
-    },
-    onError: (error: unknown) => {
-      notifications.show({
-        title: "Could not submit report",
-        message:
-          error instanceof Error ? error.message : "Something went wrong",
-        color: "red",
-      });
-    },
-  });
-
-  const handleTogglePostLike = (postId: string) => {
-    likePostMutation.mutate(postId);
-  };
-
-  const handleToggleCommentLike = (commentId: string) => {
-    likeCommentMutation.mutate(commentId);
-  };
-
-  const handleAddComment = (postId: string, values: CreateCommentValues) => {
-    createCommentMutation.mutate({ postId, values });
-  };
-
-  const submitReport = (
-    postId: string,
-    commentId: string | null,
-    values: CreateReportValues,
-  ) => {
-    createReportMutation.mutate({ postId, commentId, values });
-  };
-
-  return {
-    handleTogglePostLike,
-    handleToggleCommentLike,
-    handleAddComment,
-    submitReport,
-  };
-}
-
-// Edit modal + form props passed from LSProfileView into the hero.
-interface EditProfileHeroProps {
-  onOpenEditProfile?: () => void;
-  editModalOpened?: boolean;
-  onEditModalClose?: () => void;
-  editInitialValues?: UpdateProfileValues;
-  onEditSubmit?: (values: UpdateProfileValues) => void;
-  isEditSubmitting?: boolean;
-}
-
-/** Follow/unfollow props for the hero when viewing another user's profile. */
-interface FollowProfileHeroProps {
-  isFollowing: boolean;
-  onToggleFollow: () => void;
-  isTogglePending?: boolean;
-}
-
-// Mobile layout: stacks hero, posts, and relationship widgets in a column.
 interface LSProfileMobileLayoutProps {
   userId: string;
   isOwnProfile: boolean;
@@ -244,11 +58,16 @@ interface LSProfileMobileLayoutProps {
   followProfile?: FollowProfileHeroProps;
 }
 
-const LSProfileMobileLayout = ({ userId, isOwnProfile, actions, editProfile, followProfile }: LSProfileMobileLayoutProps) => {
+const LSProfileMobileLayout = ({
+  userId,
+  isOwnProfile,
+  actions,
+  editProfile,
+  followProfile,
+}: LSProfileMobileLayoutProps) => {
   const profileQuery = useUserProfile(userId);
   const profile = profileQuery.data;
-  const username =
-    profile?.first_name + " " + profile?.last_name;
+  const username = profile?.first_name + " " + profile?.last_name;
   const userPostsQuery = useUserPosts(userId);
   const posts = userPostsQuery.data?.pages.flatMap((p) => p.posts) ?? [];
   const followingQuery = useUserFollowing(userId);
@@ -256,7 +75,9 @@ const LSProfileMobileLayout = ({ userId, isOwnProfile, actions, editProfile, fol
   const friendsQuery = useUserFriends(userId);
   const friends = friendsQuery.data;
 
-  const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null);
+  const [activeCommentPostId, setActiveCommentPostId] = useState<
+    string | null
+  >(null);
 
   const hasNextPage = userPostsQuery.hasNextPage ?? false;
   const isFetchingNextPage = userPostsQuery.isFetchingNextPage ?? false;
@@ -317,7 +138,10 @@ const LSProfileMobileLayout = ({ userId, isOwnProfile, actions, editProfile, fol
         onToggleFollow={followProfile?.onToggleFollow}
         isTogglePending={followProfile?.isTogglePending}
       />
-      <Box component="ul" style={{ listStyle: "none", paddingLeft: 0, margin: 0 }}>
+      <Box
+        component="ul"
+        style={{ listStyle: "none", paddingLeft: 0, margin: 0 }}
+      >
         {listPosts}
       </Box>
       {hasNextPage ? (
@@ -333,15 +157,11 @@ const LSProfileMobileLayout = ({ userId, isOwnProfile, actions, editProfile, fol
         </Button>
       ) : null}
       <LSMiniProfileList widgetTitle="Friends" profiles={friends ?? []} />
-      <LSMiniProfileList
-        widgetTitle="Following"
-        profiles={following ?? []}
-      />
+      <LSMiniProfileList widgetTitle="Following" profiles={following ?? []} />
     </Stack>
   );
 };
 
-// Desktop layout: hero + side widgets row, feed of posts below.
 interface LSProfileDesktopLayoutProps {
   userId: string;
   isOwnProfile: boolean;
@@ -350,11 +170,16 @@ interface LSProfileDesktopLayoutProps {
   followProfile?: FollowProfileHeroProps;
 }
 
-const LSProfileDesktopLayout = ({ userId, isOwnProfile, actions, editProfile, followProfile }: LSProfileDesktopLayoutProps) => {
+const LSProfileDesktopLayout = ({
+  userId,
+  isOwnProfile,
+  actions,
+  editProfile,
+  followProfile,
+}: LSProfileDesktopLayoutProps) => {
   const profileQuery = useUserProfile(userId);
   const profile = profileQuery.data;
-  const username =
-    profile?.first_name + " " + profile?.last_name;
+  const username = profile?.first_name + " " + profile?.last_name;
   const userPostsQuery = useUserPosts(userId);
   const posts = userPostsQuery.data?.pages.flatMap((p) => p.posts) ?? [];
   const friendsQuery = useUserFriends(userId);
@@ -362,7 +187,9 @@ const LSProfileDesktopLayout = ({ userId, isOwnProfile, actions, editProfile, fo
   const followingQuery = useUserFollowing(userId);
   const following = followingQuery.data;
 
-  const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null);
+  const [activeCommentPostId, setActiveCommentPostId] = useState<
+    string | null
+  >(null);
 
   const hasNextPage = userPostsQuery.hasNextPage ?? false;
   const isFetchingNextPage = userPostsQuery.isFetchingNextPage ?? false;
@@ -446,7 +273,10 @@ const LSProfileDesktopLayout = ({ userId, isOwnProfile, actions, editProfile, fo
         </Box>
         <Flex flex={3} direction="column" gap={8}>
           <Box flex={3}>
-            <LSMiniProfileList widgetTitle="Friends" profiles={friends ?? []} />
+            <LSMiniProfileList
+              widgetTitle="Friends"
+              profiles={friends ?? []}
+            />
           </Box>
           <Box flex={5}>
             <LSMiniProfileList
@@ -456,10 +286,12 @@ const LSProfileDesktopLayout = ({ userId, isOwnProfile, actions, editProfile, fo
           </Box>
         </Flex>
       </Flex>
-      {/* posts */}
       <Divider my={20} color="navy.1" />
       <Stack mt={20} px="20%">
-        <Box component="ul" style={{ listStyle: "none", paddingLeft: 0, margin: 0 }}>
+        <Box
+          component="ul"
+          style={{ listStyle: "none", paddingLeft: 0, margin: 0 }}
+        >
           {listPosts}
         </Box>
         {hasNextPage ? (
@@ -479,137 +311,28 @@ const LSProfileDesktopLayout = ({ userId, isOwnProfile, actions, editProfile, fo
   );
 };
 
-export function LSProfileView({
-  userId,
-  isOwnProfile,
-  currentUserId,
-  updateProfileAction,
-  toggleFollowAction,
-  createPostAction,
-  createCommentAction,
-  createReportAction,
-  likePostAction,
-  likeCommentAction,
-}: LSProfileViewProps) {
+/**
+ * Full profile page view — renders the hero, posts, and relationship widgets.
+ * All TanStack Query mutation logic is delegated to `useLSProfileView`.
+ */
+export function LSProfileView(props: LSProfileViewProps) {
   const isMobile = useIsMobile();
-  const [editModalOpened, setEditModalOpened] = useState(false);
-
-  const profileQuery = useUserProfile(userId);
-  const profile = profileQuery.data;
-  const followersQuery = useUserFollowers(userId);
-  const followers = followersQuery.data;
-  const isFollowing = Boolean(
-    currentUserId && followers?.some((f) => f.user_id === currentUserId),
-  );
-
-  const queryClient = useQueryClient();
-  const updateProfileMutation = useMutation({
-    mutationFn: async (values: UpdateProfileValues) => {
-      const result = await updateProfileAction(values);
-      if (!result.success) {
-        throw new Error(result.error ?? "Failed to update profile");
-      }
-      return result;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: profileKeys.user(userId) });
-      setEditModalOpened(false);
-      notifications.show({
-        title: "Profile updated",
-        message: "Your profile has been saved.",
-        color: "green",
-      });
-    },
-    onError: (error: unknown) => {
-      notifications.show({
-        title: "Could not update profile",
-        message: error instanceof Error ? error.message : "Something went wrong",
-        color: "red",
-      });
-    },
-  });
-
-  const toggleFollowMutation = useMutation({
-    mutationFn: async () => {
-      const result = await toggleFollowAction({ targetUserId: userId });
-      if (!result.success) {
-        throw new Error(result.error ?? "Failed to update follow state");
-      }
-      return result;
-    },
-    onSuccess: (data) => {
-      if (data.data?.isFollowing === false && currentUserId) {
-        queryClient.setQueryData(
-          profileKeys.followers(userId),
-          (old: Array<{ user_id: string }> | undefined) =>
-            old ? old.filter((f) => f.user_id !== currentUserId) : old,
-        );
-      }
-      queryClient.invalidateQueries({
-        queryKey: profileKeys.followers(userId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: profileKeys.following(userId),
-      });
-      notifications.show({
-        title: data.data?.isFollowing ? "Following" : "Unfollowed",
-        message: data.data?.isFollowing
-          ? "You are now following this user."
-          : "You have unfollowed this user.",
-        color: "green",
-      });
-    },
-    onError: (error: unknown) => {
-      notifications.show({
-        title: "Could not update follow state",
-        message:
-          error instanceof Error ? error.message : "Something went wrong",
-        color: "red",
-      });
-    },
-  });
-
-  const editProfile: EditProfileHeroProps = isOwnProfile
-    ? {
-        onOpenEditProfile: () => setEditModalOpened(true),
-        editModalOpened,
-        onEditModalClose: () => setEditModalOpened(false),
-        editInitialValues: profile ? profileToEditInitialValues(profile) : undefined,
-        onEditSubmit: (values) => updateProfileMutation.mutate(values),
-        isEditSubmitting: updateProfileMutation.isPending,
-      }
-    : {};
-
-  const followProfile: FollowProfileHeroProps | undefined =
-    !isOwnProfile && currentUserId
-      ? {
-          isFollowing,
-          onToggleFollow: () => toggleFollowMutation.mutate(),
-          isTogglePending: toggleFollowMutation.isPending,
-        }
-      : undefined;
-
-  const actions = useProfilePostActions(userId, {
-    createCommentAction,
-    createReportAction,
-    likePostAction,
-    likeCommentAction,
-  });
+  const { actions, editProfile, followProfile } = useLSProfileView(props);
 
   return (
     <Box bg="gray.0" mih="100vh">
       {isMobile ? (
         <LSProfileMobileLayout
-          userId={userId}
-          isOwnProfile={isOwnProfile}
+          userId={props.userId}
+          isOwnProfile={props.isOwnProfile}
           actions={actions}
           editProfile={editProfile}
           followProfile={followProfile}
         />
       ) : (
         <LSProfileDesktopLayout
-          userId={userId}
-          isOwnProfile={isOwnProfile}
+          userId={props.userId}
+          isOwnProfile={props.isOwnProfile}
           actions={actions}
           editProfile={editProfile}
           followProfile={followProfile}
