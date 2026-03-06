@@ -36,6 +36,16 @@ export const updateProfileSchema = z.object({
     .max(20, { message: "You can select up to 20 skills" })
     .optional()
     .default([]),
+  articles: z
+    .array(
+      z.object({
+        title: z.string().min(1, { message: "Title is required" }),
+        url: z.string().url({ message: "Must be a valid URL" }),
+      }),
+    )
+    .max(30, { message: "You can add up to 30 articles" })
+    .optional()
+    .default([]),
 });
 
 export type UpdateProfileValues = z.infer<typeof updateProfileSchema>;

@@ -23,6 +23,7 @@ export interface User {
   occupation?: string | null;
   workplace?: string | null;
   skills?: string[] | null;
+  articles?: { title: string; url: string }[] | null;
   banner_pic_url?: string | null;
   profile_header_url?: string | null;
 }
