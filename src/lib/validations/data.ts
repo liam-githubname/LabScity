@@ -58,7 +58,8 @@ export const searchFeedInputSchema = z.object({
 export const getUserPostsInputSchema = z.object({
   user_id: z.string(),
   limit: z.number().min(1).max(100).default(10),
-  cursor: z.iso.datetime().optional(), // ISO datetime string for cursor position
+  // Cursor is the stringified sort column (e.g. created_at); DB may return formats without trailing Z
+  cursor: z.string().optional(),
   category: z.string().optional(),
   sortBy: z.enum(["created_at", "like_amount"]).default("created_at"),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),

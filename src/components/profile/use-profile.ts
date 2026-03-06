@@ -1,95 +1,80 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { getUser, getUserPosts } from "@/lib/actions/data";
 import { profileKeys } from "@/lib/query-keys";
-import { Post, User } from "@/lib/types/feed";
-import { UserPostsResponse } from "@/lib/types/data";
 import { getUserFollowers, getUserFollowing, getUserFriends } from "@/lib/actions/profile";
 
-interface UserProfileQueryResponse {
-  status: "success" | "pending" | "error",
-  userProfile?: User,
-  error?: Error,
-};
-
-interface UserPostsQueryResponse {
-  status: "success" | "pending" | "error",
-  userPosts?: UserPostsResponse,
-  error?: Error
-}
-
-// FIXME: This is probably a bad way of doing this, but it does just pass the error up to the parent component which can handle it more gracefully?
-export function useUserProfile(user_id: string, options?: { enabled?: boolean }): UserProfileQueryResponse {
-
-  // TANSTACK QUERY format that
-  const { status, data, error } = useQuery({
+// NOTE: Profile hooks now return the full React Query result objects
+// so server prefetch and client usage share the same data shape.
+export function useUserProfile(user_id: string, options?: { enabled?: boolean }) {
+  return useQuery({
     queryKey: profileKeys.user(user_id),
-    // NOTE: USEFUL INFO FOR future reference
-    // You have to use an arrow function with getUser because getUser has a return value.
-    // So you aren't assigning queryFn to the function you're assigning it to the return value.
-    queryFn: () => getUser(user_id)
+    queryFn: async () => {
+      const result = await getUser(user_id);
+      if (!result?.success || !result.data) {
+        throw new Error(result?.error ?? "Failed to fetch user profile");
+      }
+      return result.data;
+    },
+    ...options,
   });
-
-  return {
-    status: status,
-    error: error || undefined,
-    userProfile: data?.data
-  }
 }
 
+const PROFILE_POSTS_PAGE_SIZE = 10;
 
-
-export function useUserPosts(user_id: string): UserPostsQueryResponse {
-  const { status, data, error } = useQuery({
+export function useUserPosts(user_id: string) {
+  return useInfiniteQuery({
     queryKey: profileKeys.posts(user_id),
-    queryFn: async () => getUserPosts({ user_id: user_id })
+    queryFn: async ({ pageParam }) => {
+      const result = await getUserPosts({
+        user_id,
+        cursor: pageParam,
+        limit: PROFILE_POSTS_PAGE_SIZE,
+      });
+      if (!result.success || !result.data) {
+        throw new Error(result.error ?? "Failed to fetch user posts");
+      }
+      return result.data;
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.pagination.nextCursor ?? undefined,
   });
-
-  return {
-    status: status,
-    userPosts: data?.data,
-    error: error || undefined,
-  }
 }
-
 
 export function useUserFollowers(user_id: string) {
-  const { status, data, error } = useQuery({
+  return useQuery({
     queryKey: profileKeys.followers(user_id),
-    queryFn: async () => getUserFollowers(user_id)
+    queryFn: async () => {
+      const result = await getUserFollowers(user_id);
+      if (!result.success || !result.data) {
+        throw new Error(result.error ?? "Failed to fetch user followers");
+      }
+      return result.data;
+    },
   });
-
-  return {
-    status: status,
-    error: error || undefined,
-    data: data?.data
-  }
 }
 
 export function useUserFollowing(user_id: string) {
-  const { status, data, error } = useQuery({
+  return useQuery({
     queryKey: profileKeys.following(user_id),
-    queryFn: async () => getUserFollowing(user_id)
-  })
-
-  console.log(data?.data)
-
-  return {
-    status: status,
-    error: error || undefined,
-    data: data?.data
-  }
+    queryFn: async () => {
+      const result = await getUserFollowing(user_id);
+      if (!result.success || !result.data) {
+        throw new Error(result.error ?? "Failed to fetch user following");
+      }
+      return result.data;
+    },
+  });
 }
 
 export function useUserFriends(user_id: string) {
-  const { status, data, error } = useQuery({
-    queryKey: profileKeys.following(user_id),
-    queryFn: async () => getUserFriends(user_id)
-  })
-
-
-  return {
-    status: status,
-    error: error || undefined,
-    data: data?.data
-  }
+  return useQuery({
+    queryKey: profileKeys.friends(user_id),
+    queryFn: async () => {
+      const result = await getUserFriends(user_id);
+      if (!result.success || !result.data) {
+        throw new Error(result.error ?? "Failed to fetch user friends");
+      }
+      return result.data;
+    },
+  });
 }

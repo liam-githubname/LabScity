@@ -1,5 +1,8 @@
-import { Image, ActionIcon, Avatar, Box, Card, Flex, Group, Menu, SimpleGrid, Stack, Text, UnstyledButton } from "@mantine/core";
+"use client";
+
+import { ActionIcon, Anchor, Avatar, Box, Card, Flex, Group, Image, Menu, SimpleGrid, Stack, Text, UnstyledButton } from "@mantine/core";
 import Link from "next/link";
+import linkClasses from "./user-name-link.module.css";
 import {
   IconDots,
   IconHeart,
@@ -7,9 +10,8 @@ import {
   IconMessageCircle,
   IconShare3,
 } from "@tabler/icons-react";
-import linkClasses from "./user-name-link.module.css";
 
-interface PostCardProps {
+interface LSPostCardProps {
   userId?: string;
   userName: string;
   field: string;
@@ -30,7 +32,7 @@ interface PostCardProps {
   children?: React.ReactNode;
 }
 
-export function PostCard({
+export function LSPostCard({
   userId,
   userName,
   field,
@@ -49,7 +51,7 @@ export function PostCard({
   menuId,
   onPostClick,
   children,
-}: PostCardProps) {
+}: LSPostCardProps) {
   const initials = userName
     .split(" ")
     .filter(Boolean)
@@ -64,11 +66,9 @@ export function PostCard({
         {initials}
       </Avatar>
 
-      {/* info about the poster */}
       <Stack gap={-1}>
-        {/* name of the poster, audience label ( ??? )*/}
         {userId ? (
-          <Link href={`/profile/${userId}`} className={linkClasses.nameLink} style={{ color: "inherit" }}>
+          <Anchor component={Link} href={`/profile/${userId}`} underline="hover" c="navy.7">
             <Text component="span" fw={700} c="navy.7" lh={1.1} style={{ cursor: "pointer" }}>
               {userName}
               {audienceLabel ? (
@@ -77,7 +77,7 @@ export function PostCard({
                 </Text>
               ) : null}
             </Text>
-          </Link>
+          </Anchor>
         ) : (
           <Text fw={600} c="navy.7" lh={1.1}>
             {userName}
@@ -94,7 +94,6 @@ export function PostCard({
   );
 
   return (
-    // post card
     <Card
       bg="gray.0"
       padding="md"
@@ -102,9 +101,7 @@ export function PostCard({
       shadow="sm"
       style={{ overflow: "hidden" }}
     >
-      {/* container for post data */}
       <Stack gap={16}>
-        {/* post header (profile, etc.) */}
         <Box>
           <Group align="flex-start" justify="space-between">
             {userContent}
@@ -134,7 +131,6 @@ export function PostCard({
           </Group>
         </Box>
 
-        {/* post content*/}
         <Text
           fz="sm"
           c="navy.7"
@@ -145,7 +141,6 @@ export function PostCard({
           {content}
         </Text>
 
-        {/* post media */}
         {mediaUrl ? (
           <Flex
             c="navy.0"
@@ -176,7 +171,6 @@ export function PostCard({
           </Flex>
         ) : null}
 
-        {/* post actions ( like, comment, etc. ) */}
         {showActions ? (
           <SimpleGrid cols={3} spacing="sm" bg="gray.0">
             <UnstyledButton

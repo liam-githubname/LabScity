@@ -5,6 +5,12 @@ import { z } from "zod";
 import type { User } from "@/lib/types/feed";
 import { createClient } from "@/supabase/server";
 import type { DataResponse } from "../types/data";
+import {
+  updateProfileSchema,
+  toggleFollowSchema,
+  type UpdateProfileValues,
+  type ToggleFollowValues,
+} from "@/lib/validations/profile";
 
 const profilePictureBucket = "profile_pictures";
 const profileHeaderBucket = "profile_header";
@@ -20,6 +26,11 @@ const contentTypeSchema = z
 
 const profilePicPathSchema = z.string().min(1, "Profile picture path is required");
 const profileHeaderPathSchema = z.string().min(1, "Profile header path is required");
+
+function emptyToNull(s: string | undefined): string | null {
+  if (s === undefined || s === "") return null;
+  return s;
+}
 
 function extensionFromMime(mimeType: string) {
   switch (mimeType) {
@@ -278,6 +289,150 @@ export async function updateOwnProfileHeader(profileHeaderPath: string, supabase
       return { success: false, error: error.issues[0]?.message ?? "Validation failed" };
     }
     return { success: false, error: "Failed to update profile header" };
+  }
+}
+
+/**
+ * Updates the authenticated user's profile and display name.
+ */
+export async function updateProfileAction(
+  input: UpdateProfileValues,
+  supabaseClient?: SupabaseClient,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const validated = updateProfileSchema.parse(input);
+    const supabase = supabaseClient ?? (await createClient());
+    const { data: authData } = await supabase.auth.getUser();
+
+    if (!authData.user) {
+      return { success: false, error: "Authentication required" };
+    }
+
+    const userId = authData.user.id;
+
+    const profilePayload = {
+      user_id: userId,
+      about: emptyToNull(validated.about),
+      workplace: emptyToNull(validated.workplace),
+      occupation: emptyToNull(validated.occupation),
+      skill: validated.skill && validated.skill.length ? validated.skill : null,
+      articles: validated.articles?.length ? validated.articles : null,
+    };
+
+    const { error: profileError } = await supabase
+      .from("profile")
+      .upsert(profilePayload, { onConflict: "user_id" });
+
+    if (profileError) {
+      return { success: false, error: profileError.message };
+    }
+
+    const { error: usersError } = await supabase
+      .from("users")
+      .update({
+        first_name: validated.firstName.trim(),
+        last_name: validated.lastName.trim(),
+      })
+      .eq("user_id", userId);
+
+    if (usersError) {
+      return { success: false, error: usersError.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      const first = err.issues[0];
+      return {
+        success: false,
+        error: first?.message ?? "Validation failed",
+      };
+    }
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to update profile",
+    };
+  }
+}
+
+/**
+ * Toggles follow state between the authenticated user and a target user.
+ */
+export async function toggleFollowAction(
+  input: ToggleFollowValues,
+  supabaseClient?: SupabaseClient,
+): Promise<
+  | { success: true; data: { isFollowing: boolean } }
+  | { success: false; error: string }
+> {
+  try {
+    const validated = toggleFollowSchema.parse(input);
+    const supabase = supabaseClient ?? (await createClient());
+    const { data: authData } = await supabase.auth.getUser();
+
+    if (!authData.user) {
+      return { success: false, error: "Authentication required" };
+    }
+
+    const currentUserId = authData.user.id;
+    const targetUserId = validated.targetUserId;
+
+    if (currentUserId === targetUserId) {
+      return { success: false, error: "You cannot follow yourself" };
+    }
+
+    const { data: existing, error: selectError } = await supabase
+      .from("follows")
+      .select("follower_id")
+      .eq("follower_id", currentUserId)
+      .eq("following_id", targetUserId)
+      .maybeSingle();
+
+    if (selectError) {
+      return { success: false, error: selectError.message };
+    }
+
+    if (existing) {
+      const { data: deleted, error: deleteError } = await supabase
+        .from("follows")
+        .delete()
+        .eq("follower_id", currentUserId)
+        .eq("following_id", targetUserId)
+        .select("follower_id");
+
+      if (deleteError) {
+        return { success: false, error: deleteError.message };
+      }
+      if (!deleted?.length) {
+        return {
+          success: false,
+          error: "Could not unfollow; the follow relationship may be protected.",
+        };
+      }
+      return { success: true, data: { isFollowing: false } };
+    }
+
+    const { error: insertError } = await supabase.from("follows").insert({
+      follower_id: currentUserId,
+      following_id: targetUserId,
+    });
+
+    if (insertError) {
+      return { success: false, error: insertError.message };
+    }
+
+    return { success: true, data: { isFollowing: true } };
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return {
+        success: false,
+        error: err.issues[0]?.message ?? "Validation failed",
+      };
+    }
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to toggle follow",
+    };
   }
 }
 

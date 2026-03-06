@@ -347,7 +347,7 @@ export async function getUser(user_id: string, supabaseClient?: SupabaseClient):
     const user = data[0];
     const { data: profileData, error: profileError } = await supabase
       .from("profile")
-      .select("header_pic_path")
+      .select("header_pic_path, about, workplace, occupation, skill, articles")
       .eq("user_id", user_id)
       .maybeSingle();
 
@@ -362,6 +362,10 @@ export async function getUser(user_id: string, supabaseClient?: SupabaseClient):
       ? supabase.storage.from("profile_header").getPublicUrl(profileData.header_pic_path).data.publicUrl
       : null;
 
+    // Map profile.skill (DB column) to User.skills; merge extended profile fields.
+    const profileSkill = profileData?.skill;
+    const skills = Array.isArray(profileSkill) ? profileSkill : null;
+
     return {
       success: true,
       data: {
@@ -369,6 +373,11 @@ export async function getUser(user_id: string, supabaseClient?: SupabaseClient):
         profile_header_path: profileData?.header_pic_path ?? null,
         avatar_url: avatarUrl,
         profile_header_url: profileHeaderUrl,
+        about: profileData?.about ?? null,
+        workplace: profileData?.workplace ?? null,
+        occupation: profileData?.occupation ?? null,
+        skills,
+        articles: Array.isArray(profileData?.articles) ? profileData.articles : null,
       },
     }
 
