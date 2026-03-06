@@ -26,6 +26,7 @@ interface PostCardProps {
   showActions?: boolean;
   audienceLabel?: string | null;
   menuId?: string;
+  onPostClick?: () => void;
   children?: React.ReactNode;
 }
 
@@ -46,6 +47,7 @@ export function PostCard({
   showActions = true,
   audienceLabel = null,
   menuId,
+  onPostClick,
   children,
 }: PostCardProps) {
   const initials = userName
@@ -133,7 +135,14 @@ export function PostCard({
         </Box>
 
         {/* post content*/}
-        <Text fz="sm" c="navy.7">{content}</Text>
+        <Text
+          fz="sm"
+          c="navy.7"
+          onClick={onPostClick}
+          style={onPostClick ? { cursor: "pointer" } : undefined}
+        >
+          {content}
+        </Text>
 
         {/* post media */}
         {mediaUrl ? (
@@ -143,7 +152,8 @@ export function PostCard({
             justify="center"
             align="center"
             fw={600}
-            style={{ letterSpacing: "0.3px", overflow: "hidden" }}
+            onClick={onPostClick}
+            style={{ letterSpacing: "0.3px", overflow: "hidden", cursor: onPostClick ? "pointer" : undefined }}
           >
             <Image src={mediaUrl} alt="Post attachment" radius="md" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
           </Flex>
@@ -156,7 +166,8 @@ export function PostCard({
             align="center"
             ta="center"
             fw={600}
-            style={{ letterSpacing: "0.3px", overflow: "hidden" }}
+            onClick={onPostClick}
+            style={{ letterSpacing: "0.3px", overflow: "hidden", cursor: onPostClick ? "pointer" : undefined }}
           >
             <Text component="span" style={{ whiteSpace: "pre-line" }}>
               {mediaLabel}

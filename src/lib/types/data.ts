@@ -1,4 +1,4 @@
-import { User } from '@/lib/types/feed'
+import { FeedCommentItem, User } from '@/lib/types/feed'
 
 /** Core post type aligned with database schema */
 export interface Post {
@@ -9,7 +9,10 @@ export interface Post {
   media_url?: string | null;
   created_at: string;
   category?: string;
+  scientific_field?: string | null;
   like_amount: number;
+  isLiked?: boolean;
+  comments?: FeedCommentItem[];
 }
 
 /** Extended post with optional author information */

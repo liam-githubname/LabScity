@@ -2,13 +2,15 @@
 import { Box, Divider, Flex, Stack } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { LSSpinner } from "@/components/ui/ls-spinner";
 import { useIsMobile } from "@/app/use-is-mobile";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/use-auth";
-import LSMiniProfile from "@/components/profile/ls-mini-profile";
 import LSMiniProfileList from "@/components/profile/ls-mini-profile-list";
-import LSPost from "@/components/profile/ls-post";
+import { PostCard } from "@/components/feed/post-card";
+import { CommentComposer } from "@/components/feed/comment-composer";
+import { PostCommentCard } from "@/components/feed/post-comment-card";
 // TODO: CREATE THE FOLLOWING/FOLLOWED relationships
 // TODO: FIGURE OUT THE ROUTING so that it passes the user_id otw to this profile page
 /* TODO: Figure out how to get the comments on each post *I think the right move is to have a join on posts and comments with the same postid* */
@@ -22,6 +24,7 @@ import {
   updateOwnProfileHeader,
   updateOwnProfilePicture,
 } from "@/lib/actions/profile";
+import { createComment, likeComment, likePost } from "@/lib/actions/feed";
 import { profileKeys } from "@/lib/query-keys";
 import { createClient } from "@/supabase/client";
 import {
@@ -30,6 +33,18 @@ import {
   useUserPosts,
   useUserProfile,
 } from "@/components/profile/use-profile";
+import type { CreateCommentValues } from "@/lib/validations/post";
+
+function getTimeAgo(date: string): string {
+  const now = new Date();
+  const postDate = new Date(date);
+  const diffInSeconds = Math.floor((now.getTime() - postDate.getTime()) / 1000);
+  if (diffInSeconds < 60) return "just now";
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  return postDate.toLocaleDateString();
+}
 
 const maxProfilePictureBytes = 1024 * 1024;
 const maxProfileHeaderBytes = 2 * 1024 * 1024;
@@ -42,6 +57,7 @@ const allowedProfilePictureMimeTypes = new Set([
 
 const LSProfileMobileLayout = () => {
   const params = useParams<{ user_id: string }>();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const { user: authUser } = useAuth();
   const profile = useUserProfile(params.user_id);
@@ -51,6 +67,61 @@ const LSProfileMobileLayout = () => {
   const userPosts = useUserPosts(params.user_id);
   const following = useUserFollowing(params.user_id);
   const friends = useUserFriends(params.user_id);
+  const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null);
+
+  const invalidatePosts = () =>
+    queryClient.invalidateQueries({ queryKey: profileKeys.posts(params.user_id) });
+
+  const likePostMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      const result = await likePost(postId);
+      if (!result.success) throw new Error(result.error ?? "Failed to update like");
+      return result;
+    },
+    onSuccess: invalidatePosts,
+    onError: (error) => {
+      notifications.show({
+        title: "Could not update like",
+        message: error instanceof Error ? error.message : "Something went wrong",
+        color: "red",
+      });
+    },
+  });
+
+  const likeCommentMutation = useMutation({
+    mutationFn: async (commentId: string) => {
+      const result = await likeComment(commentId);
+      if (!result.success) throw new Error(result.error ?? "Failed to update like");
+      return result;
+    },
+    onSuccess: invalidatePosts,
+    onError: (error) => {
+      notifications.show({
+        title: "Could not update like",
+        message: error instanceof Error ? error.message : "Something went wrong",
+        color: "red",
+      });
+    },
+  });
+
+  const createCommentMutation = useMutation({
+    mutationFn: async ({ postId, values }: { postId: string; values: CreateCommentValues }) => {
+      const result = await createComment(postId, values);
+      if (!result.success) throw new Error(result.error ?? "Failed to create comment");
+      return result;
+    },
+    onSuccess: () => {
+      setActiveCommentPostId(null);
+      invalidatePosts();
+    },
+    onError: (error) => {
+      notifications.show({
+        title: "Could not add comment",
+        message: error instanceof Error ? error.message : "Something went wrong",
+        color: "red",
+      });
+    },
+  });
 
   const uploadProfilePictureMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -165,18 +236,54 @@ const LSProfileMobileLayout = () => {
     uploadProfileHeaderMutation.mutate(file);
   };
 
-  const listPosts = userPosts.userPosts?.posts.map((post) => (
-    <li key={post.post_id}>
-      <LSPost
-        posterName={username}
-        posterResearchInterest="This isn't in the database"
-        attachmentPreviewURL={post.media_url ?? undefined}
-        posterProfilePicURL={profile.userProfile?.avatar_url ?? ""}
-        postText={post.text || ""}
-        timestamp={post.created_at}
-      />
-    </li>
-  ));
+  const listPosts = userPosts.userPosts?.posts.map((post) => {
+    const postId = String(post.post_id);
+    const isCommentOpen = activeCommentPostId === postId;
+    return (
+      <li key={post.post_id}>
+        <PostCard
+          userId={params.user_id}
+          userName={username}
+          field={post.scientific_field ?? ""}
+          mediaUrl={post.media_url ?? undefined}
+          avatarUrl={profile.userProfile?.avatar_url ?? ""}
+          content={post.text || ""}
+          timeAgo={getTimeAgo(post.created_at)}
+          isLiked={post.isLiked ?? false}
+          onLikeClick={() => likePostMutation.mutate(postId)}
+          onCommentClick={() => setActiveCommentPostId(isCommentOpen ? null : postId)}
+          showMenu={false}
+          showActions
+          onPostClick={() => router.push(`/posts/${post.post_id}`)}
+        >
+          <Stack gap="md" w="100%">
+            {isCommentOpen ? (
+              <CommentComposer
+                postId={postId}
+                onAddComment={async (pid, values) => {
+                  await createCommentMutation.mutateAsync({ postId: pid, values });
+                }}
+                isSubmitting={createCommentMutation.isPending}
+              />
+            ) : null}
+            {(post.comments ?? []).length > 0 ? (
+              <>
+                <Divider />
+                {(post.comments ?? []).map((comment) => (
+                  <PostCommentCard
+                    key={comment.id}
+                    comment={comment}
+                    onLikeClick={(commentId) => likeCommentMutation.mutate(commentId)}
+                    showMenu={false}
+                  />
+                ))}
+              </>
+            ) : null}
+          </Stack>
+        </PostCard>
+      </li>
+    );
+  });
 
   return (
     <Stack p={8}>
@@ -207,6 +314,7 @@ const LSProfileMobileLayout = () => {
 
 const LSProfileDesktopLayout = () => {
   const params = useParams<{ user_id: string }>();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const { user: authUser } = useAuth();
   const profile = useUserProfile(params.user_id);
@@ -216,6 +324,61 @@ const LSProfileDesktopLayout = () => {
   const userPosts = useUserPosts(params.user_id);
   const friends = useUserFriends(params.user_id);
   const following = useUserFollowing(params.user_id);
+  const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null);
+
+  const invalidatePosts = () =>
+    queryClient.invalidateQueries({ queryKey: profileKeys.posts(params.user_id) });
+
+  const likePostMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      const result = await likePost(postId);
+      if (!result.success) throw new Error(result.error ?? "Failed to update like");
+      return result;
+    },
+    onSuccess: invalidatePosts,
+    onError: (error) => {
+      notifications.show({
+        title: "Could not update like",
+        message: error instanceof Error ? error.message : "Something went wrong",
+        color: "red",
+      });
+    },
+  });
+
+  const likeCommentMutation = useMutation({
+    mutationFn: async (commentId: string) => {
+      const result = await likeComment(commentId);
+      if (!result.success) throw new Error(result.error ?? "Failed to update like");
+      return result;
+    },
+    onSuccess: invalidatePosts,
+    onError: (error) => {
+      notifications.show({
+        title: "Could not update like",
+        message: error instanceof Error ? error.message : "Something went wrong",
+        color: "red",
+      });
+    },
+  });
+
+  const createCommentMutation = useMutation({
+    mutationFn: async ({ postId, values }: { postId: string; values: CreateCommentValues }) => {
+      const result = await createComment(postId, values);
+      if (!result.success) throw new Error(result.error ?? "Failed to create comment");
+      return result;
+    },
+    onSuccess: () => {
+      setActiveCommentPostId(null);
+      invalidatePosts();
+    },
+    onError: (error) => {
+      notifications.show({
+        title: "Could not add comment",
+        message: error instanceof Error ? error.message : "Something went wrong",
+        color: "red",
+      });
+    },
+  });
 
   const uploadProfilePictureMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -330,7 +493,6 @@ const LSProfileDesktopLayout = () => {
     uploadProfileHeaderMutation.mutate(file);
   };
 
-
   if (profile.status === "pending") {
     return (
       <Flex justify="center" align="center" h="calc(100vh - 120px)">
@@ -349,18 +511,54 @@ const LSProfileDesktopLayout = () => {
     !friendIds.has(user.user_id)
   );
 
-  const listPosts = userPosts.userPosts?.posts.map((post) => (
-    <li key={post.post_id}>
-      <LSPost
-        posterName={username}
-        posterResearchInterest="posterResearchInterest n/a"
-        attachmentPreviewURL={post.media_url ?? undefined}
-        posterProfilePicURL={profile.userProfile?.avatar_url ?? ""}
-        postText={post.text || "postText n/a"}
-        timestamp={post.created_at}
-      />
-    </li>
-  ));
+  const listPosts = userPosts.userPosts?.posts.map((post) => {
+    const postId = String(post.post_id);
+    const isCommentOpen = activeCommentPostId === postId;
+    return (
+      <li key={post.post_id}>
+        <PostCard
+          userId={params.user_id}
+          userName={username}
+          field={post.scientific_field ?? ""}
+          mediaUrl={post.media_url ?? undefined}
+          avatarUrl={profile.userProfile?.avatar_url ?? ""}
+          content={post.text || "postText n/a"}
+          timeAgo={getTimeAgo(post.created_at)}
+          isLiked={post.isLiked ?? false}
+          onLikeClick={() => likePostMutation.mutate(postId)}
+          onCommentClick={() => setActiveCommentPostId(isCommentOpen ? null : postId)}
+          showMenu={false}
+          showActions
+          onPostClick={() => router.push(`/posts/${post.post_id}`)}
+        >
+          <Stack gap="md" w="100%">
+            {isCommentOpen ? (
+              <CommentComposer
+                postId={postId}
+                onAddComment={async (pid, values) => {
+                  await createCommentMutation.mutateAsync({ postId: pid, values });
+                }}
+                isSubmitting={createCommentMutation.isPending}
+              />
+            ) : null}
+            {(post.comments ?? []).length > 0 ? (
+              <>
+                <Divider />
+                {(post.comments ?? []).map((comment) => (
+                  <PostCommentCard
+                    key={comment.id}
+                    comment={comment}
+                    onLikeClick={(commentId) => likeCommentMutation.mutate(commentId)}
+                    showMenu={false}
+                  />
+                ))}
+              </>
+            ) : null}
+          </Stack>
+        </PostCard>
+      </li>
+    );
+  });
 
   return (
     <Box py={24} px={80}>
