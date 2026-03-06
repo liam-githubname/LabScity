@@ -220,6 +220,8 @@ const LSProfileMobileLayout = ({
         onToggleFollow={followProfile?.onToggleFollow}
         isTogglePending={followProfile?.isTogglePending}
       />
+      <LSMiniProfileList widgetTitle="Friends" profiles={friends ?? []} />
+      <LSMiniProfileList widgetTitle="Following" profiles={following ?? []} />
       <Box
         component="ul"
         style={{ listStyle: "none", paddingLeft: 0, margin: 0 }}
@@ -238,8 +240,6 @@ const LSProfileMobileLayout = ({
           Load more posts
         </Button>
       ) : null}
-      <LSMiniProfileList widgetTitle="Friends" profiles={friends ?? []} />
-      <LSMiniProfileList widgetTitle="Following" profiles={following ?? []} />
     </Stack>
   );
 };
