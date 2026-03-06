@@ -33,6 +33,7 @@ import type {
 import type {
   EditProfileHeroProps,
   FollowProfileHeroProps,
+  ProfileMediaUploadProps,
   ProfilePostActionsResult,
 } from "@/components/profile/use-ls-profile-view";
 
@@ -68,6 +69,7 @@ interface LSProfileMobileLayoutProps {
   actions: ProfilePostActionsResult;
   editProfile: EditProfileHeroProps;
   followProfile?: FollowProfileHeroProps;
+  mediaUpload?: ProfileMediaUploadProps;
 }
 
 /**
@@ -79,6 +81,7 @@ interface LSProfileMobileLayoutProps {
  * @param actions       - Post-related mutation handlers (like, comment, report).
  * @param editProfile   - Edit-modal state & callbacks for the hero section.
  * @param followProfile - Follow/unfollow state & callback (omitted for own profile).
+ * @param mediaUpload   - Profile pic & banner upload handlers (omitted for other users).
  */
 const LSProfileMobileLayout = ({
   userId,
@@ -86,6 +89,7 @@ const LSProfileMobileLayout = ({
   actions,
   editProfile,
   followProfile,
+  mediaUpload,
 }: LSProfileMobileLayoutProps) => {
   const profileQuery = useUserProfile(userId);
   const profile = profileQuery.data;
@@ -151,6 +155,10 @@ const LSProfileMobileLayout = ({
         occupation={profile?.occupation ?? undefined}
         workplace={profile?.workplace ?? undefined}
         isOwnProfile={isOwnProfile}
+        onProfilePicSelect={mediaUpload?.onProfilePicSelect}
+        isUploadingProfilePic={mediaUpload?.isUploadingProfilePic}
+        onProfileHeaderSelect={mediaUpload?.onProfileHeaderSelect}
+        isUploadingProfileHeader={mediaUpload?.isUploadingProfileHeader}
         onOpenEditProfile={editProfile.onOpenEditProfile}
         editModalOpened={editProfile.editModalOpened}
         onEditModalClose={editProfile.onEditModalClose}
@@ -191,6 +199,7 @@ interface LSProfileDesktopLayoutProps {
   actions: ProfilePostActionsResult;
   editProfile: EditProfileHeroProps;
   followProfile?: FollowProfileHeroProps;
+  mediaUpload?: ProfileMediaUploadProps;
 }
 
 /**
@@ -202,6 +211,7 @@ interface LSProfileDesktopLayoutProps {
  * @param actions       - Post-related mutation handlers (like, comment, report).
  * @param editProfile   - Edit-modal state & callbacks for the hero section.
  * @param followProfile - Follow/unfollow state & callback (omitted for own profile).
+ * @param mediaUpload   - Profile pic & banner upload handlers (omitted for other users).
  */
 const LSProfileDesktopLayout = ({
   userId,
@@ -209,6 +219,7 @@ const LSProfileDesktopLayout = ({
   actions,
   editProfile,
   followProfile,
+  mediaUpload,
 }: LSProfileDesktopLayoutProps) => {
   const profileQuery = useUserProfile(userId);
   const profile = profileQuery.data;
@@ -294,6 +305,10 @@ const LSProfileDesktopLayout = ({
             occupation={profile?.occupation ?? undefined}
             workplace={profile?.workplace ?? undefined}
             isOwnProfile={isOwnProfile}
+            onProfilePicSelect={mediaUpload?.onProfilePicSelect}
+            isUploadingProfilePic={mediaUpload?.isUploadingProfilePic}
+            onProfileHeaderSelect={mediaUpload?.onProfileHeaderSelect}
+            isUploadingProfileHeader={mediaUpload?.isUploadingProfileHeader}
             onOpenEditProfile={editProfile.onOpenEditProfile}
             editModalOpened={editProfile.editModalOpened}
             onEditModalClose={editProfile.onEditModalClose}
@@ -351,7 +366,8 @@ const LSProfileDesktopLayout = ({
  */
 export function LSProfileView(props: LSProfileViewProps) {
   const isMobile = useIsMobile();
-  const { actions, editProfile, followProfile } = useLSProfileView(props);
+  const { actions, editProfile, followProfile, mediaUpload } =
+    useLSProfileView(props);
 
   return (
     <Box bg="gray.0" mih="100vh">
@@ -362,6 +378,7 @@ export function LSProfileView(props: LSProfileViewProps) {
           actions={actions}
           editProfile={editProfile}
           followProfile={followProfile}
+          mediaUpload={mediaUpload}
         />
       ) : (
         <LSProfileDesktopLayout
@@ -370,6 +387,7 @@ export function LSProfileView(props: LSProfileViewProps) {
           actions={actions}
           editProfile={editProfile}
           followProfile={followProfile}
+          mediaUpload={mediaUpload}
         />
       )}
     </Box>
