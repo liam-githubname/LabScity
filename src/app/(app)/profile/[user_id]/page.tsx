@@ -123,7 +123,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   const dehydratedState = dehydrate(queryClient);
 
-  // Server actions passed as props; LSProfileView invokes them via useLSProfileView.
   const profileViewProps: LSProfileViewProps = {
     userId,
     isOwnProfile,
@@ -147,4 +146,3 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     </HydrationBoundary>
   );
 }
-

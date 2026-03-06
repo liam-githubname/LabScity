@@ -2,6 +2,7 @@
 
 import { Button, Divider, Stack, Text } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
+import { useRouter } from "next/navigation";
 import { LSCommentComposer } from "@/components/feed/ls-comment-composer";
 import { LSPostCard } from "@/components/feed/ls-post-card";
 import { LSPostComposer } from "@/components/feed/ls-post-composer";
@@ -11,6 +12,7 @@ import { useHomeFeed } from "@/components/feed/use-home-feed";
 import type { HomeFeedProps } from "@/components/feed/home-feed.types";
 
 export function HomeFeed(props: HomeFeedProps) {
+  const router = useRouter();
   const {
     posts,
     isFeedLoading,
@@ -124,6 +126,7 @@ export function HomeFeed(props: HomeFeedProps) {
             onLikeClick={() => handleTogglePostLike(post.id)}
             isLiked={post.isLiked ?? false}
             onReportClick={() => setReportTarget({ type: "post", postId: post.id })}
+            onPostClick={() => router.push(`/posts/${post.id}`)}
             audienceLabel={post.audienceLabel ?? null}
             menuId={`post-menu-${post.id}`}
           >

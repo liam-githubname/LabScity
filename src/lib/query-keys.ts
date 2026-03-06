@@ -34,3 +34,8 @@ export const notificationKeys = {
   isMuted: (itemId: number, itemType: string) =>
     [...notificationKeys.all, "isMuted", itemId, itemType] as const,
 };
+
+export const postKeys = {
+  all: ["post"] as const,
+  detail: (post_id: string) => [...postKeys.all, "detail", post_id] as const,
+};
