@@ -1,3 +1,5 @@
+//Page for users to send forgot password email 
+
 "use client";
 
 import { useState } from "react";
