@@ -52,7 +52,7 @@ function mapUserWithAvatarUrl(user: User, supabase: SupabaseClient): User {
     ? supabase.storage.from(profilePictureBucket).getPublicUrl(user.profile_pic_path).data.publicUrl
     : null;
   const profileHeaderUrl = user.profile_header_path
-    ? supabase.storage.from(profilePictureBucket).getPublicUrl(user.profile_header_path).data.publicUrl
+    ? supabase.storage.from(profileHeaderBucket).getPublicUrl(user.profile_header_path).data.publicUrl
     : null;
 
   return { ...user, avatar_url: avatarUrl, profile_header_url: profileHeaderUrl };
