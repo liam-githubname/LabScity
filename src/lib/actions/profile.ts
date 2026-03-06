@@ -332,6 +332,7 @@ export async function updateProfileAction(
       workplace: emptyToNull(validated.workplace),
       occupation: emptyToNull(validated.occupation),
       skill: validated.skill.length ? validated.skill : null,
+      articles: validated.articles?.length ? validated.articles : null,
     };
 
     const { error: profileError } = await supabase

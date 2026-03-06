@@ -347,7 +347,7 @@ export async function getUser(user_id: string, supabaseClient?: SupabaseClient):
     const user = data[0];
     const { data: profileData, error: profileError } = await supabase
       .from("profile")
-      .select("header_pic_path, about, workplace, occupation, skill")
+      .select("header_pic_path, about, workplace, occupation, skill, articles")
       .eq("user_id", user_id)
       .maybeSingle();
 
@@ -377,6 +377,7 @@ export async function getUser(user_id: string, supabaseClient?: SupabaseClient):
         workplace: profileData?.workplace ?? null,
         occupation: profileData?.occupation ?? null,
         skills,
+        articles: Array.isArray(profileData?.articles) ? profileData.articles : null,
       },
     }
 
