@@ -3,10 +3,10 @@
 import { Button, Divider, Stack, Text } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import { CommentComposer } from "@/components/feed/comment-composer";
-import { PostCard } from "@/components/feed/post-card";
-import { PostComposer } from "@/components/feed/post-composer";
-import { PostCommentCard } from "@/components/feed/post-comment-card";
+import { LSCommentComposer } from "@/components/feed/ls-comment-composer";
+import { LSPostCard } from "@/components/feed/ls-post-card";
+import { LSPostComposer } from "@/components/feed/ls-post-composer";
+import { LSPostCommentCard } from "@/components/feed/ls-post-comment-card";
 import { ReportOverlay } from "@/components/report/report-overlay";
 import { useHomeFeed } from "@/components/feed/use-home-feed";
 import type { HomeFeedProps } from "@/components/feed/home-feed.types";
@@ -43,7 +43,7 @@ export function HomeFeed(props: HomeFeedProps) {
             ? posts
               .filter((post) => post.id === reportTarget.postId)
               .map((post) => (
-                <PostCard
+                <LSPostCard
                   key={post.id}
                   userId={post.userId}
                   userName={post.userName}
@@ -63,7 +63,7 @@ export function HomeFeed(props: HomeFeedProps) {
               .flatMap((post) => post.comments)
               .filter((comment) => comment.id === reportTarget?.commentId)
               .map((comment) => (
-                <PostCommentCard
+                <LSPostCommentCard
                   key={comment.id}
                   comment={comment}
                   showMenu={false}
@@ -91,7 +91,7 @@ export function HomeFeed(props: HomeFeedProps) {
       </Button>
 
       {isComposerOpen ? (
-        <PostComposer
+        <LSPostComposer
           key="open"
           onSubmit={handleSubmitPost}
           isPending={createPostMutation.isPending}
@@ -110,7 +110,7 @@ export function HomeFeed(props: HomeFeedProps) {
 
       <Stack gap="lg" w="100%">
         {posts.map((post) => (
-          <PostCard
+          <LSPostCard
             key={post.id}
             userId={post.userId}
             userName={post.userName}
@@ -134,7 +134,7 @@ export function HomeFeed(props: HomeFeedProps) {
               <Stack gap="md" w="100%">
                 {activeCommentPostId === post.id ? (
                   <>
-                    <CommentComposer
+                    <LSCommentComposer
                       postId={post.id}
                       onAddComment={handleAddComment}
                       isSubmitting={createCommentMutation.isPending}
@@ -145,7 +145,7 @@ export function HomeFeed(props: HomeFeedProps) {
                 <Divider />
 
                 {post.comments.map((comment) => (
-                  <PostCommentCard
+                  <LSPostCommentCard
                     key={comment.id}
                     comment={comment}
                     onLikeClick={(commentId) =>
@@ -163,7 +163,7 @@ export function HomeFeed(props: HomeFeedProps) {
                 ))}
               </Stack>
             ) : null}
-          </PostCard>
+          </LSPostCard>
         ))}
       </Stack>
     </Stack>
