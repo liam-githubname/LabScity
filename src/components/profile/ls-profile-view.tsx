@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Box, Button, Divider, Flex, Stack } from "@mantine/core";
+import { useRouter } from "next/navigation";
 import { useIsMobile } from "@/app/use-is-mobile";
 import LSMiniProfileList from "@/components/profile/ls-mini-profile-list";
 import LSProfileHero from "@/components/profile/ls-profile-hero";
@@ -108,6 +109,7 @@ const LSProfileMobileLayout = ({
   followProfile,
   mediaUpload,
 }: LSProfileMobileLayoutProps) => {
+  const router = useRouter();
   const profileQuery = useUserProfile(userId);
   const profile = profileQuery.data;
   const username = profile?.first_name + " " + profile?.last_name;
@@ -146,6 +148,7 @@ const LSProfileMobileLayout = ({
           }
           isLiked={false}
           showMenu={false}
+          onPostClick={() => router.push(`/posts/${post.post_id}`)}
         >
           {activeCommentPostId === postId ? (
             <LSCommentComposer
@@ -239,6 +242,7 @@ const LSProfileDesktopLayout = ({
   followProfile,
   mediaUpload,
 }: LSProfileDesktopLayoutProps) => {
+  const router = useRouter();
   const profileQuery = useUserProfile(userId);
   const profile = profileQuery.data;
   const username = profile?.first_name + " " + profile?.last_name;
@@ -295,6 +299,7 @@ const LSProfileDesktopLayout = ({
           }
           isLiked={false}
           showMenu={false}
+          onPostClick={() => router.push(`/posts/${post.post_id}`)}
         >
           {activeCommentPostId === postId ? (
             <LSCommentComposer
