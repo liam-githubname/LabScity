@@ -79,7 +79,7 @@ export function LSEditProfileModal({
   opened,
   onClose,
   initialValues = defaultEditValues,
-  onSubmit = () => {},
+  onSubmit = () => { },
   isSubmitting = false,
   profilePicURL,
   profileHeaderImageURL,
@@ -200,23 +200,16 @@ export function LSEditProfileModal({
                         inset: 0,
                         background: "rgba(0,0,0,0.35)",
                         display: "flex",
-                        flexDirection: "column",
                         alignItems: "center",
                         justifyContent: "center",
                         color: "white",
-                        fontSize: 12,
-                        fontWeight: 600,
-                        gap: 4,
                         borderRadius: "var(--mantine-radius-lg)",
                       }}
                     >
                       {isUploadingProfileHeader ? (
                         <Loader size="xs" color="white" />
                       ) : (
-                        <>
-                          <IconCamera size={20} />
-                          Change banner
-                        </>
+                        <IconCamera size={20} />
                       )}
                     </Box>
                   ) : null}
@@ -258,22 +251,15 @@ export function LSEditProfileModal({
                           inset: 0,
                           background: "rgba(0,0,0,0.45)",
                           display: "flex",
-                          flexDirection: "column",
                           alignItems: "center",
                           justifyContent: "center",
                           color: "white",
-                          fontSize: 10,
-                          fontWeight: 600,
-                          gap: 2,
                         }}
                       >
                         {isUploadingProfilePic ? (
                           <Loader size="xs" color="white" />
                         ) : (
-                          <>
-                            <IconCamera size={18} />
-                            Edit
-                          </>
+                          <IconCamera size={18} />
                         )}
                       </Box>
                     ) : null}
@@ -350,7 +336,7 @@ export function LSEditProfileModal({
             render={({ field, fieldState }) => (
               <TagsInput
                 label="Your Skills"
-                placeholder="Select or type your own..."
+                placeholder={!field.value?.length ? "Select or type your own..." : ""}
                 data={[...SKILL_OPTIONS]}
                 error={fieldState.error?.message}
                 {...field}

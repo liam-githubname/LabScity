@@ -2,6 +2,7 @@
 
 import { ActionIcon, Anchor, Avatar, Box, Card, Flex, Group, Image, Menu, SimpleGrid, Stack, Text, UnstyledButton } from "@mantine/core";
 import Link from "next/link";
+import linkClasses from "./user-name-link.module.css";
 import {
   IconDots,
   IconHeart,
@@ -134,6 +135,7 @@ export function LSPostCard({
           fz="sm"
           c="navy.7"
           onClick={onPostClick}
+          className={onPostClick ? linkClasses.clickableText : undefined}
           style={onPostClick ? { cursor: "pointer" } : undefined}
         >
           {content}

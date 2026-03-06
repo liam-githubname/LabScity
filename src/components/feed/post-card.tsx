@@ -139,6 +139,7 @@ export function PostCard({
           fz="sm"
           c="navy.7"
           onClick={onPostClick}
+          className={onPostClick ? linkClasses.clickableText : undefined}
           style={onPostClick ? { cursor: "pointer" } : undefined}
         >
           {content}

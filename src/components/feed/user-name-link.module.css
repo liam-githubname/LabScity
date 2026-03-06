@@ -5,3 +5,7 @@
 .nameLink:hover {
   text-decoration: underline;
 }
+
+.clickableText:hover {
+  color: var(--mantine-color-navy-5) !important;
+}
