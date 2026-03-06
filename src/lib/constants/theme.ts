@@ -2,6 +2,7 @@
 
 import { createTheme } from "@mantine/core";
 
+/** Mantine theme: Konkhmer Sleokchher font, navy and gray color palettes, primary color "navy". */
 export const theme = createTheme({
   // NOTE: the font used by this should be imported somewhere; inter is pulled in the root layout.tsx file
   fontFamily: "Inter, sans-serif", // loaded via next/font in root layout

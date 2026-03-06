@@ -1,6 +1,6 @@
 "use client";
 
-import { ActionIcon, Anchor, Avatar, Box, Card, Flex, Group, Menu, SimpleGrid, Stack, Text, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Anchor, Avatar, Box, Card, Flex, Group, Image, Menu, SimpleGrid, Stack, Text, UnstyledButton } from "@mantine/core";
 import Link from "next/link";
 import {
   IconDots,
@@ -132,7 +132,6 @@ export function LSPostCard({
 
         {mediaUrl ? (
           <Flex
-            bg="navy.7"
             c="navy.0"
             mih={180}
             justify="center"
@@ -140,7 +139,7 @@ export function LSPostCard({
             fw={600}
             style={{ letterSpacing: "0.3px", overflow: "hidden" }}
           >
-            <img src={mediaUrl} alt="Post attachment" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+            <Image src={mediaUrl} alt="Post attachment" radius="md" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
           </Flex>
         ) : mediaLabel ? (
           <Flex

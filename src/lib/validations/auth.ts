@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+/** Zod schema for login form: .edu email and password (min 8 chars, one uppercase, one number). */
 export const loginSchema = z.object({
   email: z
     .email("Invalid email address")
@@ -13,6 +14,7 @@ export const loginSchema = z.object({
     .regex(/[0-9]/, { message: "One number required" }),
 });
 
+/** Zod schema for signup form: first/last name, .edu email, password with confirm; passwords must match. */
 export const signupSchema = z.object({
   firstName: z.string().min(2, { message: "First name must be at least 2 characters" }),
   lastName: z.string().min(2, { message: "Last name must be at least 2 characters" }),
@@ -33,5 +35,7 @@ export const signupSchema = z.object({
   message: "Passwords do not match",
 });
 
+/** Inferred type for login form values (email, password). */
 export type LoginValues = z.infer<typeof loginSchema>;
+/** Inferred type for signup form values (firstName, lastName, email, password, confirmPassword). */
 export type SignupValues = z.infer<typeof signupSchema>;

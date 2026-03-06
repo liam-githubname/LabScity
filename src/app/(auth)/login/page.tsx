@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   description: "Access your LabScity account.",
 };
 
+/** Login route; renders LSLoginForm with loginAction. */
 export default function LoginPage() {
   return <LSLoginForm loginAction={loginAction} />;
 }

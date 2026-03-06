@@ -32,7 +32,7 @@ export async function setNotificationPreference(
   }
 
   const { error } = await supabase.from("notification_preferences").upsert({
-    user_id: authData.user,
+    user_id: authData.user.id,
     notification_type: notification_type,
     is_enabled: newValue,
   });

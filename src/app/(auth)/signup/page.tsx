@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   description: "Join the scientific community.",
 };
 
+/** Signup route; renders LSSignupForm with signupAction. */
 export default function SignupPage() {
   return <LSSignupForm signupAction={signupAction} />;
 }
