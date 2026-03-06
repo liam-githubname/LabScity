@@ -11,6 +11,10 @@ import {
   getUserFriends,
   updateProfileAction,
   toggleFollowAction,
+  createProfilePictureUploadUrl,
+  updateOwnProfilePicture,
+  createProfileHeaderUploadUrl,
+  updateOwnProfileHeader,
 } from "@/lib/actions/profile";
 import {
   createComment,
@@ -114,6 +118,10 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     currentUserId: user?.id ?? null,
     updateProfileAction,
     toggleFollowAction,
+    createProfilePictureUploadUrlAction: createProfilePictureUploadUrl,
+    updateOwnProfilePictureAction: updateOwnProfilePicture,
+    createProfileHeaderUploadUrlAction: createProfileHeaderUploadUrl,
+    updateOwnProfileHeaderAction: updateOwnProfileHeader,
     createPostAction: createPost,
     createCommentAction: createComment,
     createReportAction: createReport,

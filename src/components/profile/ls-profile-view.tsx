@@ -25,6 +25,10 @@ import type {
 import type {
   updateProfileAction,
   toggleFollowAction,
+  createProfilePictureUploadUrl,
+  updateOwnProfilePicture,
+  createProfileHeaderUploadUrl,
+  updateOwnProfileHeader,
 } from "@/lib/actions/profile";
 import type {
   EditProfileHeroProps,
@@ -34,6 +38,10 @@ import type {
 
 type UpdateProfileAction = typeof updateProfileAction;
 type ToggleFollowAction = typeof toggleFollowAction;
+type CreateProfilePictureUploadUrlAction = typeof createProfilePictureUploadUrl;
+type UpdateOwnProfilePictureAction = typeof updateOwnProfilePicture;
+type CreateProfileHeaderUploadUrlAction = typeof createProfileHeaderUploadUrl;
+type UpdateOwnProfileHeaderAction = typeof updateOwnProfileHeader;
 
 /** Public props expected by the server component wrapper. */
 export interface LSProfileViewProps {
@@ -43,6 +51,10 @@ export interface LSProfileViewProps {
   currentUserId: string | null;
   updateProfileAction: UpdateProfileAction;
   toggleFollowAction: ToggleFollowAction;
+  createProfilePictureUploadUrlAction: CreateProfilePictureUploadUrlAction;
+  updateOwnProfilePictureAction: UpdateOwnProfilePictureAction;
+  createProfileHeaderUploadUrlAction: CreateProfileHeaderUploadUrlAction;
+  updateOwnProfileHeaderAction: UpdateOwnProfileHeaderAction;
   createPostAction: CreatePostAction;
   createCommentAction: CreateCommentAction;
   createReportAction: CreateReportAction;

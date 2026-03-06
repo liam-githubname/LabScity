@@ -24,10 +24,18 @@ import type { UpdateProfileValues } from "@/lib/validations/profile";
 import type {
   updateProfileAction,
   toggleFollowAction,
+  createProfilePictureUploadUrl,
+  updateOwnProfilePicture,
+  createProfileHeaderUploadUrl,
+  updateOwnProfileHeader,
 } from "@/lib/actions/profile";
 
 type UpdateProfileAction = typeof updateProfileAction;
 type ToggleFollowAction = typeof toggleFollowAction;
+type CreateProfilePictureUploadUrlAction = typeof createProfilePictureUploadUrl;
+type UpdateOwnProfilePictureAction = typeof updateOwnProfilePicture;
+type CreateProfileHeaderUploadUrlAction = typeof createProfileHeaderUploadUrl;
+type UpdateOwnProfileHeaderAction = typeof updateOwnProfileHeader;
 
 /** Props expected by useLSProfileView — mirrors the server-action props of LSProfileViewProps. */
 export interface UseLSProfileViewParams {
@@ -36,6 +44,10 @@ export interface UseLSProfileViewParams {
   currentUserId: string | null;
   updateProfileAction: UpdateProfileAction;
   toggleFollowAction: ToggleFollowAction;
+  createProfilePictureUploadUrlAction: CreateProfilePictureUploadUrlAction;
+  updateOwnProfilePictureAction: UpdateOwnProfilePictureAction;
+  createProfileHeaderUploadUrlAction: CreateProfileHeaderUploadUrlAction;
+  updateOwnProfileHeaderAction: UpdateOwnProfileHeaderAction;
   createCommentAction: CreateCommentAction;
   createReportAction: CreateReportAction;
   likePostAction: LikePostAction;
