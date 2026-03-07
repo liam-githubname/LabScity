@@ -122,7 +122,7 @@ export function LSLoginForm({
               )}
             />
           </Box>
-          <Anchor fz="sm" c="navy.6" component={Link} href="/reset-password">
+          <Anchor fz="sm" c="navy.6" component={Link} href="/forgot-password">
             Forgot Password?
           </Anchor>
           <Button

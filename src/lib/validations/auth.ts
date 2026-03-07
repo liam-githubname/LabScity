@@ -35,7 +35,35 @@ export const signupSchema = z.object({
   message: "Passwords do not match",
 });
 
-/** Inferred type for login form values (email, password). */
+export const forgotPasswordSchema = z.object({
+  email: z
+    .email("Invalid email address")
+    .min(1, { message: "Email is required" })
+    .endsWith(".edu", { message: "Only .edu email addresses are allowed" }),
+});
+
+export const resetPasswordSchema = z
+  .object({
+    tokenHash: z.string().optional(),
+    code: z.string().optional(),
+    password: z
+      .string()
+      .min(8, { message: "Password must be at least 8 characters" })
+      .regex(/[A-Z]/, { message: "One uppercase letter required" })
+      .regex(/[0-9]/, { message: "One number required" }),
+    confirmPassword: z.string().min(1, { message: "Confirm Password is required" }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords do not match",
+  })
+  .refine((data) => Boolean(data.tokenHash || data.code), {
+    path: ["tokenHash"],
+    message: "Reset token is missing or invalid",
+  });
+
 export type LoginValues = z.infer<typeof loginSchema>;
 /** Inferred type for signup form values (firstName, lastName, email, password, confirmPassword). */
 export type SignupValues = z.infer<typeof signupSchema>;
+export type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
