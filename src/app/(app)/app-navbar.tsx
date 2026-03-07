@@ -8,6 +8,7 @@ import {
   IconFlaskFilled,
   IconMessageFilled,
   IconUser,
+  IconUsers,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -17,6 +18,7 @@ const navigation = [
   { href: "/home", icon: IconFlaskFilled, label: "Home" },
   { href: "/profile", icon: IconUser, label: "Profile" },
   { href: "/chat", icon: IconMessageFilled, label: "Chat" },
+  { href: "/groups", icon: IconUsers, label: "Groups"},
 ];
 
 interface LSAppNavbarProps {
