@@ -7,6 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Paper, Stack, Box, Text, TextInput, Anchor, Button, Alert } from "@mantine/core";
 import { useIsMobile } from "@/app/use-is-mobile";
+import { forgotPasswordAction } from "@/lib/actions/auth";
 
 const inputStyles = {
   height: "2rem",
@@ -21,10 +22,31 @@ export default function ForgotPasswordPage() {
   const isMobile = useIsMobile();
   const [email, setEmail] = useState("");
   const [showMessage, setShowMessage] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setShowMessage(true);
+    setErrorMessage(null);
+    setShowMessage(false);
+    setIsSubmitting(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("email", email);
+      const result = await forgotPasswordAction(formData);
+
+      if (!result.success && result.error) {
+        setErrorMessage(result.error);
+        return;
+      }
+
+      setShowMessage(true);
+    } catch {
+      setErrorMessage("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -52,9 +74,15 @@ export default function ForgotPasswordPage() {
 
           <Text fz="lg" fw={600} c="navy.7">Enter your email to reset your password:</Text>
 
+          {errorMessage && (
+            <Alert color="red" title="Unable to Send Email" w="100%">
+              {errorMessage}
+            </Alert>
+          )}
+
           {showMessage && (
             <Alert color="green" title="Email Sent">
-              If an account exists for {email || "this email"}, a reset link will be sent.
+              A reset link has been sent to {email || "this email"}.
             </Alert>
           )}
 
@@ -73,6 +101,7 @@ export default function ForgotPasswordPage() {
 
           <Button
             type="submit"
+            loading={isSubmitting}
             bg="navy.7"
             c="navy.0"
             fw={600}

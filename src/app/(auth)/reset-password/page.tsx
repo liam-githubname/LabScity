@@ -1,13 +1,14 @@
-//Page to send users to in the reset password email 
-//TODO: figure out how to make this user-specific (only those recieving the email can access this and use it correctly)
+//Page to send users to in the reset password email
 
 "use client";
 
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { Paper, Stack, Box, Text, PasswordInput, Anchor, Button, Alert } from "@mantine/core";
 import { useIsMobile } from "@/app/use-is-mobile";
+import { resetPasswordAction } from "@/lib/actions/auth";
 
 const inputStyles = {
   height: "2rem",
@@ -20,26 +21,63 @@ const inputStyles = {
 
 export default function ResetPasswordPage() {
   const isMobile = useIsMobile();
+  const searchParams = useSearchParams();
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSuccessful, setIsSuccessful] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage(null);
+    setIsSubmitting(true);
+
+    const tokenHash = searchParams.get("token_hash");
+    const code = searchParams.get("code");
 
     if (!newPassword || !confirmNewPassword) {
       setErrorMessage("Please fill in both password fields.");
+      setIsSubmitting(false);
       return;
     }
 
     if (newPassword !== confirmNewPassword) {
       setErrorMessage("Passwords do not match.");
+      setIsSubmitting(false);
       return;
     }
 
-    setIsSuccessful(true);
+    if (!tokenHash && !code) {
+      setErrorMessage("This reset link is invalid or expired. Please request a new one.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      if (tokenHash) {
+        formData.append("tokenHash", tokenHash);
+      }
+      if (code) {
+        formData.append("code", code);
+      }
+      formData.append("password", newPassword);
+      formData.append("confirmPassword", confirmNewPassword);
+
+      const result = await resetPasswordAction(formData);
+
+      if (!result.success && result.error) {
+        setErrorMessage(result.error);
+        return;
+      }
+
+      setIsSuccessful(true);
+    } catch {
+      setErrorMessage("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -138,6 +176,7 @@ export default function ResetPasswordPage() {
 
             <Button
               type="submit"
+              loading={isSubmitting}
               bg="navy.7"
               c="navy.0"
               fw={600}
