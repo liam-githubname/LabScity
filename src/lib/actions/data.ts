@@ -123,15 +123,21 @@ export async function getUserPosts(input: GetUserPostsInput, supabaseClient?: Su
     // Step 2: Create Supabase client
     const supabase = supabaseClient || await createClient();
 
+    // Get current user to compute isLiked
+    const { data: authData } = await supabase.auth.getUser();
+    const currentUserId = authData?.user?.id;
+
     // Step 3: Build query with explicit column selection
     let query = supabase.from("posts").select(`
         post_id,
         user_id,
         created_at,
         category,
+        scientific_field,
         text,
         media_path,
-        like_amount
+        like_amount,
+        likes(user_id)
       `);
 
     // Step 4: Apply filters
@@ -181,7 +187,57 @@ export async function getUserPosts(input: GetUserPostsInput, supabaseClient?: Su
     // NOTE: In typescript ternary expressions can be defined over a non boolean value and will be evaluated based on whether the variable is null or not.
     // In this case posts either has returned data from the db, or it is null.
     // If it has returned it will be parsed and assigned to validatedPosts.
-    const validatedPosts = posts ? postSchema.array().parse(posts) : [];
+    // Helper to format relative time
+    const getTimeAgo = (date: string): string => {
+      const now = new Date();
+      const d = new Date(date);
+      const s = Math.floor((now.getTime() - d.getTime()) / 1000);
+      if (s < 60) return "just now";
+      if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+      if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+      if (s < 604800) return `${Math.floor(s / 86400)}d ago`;
+      return d.toLocaleDateString();
+    };
+
+    // Fetch comments for each post
+    const postsWithComments = await Promise.all(
+      (posts ?? []).map(async (post: any) => {
+        const { likes, ...rest } = post;
+        const { data: comments } = await supabase
+          .from("comment")
+          .select(`
+            comment_id,
+            text,
+            created_at,
+            user_id,
+            users:user_id(user_id, first_name, last_name, profile_pic_path),
+            comment_likes(user_id)
+          `)
+          .eq("post_id", post.post_id)
+          .order("created_at", { ascending: false });
+
+        return {
+          ...rest,
+          isLiked: currentUserId
+            ? (likes ?? []).some((l: any) => l.user_id === currentUserId)
+            : false,
+          comments: (comments ?? []).map((c: any) => ({
+            id: String(c.comment_id),
+            userId: c.user_id,
+            userName: `${c.users?.first_name} ${c.users?.last_name}`.trim(),
+            avatarUrl: c.users?.profile_pic_path
+              ? supabase.storage.from("profile_pictures").getPublicUrl(c.users.profile_pic_path).data.publicUrl
+              : null,
+            content: c.text,
+            timeAgo: getTimeAgo(c.created_at),
+            isLiked: currentUserId
+              ? (c.comment_likes ?? []).some((l: any) => l.user_id === currentUserId)
+              : false,
+          })),
+        };
+      })
+    );
+    const validatedPosts = postSchema.array().parse(postsWithComments);
 
     // Determine if there are more posts
     const hasMore = validatedPosts.length > validatedInput.limit;
@@ -327,6 +383,15 @@ export async function searchUserContent(input: SearchInput, supabaseClient?: Sup
   }
 }
 
+/**
+ * Fetches a single user by id, joining public.users with public.profile.
+ * Resolves avatar_url and profile_header_url from storage (profile_pictures and profile_header buckets).
+ * Maps profile.skill (DB column) to User.skills and includes profile.articles.
+ *
+ * @param user_id - The user ID to fetch.
+ * @param supabaseClient - Optional Supabase client (e.g. for tests).
+ * @returns DataResponse with User including profile fields (about, workplace, occupation, skills, articles).
+ */
 // FIXME: Return a proper value and take in a proper parameter
 export async function getUser(user_id: string, supabaseClient?: SupabaseClient): Promise<DataResponse<User>> {
 
@@ -347,7 +412,7 @@ export async function getUser(user_id: string, supabaseClient?: SupabaseClient):
     const user = data[0];
     const { data: profileData, error: profileError } = await supabase
       .from("profile")
-      .select("header_pic_path")
+      .select("header_pic_path, about, workplace, occupation, skill, articles")
       .eq("user_id", user_id)
       .maybeSingle();
 
@@ -362,6 +427,10 @@ export async function getUser(user_id: string, supabaseClient?: SupabaseClient):
       ? supabase.storage.from("profile_header").getPublicUrl(profileData.header_pic_path).data.publicUrl
       : null;
 
+    // Map profile.skill (DB column) to User.skills; merge extended profile fields.
+    const profileSkill = profileData?.skill;
+    const skills = Array.isArray(profileSkill) ? profileSkill : null;
+
     return {
       success: true,
       data: {
@@ -369,6 +438,11 @@ export async function getUser(user_id: string, supabaseClient?: SupabaseClient):
         profile_header_path: profileData?.header_pic_path ?? null,
         avatar_url: avatarUrl,
         profile_header_url: profileHeaderUrl,
+        about: profileData?.about ?? null,
+        workplace: profileData?.workplace ?? null,
+        occupation: profileData?.occupation ?? null,
+        skills,
+        articles: Array.isArray(profileData?.articles) ? profileData.articles : null,
       },
     }
 

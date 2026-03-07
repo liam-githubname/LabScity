@@ -1,9 +1,10 @@
 "use client";
 
-import { Button, Card, FileInput, Group, Paper, Select, Stack, TextInput, Textarea } from "@mantine/core";
+import { Button, Card, FileInput, Group, Select, Stack, Textarea } from "@mantine/core";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { SCIENCE_CATEGORIES } from "@/lib/constants/options";
 import {
   createPostSchema,
   type CreatePostValues,
@@ -13,68 +14,22 @@ const postComposerSchema = createPostSchema.extend({
   mediaFile: z.any().optional().nullable(),
 });
 
-const SCIENCE_CATEGORIES = [
-  "Acoustics",
-  "Aerodynamics",
-  "Anatomy",
-  "Anthropology",
-  "Archaeology",
-  "Astronomy",
-  "Astrophysics",
-  "Biochemistry",
-  "Biology",
-  "Biophysics",
-  "Biotechnology",
-  "Botany",
-  "Chemistry",
-  "Climatology",
-  "Cognitive Science",
-  "Computer Science",
-  "Data Science",
-  "Ecology",
-  "Economics",
-  "Engineering",
-  "Entomology",
-  "Environmental Science",
-  "Epidemiology",
-  "General Sciences",
-  "Genetics",
-  "Geography",
-  "Geology",
-  "Geophysics",
-  "Immunology",
-  "Machine Learning",
-  "Marine Biology",
-  "Materials Science",
-  "Mathematics",
-  "Meteorology",
-  "Microbiology",
-  "Molecular Biology",
-  "Neuroscience",
-  "Oceanography",
-  "Paleontology",
-  "Pathology",
-  "Pharmacology",
-  "Physics",
-  "Physiology",
-  "Psychology",
-  "Quantum Physics",
-  "Robotics",
-  "Seismology",
-  "Sociology",
-  "Statistics",
-  "Toxicology",
-  "Virology",
-  "Zoology",
-  "Other",
-];
-
-export interface PostComposerProps {
+/**
+ * Props for LSPostComposer.
+ *
+ * @param onSubmit - Called with form values (scientificField, content, category, mediaFile) on submit.
+ * @param isPending - When true, submit button shows loading and form can be disabled.
+ */
+export interface LSPostComposerProps {
   onSubmit: (values: CreatePostValues & { mediaFile?: File | null }) => void | Promise<void>;
   isPending: boolean;
 }
 
-export function PostComposer({ onSubmit: onSubmitProp, isPending }: PostComposerProps) {
+/**
+ * Post creation form: scientific field, post content textarea, optional image upload.
+ * Uses SCIENCE_CATEGORIES for field options. Used on home feed; parent wires onSubmit to createPost mutation.
+ */
+export function LSPostComposer({ onSubmit: onSubmitProp, isPending }: LSPostComposerProps) {
   const {
     control,
     handleSubmit,

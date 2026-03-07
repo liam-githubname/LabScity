@@ -237,10 +237,7 @@ const LSAppTopBar = () => {
       w={"100%"}
       justify="center"
       align="center"
-      style={{
-        borderBottom: "1px solid var(--mantine-color-gray-3)",
-        zIndex: 100,
-      }}
+      style={{ borderBottom: "1px solid var(--mantine-color-gray-3)", zIndex: 200 /* keeps topbar above profile hero banner when scrolling */ }}
     >
       {searchOpen ? (
         /* Search mode: full-width input */

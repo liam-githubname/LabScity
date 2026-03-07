@@ -1,10 +1,21 @@
-import { ActionIcon, Avatar, Box, Group, Menu, Text, UnstyledButton } from "@mantine/core";
+"use client";
+
+import { ActionIcon, Anchor, Avatar, Box, Group, Menu, Text, UnstyledButton } from "@mantine/core";
 import Link from "next/link";
 import { IconDots, IconHeart, IconHeartFilled } from "@tabler/icons-react";
 import type { FeedCommentItem } from "@/lib/types/feed";
-import linkClasses from "./user-name-link.module.css";
 
-interface PostCommentCardProps {
+/**
+ * Props for LSPostCommentCard.
+ *
+ * @param comment - FeedCommentItem (userName, userId, content, timeAgo, avatarUrl, isLiked, id).
+ * @param onLikeClick - Called with comment id when like is clicked.
+ * @param onReportClick - Called with comment id when Report is chosen from menu.
+ * @param showMenu - Whether to show the options menu (Report).
+ * @param showActions - Whether to show the like button.
+ * @param menuId - Optional id for the menu (accessibility).
+ */
+interface LSPostCommentCardProps {
   comment: FeedCommentItem;
   onLikeClick?: (commentId: string) => void;
   onReportClick?: (commentId: string) => void;
@@ -13,14 +24,18 @@ interface PostCommentCardProps {
   menuId?: string;
 }
 
-export function PostCommentCard({
+/**
+ * Compact comment row: avatar, author name (link to profile when userId set), content,
+ * time, optional like button, and optional menu (Report). Used below posts in feed and post detail.
+ */
+export function LSPostCommentCard({
   comment,
   onLikeClick,
   onReportClick,
   showMenu = true,
   showActions = true,
   menuId,
-}: PostCommentCardProps) {
+}: LSPostCommentCardProps) {
   const initials = comment.userName
     .split(" ")
     .filter(Boolean)
@@ -29,30 +44,26 @@ export function PostCommentCard({
     .join("");
 
   const nameNode = comment.userId ? (
-    <Link href={`/profile/${comment.userId}`} className={linkClasses.nameLink} style={{ color: "inherit" }}>
+    <Anchor component={Link} href={`/profile/${comment.userId}`} underline="hover" c="navy.7">
       <Text component="span" fw="bold" c="navy.7" size="sm" style={{ cursor: "pointer" }}>
         {comment.userName}
       </Text>
-    </Link>
+    </Anchor>
   ) : (
     <Text component="span" fw="bold" c="navy.7" size="sm">{comment.userName}</Text>
   );
 
   return (
     <Group align="flex-start" gap="sm" w="100%" wrap="nowrap">
-      {/* avatar */}
       <Avatar size={36} radius="xl" color="navy.7" src={comment.avatarUrl || undefined} style={{ flexShrink: 0 }}>
         {initials}
       </Avatar>
 
-      {/* right column */}
       <Box style={{ flex: 1, minWidth: 0 }}>
-        {/* username inline with content */}
         <Text size="sm" c="navy.7" fw="normal">
           {nameNode}{" "}{comment.content}
         </Text>
 
-        {/* timestamp + menu */}
         <Group justify="flex-start" gap="xs" mt={4}>
           <Text size="xs" c="navy.5" style={{ whiteSpace: "nowrap" }}>{comment.timeAgo}</Text>
           {showMenu ? (
@@ -78,7 +89,6 @@ export function PostCommentCard({
         </Group>
       </Box>
 
-      {/* like button */}
       {showActions ? (
         <UnstyledButton
           style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "4px", borderRadius: 999, flexShrink: 0 }}

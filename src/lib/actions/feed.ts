@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import type { GetFeedResult } from "@/lib/types/feed";
+import type { FeedPostItem, GetFeedResult } from "@/lib/types/feed";
 import {
 	createCommentSchema,
 	createPostSchema,
@@ -844,5 +844,121 @@ export async function likeComment(commentId: string, supabaseClient?: any) {
 			};
 		}
 		return { success: false, error: "Failed to update like" };
+	}
+}
+
+/**
+ * Fetch a single post with its comments, user data, and like status.
+ * Reuses the same query/formatting logic as getFeed, scoped to one post.
+ *
+ * @param postId - The ID of the post to fetch
+ * @param supabaseClient - Optional Supabase client instance (used for testing)
+ * @returns Promise resolving to DataResponse with FeedPostItem or null if not found
+ */
+export async function getPostDetail(postId: string, supabaseClient?: any): Promise<{ success: true; data: FeedPostItem | null } | { success: false; error: string }> {
+	try {
+		const postIdStr = String(postId);
+		idSchema.parse(postIdStr);
+
+		const supabase = supabaseClient ?? (await createClient());
+		const { data: authData } = await supabase.auth.getUser();
+
+		const { data: post, error } = await supabase
+			.from("posts")
+			.select(
+				`
+				post_id,
+				created_at,
+				category,
+				text,
+				like_amount,
+				scientific_field,
+				user_id,
+				media_path,
+				users:user_id(user_id, first_name, last_name, profile_pic_path),
+				likes(user_id)
+			`
+			)
+			.eq("post_id", postIdStr)
+			.maybeSingle();
+
+		if (error) {
+			return { success: false, error: error.message };
+		}
+
+		if (!post) {
+			return { success: true, data: null };
+		}
+
+		const getTimeAgo = (date: string): string => {
+			const now = new Date();
+			const postDate = new Date(date);
+			const diffInSeconds = Math.floor((now.getTime() - postDate.getTime()) / 1000);
+
+			if (diffInSeconds < 60) return "just now";
+			if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+			if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+			if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+			return postDate.toLocaleDateString();
+		};
+
+		const { data: comments } = await supabase
+			.from("comment")
+			.select(
+				`
+				comment_id,
+				text,
+				created_at,
+				user_id,
+				users:user_id(user_id, first_name, last_name, profile_pic_path),
+				comment_likes(user_id)
+			`
+			)
+			.eq("post_id", postIdStr)
+			.order("created_at", { ascending: false });
+
+		const mediaUrl = post.media_path
+			? supabase.storage.from(postMediaBucket).getPublicUrl(post.media_path).data.publicUrl
+			: null;
+		const postAvatarUrl = post.users?.profile_pic_path
+			? supabase.storage.from("profile_pictures").getPublicUrl(post.users.profile_pic_path).data.publicUrl
+			: null;
+
+		const formatted: FeedPostItem = {
+			id: post.post_id,
+			userId: post.user_id,
+			userName: `${post.users?.first_name} ${post.users?.last_name}`.trim(),
+			avatarUrl: postAvatarUrl,
+			scientificField: post.scientific_field,
+			content: post.text,
+			mediaUrl,
+			timeAgo: getTimeAgo(post.created_at),
+			comments: (comments || []).map((comment: any) => ({
+				id: comment.comment_id,
+				userId: comment.user_id,
+				userName: `${comment.users?.first_name} ${comment.users?.last_name}`.trim(),
+				avatarUrl: comment.users?.profile_pic_path
+					? supabase.storage.from("profile_pictures").getPublicUrl(comment.users.profile_pic_path).data.publicUrl
+					: null,
+				content: comment.text,
+				timeAgo: getTimeAgo(comment.created_at),
+				isLiked: authData.user
+					? comment.comment_likes?.some((like: any) => like.user_id === authData.user?.id)
+					: false,
+			})),
+			isLiked: post.likes && post.likes.length > 0 && authData.user
+				? post.likes.some((like: any) => like.user_id === authData.user?.id)
+				: false,
+		};
+
+		return { success: true, data: formatted };
+	} catch (error) {
+		if (error instanceof z.ZodError) {
+			return {
+				success: false,
+				error: error.issues[0]?.message ?? "Validation failed",
+			};
+		}
+		return { success: false, error: "Failed to fetch post" };
 	}
 }

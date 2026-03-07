@@ -5,6 +5,12 @@ import { z } from "zod";
 import type { User } from "@/lib/types/feed";
 import { createClient } from "@/supabase/server";
 import type { DataResponse } from "../types/data";
+import {
+  updateProfileSchema,
+  toggleFollowSchema,
+  type UpdateProfileValues,
+  type ToggleFollowValues,
+} from "@/lib/validations/profile";
 
 const profilePictureBucket = "profile_pictures";
 const profileHeaderBucket = "profile_header";
@@ -36,17 +42,37 @@ function extensionFromMime(mimeType: string) {
   }
 }
 
+/** Shape returned by Supabase join queries on follows/friends with `users:... (*)`. */
+interface UserJoinResult {
+  users: User | null;
+}
+
+/**
+ * Builds public storage URLs for avatar and profile header from path columns.
+ * Uses profilePictureBucket for avatar and profileHeaderBucket for header (not profilePictureBucket).
+ *
+ * @param user - User row with profile_pic_path and/or profile_header_path.
+ * @param supabase - Supabase client for storage.getPublicUrl.
+ * @returns User with avatar_url and profile_header_url set.
+ */
 function mapUserWithAvatarUrl(user: User, supabase: SupabaseClient): User {
   const avatarUrl = user.profile_pic_path
     ? supabase.storage.from(profilePictureBucket).getPublicUrl(user.profile_pic_path).data.publicUrl
     : null;
   const profileHeaderUrl = user.profile_header_path
-    ? supabase.storage.from(profilePictureBucket).getPublicUrl(user.profile_header_path).data.publicUrl
+    ? supabase.storage.from(profileHeaderBucket).getPublicUrl(user.profile_header_path).data.publicUrl
     : null;
 
   return { ...user, avatar_url: avatarUrl, profile_header_url: profileHeaderUrl };
 }
 
+/**
+ * Creates a signed upload URL for the authenticated user's profile picture.
+ *
+ * @param contentType - MIME type (image/jpeg, image/png, image/webp, image/gif).
+ * @param supabaseClient - Optional Supabase client (e.g. for tests).
+ * @returns On success: { success: true, data: { bucket, path, token, maxBytes } }. On failure: { success: false, error }.
+ */
 export async function createProfilePictureUploadUrl(contentType: string, supabaseClient?: SupabaseClient) {
   try {
     const validatedContentType = contentTypeSchema.parse(contentType);
@@ -85,6 +111,14 @@ export async function createProfilePictureUploadUrl(contentType: string, supabas
   }
 }
 
+/**
+ * Persists the profile picture path for the authenticated user after client upload.
+ * Validates path, checks auth, updates public.users, removes previous file from storage if replaced.
+ *
+ * @param profilePicPath - Storage path returned from createProfilePictureUploadUrl (must be under user id).
+ * @param supabaseClient - Optional Supabase client (e.g. for tests).
+ * @returns On success: { success: true, data: { profilePicPath, avatarUrl } }. On failure: { success: false, error }.
+ */
 export async function updateOwnProfilePicture(profilePicPath: string, supabaseClient?: SupabaseClient) {
   try {
     const validatedPath = profilePicPathSchema.parse(profilePicPath);
@@ -163,6 +197,14 @@ export async function updateOwnProfilePicture(profilePicPath: string, supabaseCl
   }
 }
 
+/**
+ * Creates a signed upload URL for the authenticated user's profile header (banner).
+ * Same flow as profile picture but uses profileHeaderBucket and a header- prefixed path.
+ *
+ * @param contentType - MIME type (image/jpeg, image/png, image/webp, image/gif).
+ * @param supabaseClient - Optional Supabase client (e.g. for tests).
+ * @returns On success: { success: true, data: { bucket, path, token, maxBytes } }. On failure: { success: false, error }.
+ */
 export async function createProfileHeaderUploadUrl(contentType: string, supabaseClient?: SupabaseClient) {
   try {
     const validatedContentType = contentTypeSchema.parse(contentType);
@@ -201,6 +243,14 @@ export async function createProfileHeaderUploadUrl(contentType: string, supabase
   }
 }
 
+/**
+ * Persists the profile header (banner) path for the authenticated user after client upload.
+ * Validates path, checks auth, updates public.profile.header_pic_path, removes previous file from storage if replaced.
+ *
+ * @param profileHeaderPath - Storage path returned from createProfileHeaderUploadUrl (must be under user id).
+ * @param supabaseClient - Optional Supabase client (e.g. for tests).
+ * @returns On success: { success: true, data: { profileHeaderPath, profileHeaderUrl } }. On failure: { success: false, error }.
+ */
 export async function updateOwnProfileHeader(profileHeaderPath: string, supabaseClient?: SupabaseClient) {
   try {
     const validatedPath = profileHeaderPathSchema.parse(profileHeaderPath);
@@ -281,6 +331,187 @@ export async function updateOwnProfileHeader(profileHeaderPath: string, supabase
   }
 }
 
+/** Normalize optional string to null when empty for DB storage. */
+function emptyToNull(s: string | undefined): string | null {
+  if (s === undefined || s === "") return null;
+  return s;
+}
+
+/**
+ * Updates the authenticated user's profile and display name.
+ *
+ * 1. Validates `input` against `updateProfileSchema`.
+ * 2. Checks authentication via `supabase.auth.getUser()`.
+ * 3. Upserts `about`, `workplace`, `occupation`, and `skill` into `public.profile`
+ *    (keyed on `user_id`). Empty strings are normalised to `null`.
+ * 4. Updates `first_name` and `last_name` in `public.users`.
+ *
+ * @param input           - Form values conforming to {@link UpdateProfileValues}.
+ * @param supabaseClient  - Optional pre-built Supabase client (used in tests).
+ * @returns `{ success: true }` on success, or `{ success: false, error: string }`.
+ */
+export async function updateProfileAction(
+  input: UpdateProfileValues,
+  supabaseClient?: SupabaseClient,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const validated = updateProfileSchema.parse(input);
+    const supabase = supabaseClient ?? (await createClient());
+    const { data: authData } = await supabase.auth.getUser();
+
+    if (!authData.user) {
+      return { success: false, error: "Authentication required" };
+    }
+
+    const userId = authData.user.id;
+
+    const profilePayload = {
+      user_id: userId,
+      about: emptyToNull(validated.about),
+      workplace: emptyToNull(validated.workplace),
+      occupation: emptyToNull(validated.occupation),
+      skill: validated.skill.length ? validated.skill : null,
+      articles: validated.articles?.length ? validated.articles : null,
+    };
+
+    const { error: profileError } = await supabase
+      .from("profile")
+      .upsert(profilePayload, { onConflict: "user_id" });
+
+    if (profileError) {
+      return { success: false, error: profileError.message };
+    }
+
+    const { error: usersError } = await supabase
+      .from("users")
+      .update({
+        first_name: validated.firstName.trim(),
+        last_name: validated.lastName.trim(),
+      })
+      .eq("user_id", userId);
+
+    if (usersError) {
+      return { success: false, error: usersError.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      const first = err.issues[0];
+      return {
+        success: false,
+        error: first?.message ?? "Validation failed",
+      };
+    }
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to update profile",
+    };
+  }
+}
+
+/**
+ * Toggles the follow relationship between the authenticated user and
+ * `targetUserId` in `public.follows`.
+ *
+ * - If a row `(follower_id = currentUser, following_id = target)` exists,
+ *   it is deleted (unfollow).
+ * - Otherwise a new row is inserted (follow).
+ *
+ * The client uses optimistic cache updates; on success the returned
+ * `isFollowing` flag tells the UI the authoritative state.
+ *
+ * @param input           - `{ targetUserId }` validated by `toggleFollowSchema`.
+ * @param supabaseClient  - Optional pre-built Supabase client (used in tests).
+ * @returns `{ success: true, data: { isFollowing: boolean } }` on success,
+ *          or `{ success: false, error: string }`.
+ */
+export async function toggleFollowAction(
+  input: ToggleFollowValues,
+  supabaseClient?: SupabaseClient,
+): Promise<
+  | { success: true; data: { isFollowing: boolean } }
+  | { success: false; error: string }
+> {
+  try {
+    const validated = toggleFollowSchema.parse(input);
+    const supabase = supabaseClient ?? (await createClient());
+    const { data: authData } = await supabase.auth.getUser();
+
+    if (!authData.user) {
+      return { success: false, error: "Authentication required" };
+    }
+
+    const currentUserId = authData.user.id;
+    const targetUserId = validated.targetUserId;
+
+    if (currentUserId === targetUserId) {
+      return { success: false, error: "You cannot follow yourself" };
+    }
+
+    const { data: existing, error: selectError } = await supabase
+      .from("follows")
+      .select("follower_id")
+      .eq("follower_id", currentUserId)
+      .eq("following_id", targetUserId)
+      .maybeSingle();
+
+    if (selectError) {
+      return { success: false, error: selectError.message };
+    }
+
+    if (existing) {
+      const { data: deleted, error: deleteError } = await supabase
+        .from("follows")
+        .delete()
+        .eq("follower_id", currentUserId)
+        .eq("following_id", targetUserId)
+        .select("follower_id");
+
+      if (deleteError) {
+        return { success: false, error: deleteError.message };
+      }
+      if (!deleted?.length) {
+        return {
+          success: false,
+          error: "Could not unfollow; the follow relationship may be protected.",
+        };
+      }
+      return { success: true, data: { isFollowing: false } };
+    }
+
+    const { error: insertError } = await supabase.from("follows").insert({
+      follower_id: currentUserId,
+      following_id: targetUserId,
+    });
+
+    if (insertError) {
+      return { success: false, error: insertError.message };
+    }
+    return { success: true, data: { isFollowing: true } };
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      const first = err.issues[0];
+      return {
+        success: false,
+        error: first?.message ?? "Validation failed",
+      };
+    }
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to update follow state",
+    };
+  }
+}
+
+/**
+ * Fetches users who follow the given user. Returns User[] with avatar_url and profile_header_url
+ * resolved via profilePictureBucket and profileHeaderBucket (mapUserWithAvatarUrl).
+ *
+ * @param user_id - The user whose followers to fetch (following_id in follows).
+ * @param supabaseClient - Optional Supabase client (e.g. for tests).
+ * @returns DataResponse with array of User objects.
+ */
 export async function getUserFollowers(
   user_id: string,
   supabaseClient?: SupabaseClient,
@@ -290,25 +521,23 @@ export async function getUserFollowers(
 
     const { data, error } = await supabase
       .from("follows")
-      // TODO: remove the * when table is finalized
       .select(`
     users:follower_id (
           *
     )
   `)
       .eq("following_id", user_id)
-      .overrideTypes<User[]>();
+      .overrideTypes<UserJoinResult[]>();
 
     if (error) {
       return { success: false, error: error.message };
     }
     return {
       success: true,
-      data:
-        (data as unknown as { users: User }[])
-          .map((row) => row.users)
-          .map((user) => mapUserWithAvatarUrl(user, supabase))
-          .filter(Boolean) || [],
+      data: data
+        .map((row) => row.users)
+        .filter((u): u is User => u !== null)
+        .map((user) => mapUserWithAvatarUrl(user, supabase)),
     };
   } catch (error) {
     console.error(`error in getfollowers ${error}`);
@@ -320,6 +549,14 @@ export async function getUserFollowers(
   };
 }
 
+/**
+ * Fetches users that the given user follows. Returns User[] with avatar_url and profile_header_url
+ * resolved via mapUserWithAvatarUrl (profileHeaderBucket for header, not profilePictureBucket).
+ *
+ * @param user_id - The user whose following list to fetch (follower_id in follows).
+ * @param supabaseClient - Optional Supabase client (e.g. for tests).
+ * @returns DataResponse with array of User objects.
+ */
 export async function getUserFollowing(
   user_id: string,
   supabaseClient?: SupabaseClient,
@@ -328,25 +565,23 @@ export async function getUserFollowing(
   try {
     const { data, error } = await supabase
       .from("follows")
-      // TODO: remove the * when table is finalized
       .select(`
     users:following_id (
           *
     )
   `)
       .eq("follower_id", user_id)
-      .overrideTypes<User[]>();
+      .overrideTypes<UserJoinResult[]>();
 
     if (error) {
       return { success: false, error: error.message };
     }
     return {
       success: true,
-      data:
-        (data as unknown as { users: User }[])
-          .map((row) => row.users)
-          .map((user) => mapUserWithAvatarUrl(user, supabase))
-          .filter(Boolean) || [],
+      data: data
+        .map((row) => row.users)
+        .filter((u): u is User => u !== null)
+        .map((user) => mapUserWithAvatarUrl(user, supabase)),
     };
   } catch (error) {
     console.error(`error in getfollowers ${error}`);
@@ -358,6 +593,14 @@ export async function getUserFollowing(
   };
 }
 
+/**
+ * Fetches the given user's friends. Returns User[] with avatar_url and profile_header_url
+ * resolved via mapUserWithAvatarUrl.
+ *
+ * @param user_id - The user whose friends list to fetch.
+ * @param supabaseClient - Optional Supabase client (e.g. for tests).
+ * @returns DataResponse with array of User objects.
+ */
 export async function getUserFriends(
   user_id: string,
   supabaseClient?: SupabaseClient,
@@ -366,20 +609,22 @@ export async function getUserFriends(
 
   try {
     const { data, error } = await supabase
-      // TODO: remove the * when table is finalized
-      .from('friends').select(` friend_id, users:friend_id (*) `).eq('user_id', user_id);
+      .from('friends')
+      .select(` friend_id, users:friend_id (*) `)
+      .eq('user_id', user_id)
+      .overrideTypes<UserJoinResult[]>();
+
     if (error) {
-      return { success: false, error: error.message }
+      return { success: false, error: error.message };
     }
 
     return {
       success: true,
-      data:
-        (data as unknown as { users: User }[])
-          .map((row) => row.users)
-          .map((user) => mapUserWithAvatarUrl(user, supabase))
-          .filter(Boolean) || [],
-    }
+      data: data
+        .map((row) => row.users)
+        .filter((u): u is User => u !== null)
+        .map((user) => mapUserWithAvatarUrl(user, supabase)),
+    };
 
   } catch (error) {
     console.error(`error in getUserFriends ${error}`)

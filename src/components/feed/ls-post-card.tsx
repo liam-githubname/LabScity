@@ -1,4 +1,6 @@
-import { Image, ActionIcon, Avatar, Box, Card, Flex, Group, Menu, SimpleGrid, Stack, Text, UnstyledButton } from "@mantine/core";
+"use client";
+
+import { ActionIcon, Anchor, Avatar, Box, Card, Flex, Group, Image, Menu, SimpleGrid, Stack, Text, UnstyledButton } from "@mantine/core";
 import Link from "next/link";
 import {
   IconDots,
@@ -7,9 +9,30 @@ import {
   IconMessageCircle,
   IconShare3,
 } from "@tabler/icons-react";
-import linkClasses from "./user-name-link.module.css";
 
-interface PostCardProps {
+/**
+ * Props for LSPostCard.
+ *
+ * @param userId - When set, author name links to /profile/[userId].
+ * @param userName - Display name (used for avatar initials when avatarUrl missing).
+ * @param field - Scientific field or category label.
+ * @param timeAgo - Relative time string (e.g. "5m ago").
+ * @param content - Post body text.
+ * @param mediaLabel - Optional label for attached media.
+ * @param mediaUrl - Optional image URL; when set with onPostClick, content/media are clickable to navigate to post detail.
+ * @param avatarUrl - Author avatar URL; falls back to initials.
+ * @param onCommentClick - Toggles comment composer when provided.
+ * @param onLikeClick - Like/unlike handler.
+ * @param isLiked - Current like state for heart icon.
+ * @param onReportClick - Opens report overlay when provided.
+ * @param showMenu - Whether to show the options menu (e.g. Report).
+ * @param showActions - Whether to show like/comment buttons.
+ * @param audienceLabel - Optional label next to name (e.g. audience).
+ * @param menuId - Optional id for the menu (accessibility).
+ * @param onPostClick - When provided, clicking post content/media navigates to post detail (e.g. router.push).
+ * @param children - Optional slot for comment composer and comment list below the card.
+ */
+interface LSPostCardProps {
   userId?: string;
   userName: string;
   field: string;
@@ -26,10 +49,16 @@ interface PostCardProps {
   showActions?: boolean;
   audienceLabel?: string | null;
   menuId?: string;
+  onPostClick?: () => void;
   children?: React.ReactNode;
 }
 
-export function PostCard({
+/**
+ * Card component for a single post: author avatar/name, field, time, content, optional media,
+ * like/comment actions, and optional children (e.g. comment composer and comments).
+ * Used on home feed and profile feed; onPostClick enables navigation to post detail page.
+ */
+export function LSPostCard({
   userId,
   userName,
   field,
@@ -46,8 +75,9 @@ export function PostCard({
   showActions = true,
   audienceLabel = null,
   menuId,
+  onPostClick,
   children,
-}: PostCardProps) {
+}: LSPostCardProps) {
   const initials = userName
     .split(" ")
     .filter(Boolean)
@@ -62,11 +92,9 @@ export function PostCard({
         {initials}
       </Avatar>
 
-      {/* info about the poster */}
       <Stack gap={-1}>
-        {/* name of the poster, audience label ( ??? )*/}
         {userId ? (
-          <Link href={`/profile/${userId}`} className={linkClasses.nameLink} style={{ color: "inherit" }}>
+          <Anchor component={Link} href={`/profile/${userId}`} underline="hover" c="navy.7">
             <Text component="span" fw={700} c="navy.7" lh={1.1} style={{ cursor: "pointer" }}>
               {userName}
               {audienceLabel ? (
@@ -75,7 +103,7 @@ export function PostCard({
                 </Text>
               ) : null}
             </Text>
-          </Link>
+          </Anchor>
         ) : (
           <Text fw={600} c="navy.7" lh={1.1}>
             {userName}
@@ -92,7 +120,6 @@ export function PostCard({
   );
 
   return (
-    // post card
     <Card
       bg="gray.0"
       padding="md"
@@ -100,9 +127,7 @@ export function PostCard({
       shadow="sm"
       style={{ overflow: "hidden" }}
     >
-      {/* container for post data */}
       <Stack gap={16}>
-        {/* post header (profile, etc.) */}
         <Box>
           <Group align="flex-start" justify="space-between">
             {userContent}
@@ -132,10 +157,15 @@ export function PostCard({
           </Group>
         </Box>
 
-        {/* post content*/}
-        <Text fz="sm" c="navy.7">{content}</Text>
+        <Text
+          fz="sm"
+          c="navy.7"
+          onClick={onPostClick}
+          style={onPostClick ? { cursor: "pointer" } : undefined}
+        >
+          {content}
+        </Text>
 
-        {/* post media */}
         {mediaUrl ? (
           <Flex
             c="navy.0"
@@ -143,7 +173,8 @@ export function PostCard({
             justify="center"
             align="center"
             fw={600}
-            style={{ letterSpacing: "0.3px", overflow: "hidden" }}
+            onClick={onPostClick}
+            style={{ letterSpacing: "0.3px", overflow: "hidden", cursor: onPostClick ? "pointer" : undefined }}
           >
             <Image src={mediaUrl} alt="Post attachment" radius="md" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
           </Flex>
@@ -156,7 +187,8 @@ export function PostCard({
             align="center"
             ta="center"
             fw={600}
-            style={{ letterSpacing: "0.3px", overflow: "hidden" }}
+            onClick={onPostClick}
+            style={{ letterSpacing: "0.3px", overflow: "hidden", cursor: onPostClick ? "pointer" : undefined }}
           >
             <Text component="span" style={{ whiteSpace: "pre-line" }}>
               {mediaLabel}
@@ -164,7 +196,6 @@ export function PostCard({
           </Flex>
         ) : null}
 
-        {/* post actions ( like, comment, etc. ) */}
         {showActions ? (
           <SimpleGrid cols={3} spacing="sm" bg="gray.0">
             <UnstyledButton

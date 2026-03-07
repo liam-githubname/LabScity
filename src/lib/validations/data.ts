@@ -58,7 +58,8 @@ export const searchFeedInputSchema = z.object({
 export const getUserPostsInputSchema = z.object({
   user_id: z.string(),
   limit: z.number().min(1).max(100).default(10),
-  cursor: z.iso.datetime().optional(), // ISO datetime string for cursor position
+  // Cursor is the stringified sort column (e.g. created_at); DB may return formats without trailing Z
+  cursor: z.string().optional(),
   category: z.string().optional(),
   sortBy: z.enum(["created_at", "like_amount"]).default("created_at"),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
@@ -74,6 +75,16 @@ export const getUserPostsInputSchema = z.object({
  * Core post data structure
  * Used both for validating post data from database and post input from client
  */
+export const commentItemSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  userName: z.string(),
+  avatarUrl: z.string().nullable().optional(),
+  content: z.string(),
+  timeAgo: z.string(),
+  isLiked: z.boolean().optional(),
+});
+
 export const postSchema = z.object({
   post_id: z.number(),
   user_id: z.string(),
@@ -86,7 +97,10 @@ export const postSchema = z.object({
   media_url: z.string().nullable().optional(),
   created_at: z.string(),
   category: z.string().optional(),
+  scientific_field: z.string().nullable().optional(),
   like_amount: z.number().min(0, "Like amount cannot be negative"),
+  isLiked: z.boolean().optional(),
+  comments: z.array(commentItemSchema).optional(),
 });
 
 // =============================================================================
