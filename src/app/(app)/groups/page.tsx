@@ -15,11 +15,13 @@ import {
 	likePost,
 } from "@/lib/actions/feed";
 import {
+	addMemberByEmail,
 	createGroup,
 	getGroupDetails,
 	getGroups,
 	joinGroup,
 	leaveGroup,
+	removeMember,
 } from "@/lib/actions/groups";
 import { groupKeys } from "@/lib/query-keys";
 import { feedFilterSchema } from "@/lib/validations/post";
@@ -88,6 +90,8 @@ export default async function GroupsPage({
 				createGroupAction={createGroup}
 				joinGroupAction={joinGroup}
 				leaveGroupAction={leaveGroup}
+				addMemberByEmailAction={addMemberByEmail}
+				removeMemberAction={removeMember}
 				createPostAction={createPost}
 				createPostImageUploadUrlAction={createPostImageUploadUrl}
 				createCommentAction={createComment}

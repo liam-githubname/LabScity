@@ -1,25 +1,35 @@
 "use client";
 
+import { useState } from "react";
 import {
 	Box,
 	Button,
 	Center,
 	Drawer,
 	Flex,
+	Group,
+	Modal,
 	Paper,
 	Stack,
 	Text,
 } from "@mantine/core";
-import { IconMenu2, IconMessageCircle } from "@tabler/icons-react";
+import {
+	IconMenu2,
+	IconMessageCircle,
+	IconSettings,
+	IconLogout,
+} from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import LSMiniProfileList from "@/components/profile/ls-mini-profile-list";
 import LSProfileHero from "@/components/profile/ls-profile-hero";
+import { useAuth } from "@/components/auth/use-auth";
 import type { User } from "@/lib/types/feed";
 import { useIsMobile } from "@/app/use-is-mobile";
 import { LSSpinner } from "@/components/ui/ls-spinner";
 import { LSGroupSidebar } from "./ls-group-sidebar";
 import { LSGroupFeed } from "./ls-group-feed";
 import { LSCreateGroupModal } from "./ls-create-group-modal";
+import { LSManageMembersModal } from "./ls-manage-members-modal";
 import { useGroupLayout } from "./use-group-layout";
 import type { LSGroupLayoutProps } from "./ls-group-layout.types";
 
@@ -34,6 +44,8 @@ export function LSGroupLayout(props: LSGroupLayoutProps) {
 		createGroupAction,
 		joinGroupAction,
 		leaveGroupAction,
+		addMemberByEmailAction,
+		removeMemberAction,
 		createPostAction,
 		createPostImageUploadUrlAction,
 		createCommentAction,
@@ -44,6 +56,8 @@ export function LSGroupLayout(props: LSGroupLayoutProps) {
 
 	const isMobile = useIsMobile();
 	const router = useRouter();
+	const { user } = useAuth();
+	const [leaveConfirmOpened, setLeaveConfirmOpened] = useState(false);
 	const {
 		groups,
 		isGroupsLoading,
@@ -55,12 +69,29 @@ export function LSGroupLayout(props: LSGroupLayoutProps) {
 		drawerOpened,
 		openDrawer,
 		closeDrawer,
+		manageMembersOpened,
+		openManageMembers,
+		closeManageMembers,
+		leaveMutation,
+		addMemberMutation,
+		removeMemberMutation,
 		handleGroupCreated,
 	} = useGroupLayout(props);
+
+	const currentMember = groupDetails?.members.find(
+		(m) => m.user_id === user?.id,
+	);
+	const isAdmin = currentMember?.role === "Admin";
 
 	const handleNewGroupClick = () => {
 		closeDrawer();
 		openCreateModal();
+	};
+
+	const handleLeaveConfirm = () => {
+		if (!activeGroupId) return;
+		leaveMutation.mutate(activeGroupId);
+		setLeaveConfirmOpened(false);
 	};
 
 	const memberProfiles: User[] = (groupDetails?.members ?? []).map((m) => ({
@@ -118,6 +149,31 @@ export function LSGroupLayout(props: LSGroupLayoutProps) {
 								Group Chat
 							</Button>
 						)}
+						{currentMember && (
+							<Group gap="xs">
+								{isAdmin && (
+									<Button
+										variant="light"
+										color="navy"
+										leftSection={<IconSettings size={16} />}
+										onClick={openManageMembers}
+										style={{ flex: 1 }}
+									>
+										Manage
+									</Button>
+								)}
+								<Button
+									variant="light"
+									color="red"
+									leftSection={<IconLogout size={16} />}
+									onClick={() => setLeaveConfirmOpened(true)}
+									loading={leaveMutation.isPending}
+									style={{ flex: 1 }}
+								>
+									Leave
+								</Button>
+							</Group>
+						)}
 					</Stack>
 				</Box>
 			</Flex>
@@ -170,6 +226,50 @@ export function LSGroupLayout(props: LSGroupLayoutProps) {
 				createGroupAction={createGroupAction}
 				onCreated={handleGroupCreated}
 			/>
+
+			{/* Leave group confirmation */}
+			<Modal
+				opened={leaveConfirmOpened}
+				onClose={() => setLeaveConfirmOpened(false)}
+				title="Leave Group"
+				size="sm"
+				centered
+			>
+				<Stack gap="md">
+					<Text size="sm">
+						Are you sure you want to leave{" "}
+						<Text span fw={600}>{groupDetails?.name}</Text>?
+						You will lose access to the group feed and chat.
+					</Text>
+					<Group justify="flex-end" gap="xs">
+						<Button
+							variant="default"
+							onClick={() => setLeaveConfirmOpened(false)}
+						>
+							Cancel
+						</Button>
+						<Button
+							color="red"
+							onClick={handleLeaveConfirm}
+							loading={leaveMutation.isPending}
+						>
+							Leave Group
+						</Button>
+					</Group>
+				</Stack>
+			</Modal>
+
+			{/* Admin member management */}
+			{activeGroupId && groupDetails && (
+				<LSManageMembersModal
+					opened={manageMembersOpened}
+					onClose={closeManageMembers}
+					groupId={activeGroupId}
+					members={groupDetails.members}
+					addMemberMutation={addMemberMutation}
+					removeMemberMutation={removeMemberMutation}
+				/>
+			)}
 
 			{isMobile ? (
 				<>
