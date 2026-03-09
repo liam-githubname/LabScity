@@ -165,6 +165,7 @@ export async function getGroupDetails(
 			Array.isArray(u) ? u[0] ?? null : u;
 		const formattedMembers = (members ?? []).map((m: RawMember) => {
 			const u = toUser(m.users);
+			const picPath = u?.profile_pic_path ?? null;
 			return {
 				group_id: m.group_id,
 				user_id: m.user_id,
@@ -172,7 +173,10 @@ export async function getGroupDetails(
 				created_at: m.created_at,
 				first_name: u?.first_name ?? null,
 				last_name: u?.last_name ?? null,
-				profile_pic_path: u?.profile_pic_path ?? null,
+				profile_pic_path: picPath,
+				avatar_url: picPath
+					? supabase.storage.from("profile_pictures").getPublicUrl(picPath).data.publicUrl
+					: null,
 			};
 		});
 
