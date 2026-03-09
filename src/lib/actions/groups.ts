@@ -152,15 +152,29 @@ export async function getGroupDetails(
 			return { success: false, error: membersError.message };
 		}
 
-		const formattedMembers = (members ?? []).map((m: any) => ({
-			group_id: m.group_id,
-			user_id: m.user_id,
-			role: m.role ?? "Member",
-			created_at: m.created_at,
-			first_name: m.users?.first_name ?? null,
-			last_name: m.users?.last_name ?? null,
-			profile_pic_path: m.users?.profile_pic_path ?? null,
-		}));
+		// Supabase join returns users as object (FK) or array depending on client version
+		type RawUser = { first_name: string | null; last_name: string | null; profile_pic_path: string | null };
+		type RawMember = {
+			group_id: number;
+			user_id: string;
+			role: string | null;
+			created_at: string;
+			users: RawUser | RawUser[] | null;
+		};
+		const toUser = (u: RawUser | RawUser[] | null): RawUser | null =>
+			Array.isArray(u) ? u[0] ?? null : u;
+		const formattedMembers = (members ?? []).map((m: RawMember) => {
+			const u = toUser(m.users);
+			return {
+				group_id: m.group_id,
+				user_id: m.user_id,
+				role: m.role ?? "Member",
+				created_at: m.created_at,
+				first_name: u?.first_name ?? null,
+				last_name: u?.last_name ?? null,
+				profile_pic_path: u?.profile_pic_path ?? null,
+			};
+		});
 
 		const result: GroupWithMembers = {
 			group_id: group.group_id,
