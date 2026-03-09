@@ -17,6 +17,7 @@ import {
 import {
 	addMemberByEmail,
 	createGroup,
+	deleteGroup,
 	getGroupDetails,
 	getGroups,
 	joinGroup,
@@ -90,6 +91,7 @@ export default async function GroupsPage({
 				createGroupAction={createGroup}
 				joinGroupAction={joinGroup}
 				leaveGroupAction={leaveGroup}
+				deleteGroupAction={deleteGroup}
 				addMemberByEmailAction={addMemberByEmail}
 				removeMemberAction={removeMember}
 				createPostAction={createPost}
