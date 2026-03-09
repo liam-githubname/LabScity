@@ -5,7 +5,7 @@ import { notifications } from "@mantine/notifications";
 import { useDisclosure } from "@mantine/hooks";
 import { useRouter } from "next/navigation";
 import { getGroups, getGroupDetails } from "@/lib/actions/groups";
-import { groupKeys } from "@/lib/query-keys";
+import { chatKeys, groupKeys } from "@/lib/query-keys";
 import type { GroupListItem, GroupWithMembers } from "@/lib/types/groups";
 import type { AddMemberValues, RemoveMemberValues } from "@/lib/validations/groups";
 import type { LSGroupLayoutProps } from "./ls-group-layout.types";
@@ -18,6 +18,7 @@ export function useGroupLayout({
 	activeGroupId,
 	joinGroupAction,
 	leaveGroupAction,
+	deleteGroupAction,
 	addMemberByEmailAction,
 	removeMemberAction,
 }: Pick<
@@ -25,6 +26,7 @@ export function useGroupLayout({
 	| "activeGroupId"
 	| "joinGroupAction"
 	| "leaveGroupAction"
+	| "deleteGroupAction"
 	| "addMemberByEmailAction"
 	| "removeMemberAction"
 >) {
@@ -111,6 +113,33 @@ export function useGroupLayout({
 		onError: (error) => {
 			notifications.show({
 				title: "Could not leave group",
+				message: error instanceof Error ? error.message : "Something went wrong",
+				color: "red",
+			});
+		},
+	});
+
+	const deleteGroupMutation = useMutation({
+		mutationFn: async (groupId: number) => {
+			const result = await deleteGroupAction(groupId);
+			if (!result.success) {
+				throw new Error(result.error ?? "Failed to delete group");
+			}
+			return result;
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: groupKeys.all });
+			queryClient.invalidateQueries({ queryKey: chatKeys.all });
+			router.push("/groups");
+			notifications.show({
+				title: "Group deleted",
+				message: "The group and all its content have been permanently removed.",
+				color: "green",
+			});
+		},
+		onError: (error) => {
+			notifications.show({
+				title: "Could not delete group",
 				message: error instanceof Error ? error.message : "Something went wrong",
 				color: "red",
 			});
@@ -243,6 +272,7 @@ export function useGroupLayout({
 		closeManageMembers,
 		joinMutation,
 		leaveMutation,
+		deleteGroupMutation,
 		addMemberMutation,
 		removeMemberMutation,
 		handleGroupCreated,
