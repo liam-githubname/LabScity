@@ -4,6 +4,7 @@ import {
 	Avatar,
 	Box,
 	Button,
+	Center,
 	Group,
 	NavLink,
 	ScrollArea,
@@ -12,6 +13,7 @@ import {
 	Title,
 } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
+import { LSSpinner } from "@/components/ui/ls-spinner";
 import type { GroupListItem } from "@/lib/types/groups";
 
 function formatMembers(count: number) {
@@ -64,9 +66,9 @@ export function LSGroupSidebar({
 			<ScrollArea h={{ base: 240, md: "calc(100vh - 60px - 89px)" }}>
 				<Stack gap={0}>
 					{isLoading ? (
-						<Text size="sm" c="dimmed" p="md">
-							Loading groups...
-						</Text>
+						<Center h={100}>
+							<LSSpinner />
+						</Center>
 					) : groups.length === 0 ? (
 						<Text size="sm" c="dimmed" p="md">
 							You haven't joined any groups yet.
@@ -98,11 +100,13 @@ export function LSGroupSidebar({
 									}
 									leftSection={
 										<Avatar color="navy" radius="xl">
-											{group.name
+											{(group.name || "?")
 												.split(" ")
+												.filter(Boolean)
 												.map((part) => part[0])
 												.join("")
-												.slice(0, 2)}
+												.slice(0, 2)
+												.toUpperCase()}
 										</Avatar>
 									}
 								/>

@@ -16,6 +16,7 @@ import LSMiniProfileList from "@/components/profile/ls-mini-profile-list";
 import LSProfileHero from "@/components/profile/ls-profile-hero";
 import type { User } from "@/lib/types/feed";
 import { useIsMobile } from "@/app/use-is-mobile";
+import { LSSpinner } from "@/components/ui/ls-spinner";
 import { LSGroupSidebar } from "./ls-group-sidebar";
 import { LSGroupFeed } from "./ls-group-feed";
 import { LSCreateGroupModal } from "./ls-create-group-modal";
@@ -31,6 +32,8 @@ export function LSGroupLayout(props: LSGroupLayoutProps) {
 	const {
 		activeGroupId,
 		createGroupAction,
+		joinGroupAction,
+		leaveGroupAction,
 		createPostAction,
 		createPostImageUploadUrlAction,
 		createCommentAction,
@@ -55,6 +58,11 @@ export function LSGroupLayout(props: LSGroupLayoutProps) {
 		handleGroupCreated,
 	} = useGroupLayout(props);
 
+	const handleNewGroupClick = () => {
+		closeDrawer();
+		openCreateModal();
+	};
+
 	const memberProfiles: User[] = (groupDetails?.members ?? []).map((m) => ({
 		user_id: m.user_id,
 		first_name: m.first_name ?? "",
@@ -68,7 +76,7 @@ export function LSGroupLayout(props: LSGroupLayoutProps) {
 		<LSGroupSidebar
 			groups={groups}
 			activeGroupId={activeGroupId}
-			onNewGroupClick={openCreateModal}
+			onNewGroupClick={handleNewGroupClick}
 			isLoading={isGroupsLoading}
 		/>
 	);
@@ -128,12 +136,28 @@ export function LSGroupLayout(props: LSGroupLayoutProps) {
 				/>
 			</Box>
 		</Stack>
+	) : activeGroupId && isDetailsLoading ? (
+		<Center h="100%">
+			<LSSpinner />
+		</Center>
+	) : activeGroupId && !isDetailsLoading && !groupDetails ? (
+		<Center h="100%">
+			<Stack align="center" gap="sm">
+				<Text c="dimmed" size="lg">
+					Group not found.
+				</Text>
+				<Button
+					variant="light"
+					onClick={() => router.push("/groups")}
+				>
+					Back to Groups
+				</Button>
+			</Stack>
+		</Center>
 	) : (
 		<Center h="100%">
 			<Text c="dimmed" size="lg">
-				{isDetailsLoading
-					? "Loading group..."
-					: "Select a group from the sidebar to get started."}
+				Select a group from the sidebar to get started.
 			</Text>
 		</Center>
 	);
