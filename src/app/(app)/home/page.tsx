@@ -10,12 +10,14 @@ import {
   createPost,
   createPostImageUploadUrl,
   createReport,
+  deletePost,
   getFeed,
   likeComment,
   likePost,
 } from "@/lib/actions/feed";
 import { feedKeys } from "@/lib/query-keys";
 import { feedFilterSchema } from "@/lib/validations/post";
+import { createClient } from "@/supabase/server";
 
 export const metadata: Metadata = {
   title: "Home | LabScity",
@@ -25,6 +27,9 @@ export const metadata: Metadata = {
 const defaultFeedFilter = feedFilterSchema.parse({});
 
 export default async function HomePage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   const queryClient = new QueryClient();
 
   await queryClient.prefetchQuery({
@@ -49,6 +54,8 @@ export default async function HomePage() {
         createReportAction={createReport}
         likePostAction={likePost}
         likeCommentAction={likeComment}
+        deletePostAction={deletePost}
+        currentUserId={user?.id ?? null}
       />
     </HydrationBoundary>
   );

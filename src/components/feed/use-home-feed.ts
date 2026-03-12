@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { notifications } from "@mantine/notifications";
 import { useState } from "react";
 import { getFeed } from "@/lib/actions/feed";
-import type { FeedPostItem } from "@/lib/types/feed";
+import type { FeedPostItem, GetFeedResult } from "@/lib/types/feed";
 import { feedKeys } from "@/lib/query-keys";
 import { createClient } from "@/supabase/client";
 import {
@@ -27,6 +27,8 @@ export function useHomeFeed({
   createReportAction,
   likePostAction,
   likeCommentAction,
+  deletePostAction,
+  currentUserId,
 }: HomeFeedProps) {
   const queryClient = useQueryClient();
   const [isComposerOpen, setIsComposerOpen] = useState(false);
@@ -186,15 +188,58 @@ export function useHomeFeed({
       }
       return result;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: feedKeys.all });
+    onMutate: async (postId: string) => {
+      await queryClient.cancelQueries({ queryKey: feedKeys.list(defaultFeedFilter) });
+      const snapshot = queryClient.getQueryData<GetFeedResult>(feedKeys.list(defaultFeedFilter));
+      queryClient.setQueryData<GetFeedResult>(feedKeys.list(defaultFeedFilter), (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          posts: old.posts.map((p) =>
+            p.id === postId
+              ? { ...p, isLiked: !p.isLiked, likeCount: (p.likeCount ?? 0) + (p.isLiked ? -1 : 1) }
+              : p
+          ),
+        };
+      });
+      return { snapshot };
     },
-    onError: (error) => {
+    onError: (error, _postId, context) => {
+      if (context?.snapshot) {
+        queryClient.setQueryData(feedKeys.list(defaultFeedFilter), context.snapshot);
+      }
       notifications.show({
         title: "Could not update like",
         message: error instanceof Error ? error.message : "Something went wrong",
         color: "red",
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: feedKeys.all });
+    },
+  });
+
+  const deletePostMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      const result = await deletePostAction(postId);
+      if (!result.success) throw new Error(result.error ?? "Failed to delete post");
+      return result;
+    },
+    onSuccess: (_result, postId) => {
+      queryClient.setQueryData<GetFeedResult>(feedKeys.list(defaultFeedFilter), (old) => {
+        if (!old) return old;
+        return { ...old, posts: old.posts.filter((p) => p.id !== postId) };
+      });
+    },
+    onError: (error) => {
+      notifications.show({
+        title: "Could not delete post",
+        message: error instanceof Error ? error.message : "Something went wrong",
+        color: "red",
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: feedKeys.all });
     },
   });
 
@@ -245,6 +290,10 @@ export function useHomeFeed({
     likeCommentMutation.mutate({ postId, commentId });
   };
 
+  const handleDeletePost = (postId: string) => {
+    deletePostMutation.mutate(postId);
+  };
+
   return {
     posts,
     isFeedLoading,
@@ -263,5 +312,7 @@ export function useHomeFeed({
     handleAddComment,
     handleTogglePostLike,
     handleToggleCommentLike,
+    handleDeletePost,
+    currentUserId,
   };
 }
