@@ -138,16 +138,38 @@ function useProfilePostActions(
       }
       return result;
     },
-    onSuccess: () => {
-      invalidatePosts();
+    onMutate: async (postId: string) => {
+      await queryClient.cancelQueries({ queryKey: profileKeys.posts(userId) });
+      const snapshot = queryClient.getQueryData(profileKeys.posts(userId));
+      queryClient.setQueryData(profileKeys.posts(userId), (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page: any) => ({
+            ...page,
+            posts: page.posts.map((p: any) =>
+              String(p.post_id) === postId
+                ? { ...p, isLiked: !p.isLiked, like_amount: (p.like_amount ?? 0) + (p.isLiked ? -1 : 1) }
+                : p
+            ),
+          })),
+        };
+      });
+      return { snapshot };
     },
-    onError: (error: unknown) => {
+    onError: (error: unknown, _postId: string, context: any) => {
+      if (context?.snapshot) {
+        queryClient.setQueryData(profileKeys.posts(userId), context.snapshot);
+      }
       notifications.show({
         title: "Could not update like",
         message:
           error instanceof Error ? error.message : "Something went wrong",
         color: "red",
       });
+    },
+    onSettled: () => {
+      invalidatePosts();
     },
   });
 
