@@ -27,6 +27,8 @@ export function useHomeFeed({
   createReportAction,
   likePostAction,
   likeCommentAction,
+  deletePostAction,
+  currentUserId,
 }: HomeFeedProps) {
   const queryClient = useQueryClient();
   const [isComposerOpen, setIsComposerOpen] = useState(false);
@@ -217,6 +219,36 @@ export function useHomeFeed({
     },
   });
 
+  const deletePostMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      const result = await deletePostAction(postId);
+      if (!result.success) throw new Error(result.error ?? "Failed to delete post");
+      return result;
+    },
+    onMutate: async (postId: string) => {
+      await queryClient.cancelQueries({ queryKey: feedKeys.list(defaultFeedFilter) });
+      const snapshot = queryClient.getQueryData<GetFeedResult>(feedKeys.list(defaultFeedFilter));
+      queryClient.setQueryData<GetFeedResult>(feedKeys.list(defaultFeedFilter), (old) => {
+        if (!old) return old;
+        return { ...old, posts: old.posts.filter((p) => p.id !== postId) };
+      });
+      return { snapshot };
+    },
+    onError: (error, _postId, context) => {
+      if (context?.snapshot) {
+        queryClient.setQueryData(feedKeys.list(defaultFeedFilter), context.snapshot);
+      }
+      notifications.show({
+        title: "Could not delete post",
+        message: error instanceof Error ? error.message : "Something went wrong",
+        color: "red",
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: feedKeys.all });
+    },
+  });
+
   const likeCommentMutation = useMutation({
     mutationFn: async ({ postId, commentId }: { postId: string; commentId: string }) => {
       const result = await likeCommentAction(commentId);
@@ -264,6 +296,10 @@ export function useHomeFeed({
     likeCommentMutation.mutate({ postId, commentId });
   };
 
+  const handleDeletePost = (postId: string) => {
+    deletePostMutation.mutate(postId);
+  };
+
   return {
     posts,
     isFeedLoading,
@@ -282,5 +318,7 @@ export function useHomeFeed({
     handleAddComment,
     handleTogglePostLike,
     handleToggleCommentLike,
+    handleDeletePost,
+    currentUserId,
   };
 }

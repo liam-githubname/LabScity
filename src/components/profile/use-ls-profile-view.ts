@@ -14,6 +14,7 @@ import { profileKeys } from "@/lib/query-keys";
 import type {
   CreateCommentAction,
   CreateReportAction,
+  DeletePostAction,
   LikeCommentAction,
   LikePostAction,
 } from "@/components/feed/home-feed.types";
@@ -53,6 +54,7 @@ export interface UseLSProfileViewParams {
   createReportAction: CreateReportAction;
   likePostAction: LikePostAction;
   likeCommentAction: LikeCommentAction;
+  deletePostAction: DeletePostAction;
 }
 
 /** Edit modal + form props passed from the hook into the hero. */
@@ -123,6 +125,7 @@ function useProfilePostActions(
     createReportAction: CreateReportAction;
     likePostAction: LikePostAction;
     likeCommentAction: LikeCommentAction;
+    deletePostAction: DeletePostAction;
   },
 ) {
   const queryClient = useQueryClient();
@@ -165,6 +168,42 @@ function useProfilePostActions(
         title: "Could not update like",
         message:
           error instanceof Error ? error.message : "Something went wrong",
+        color: "red",
+      });
+    },
+    onSettled: () => {
+      invalidatePosts();
+    },
+  });
+
+  const deletePostMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      const result = await actions.deletePostAction(postId);
+      if (!result.success) throw new Error(result.error ?? "Failed to delete post");
+      return result;
+    },
+    onMutate: async (postId: string) => {
+      await queryClient.cancelQueries({ queryKey: profileKeys.posts(userId) });
+      const snapshot = queryClient.getQueryData(profileKeys.posts(userId));
+      queryClient.setQueryData(profileKeys.posts(userId), (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page: any) => ({
+            ...page,
+            posts: page.posts.filter((p: any) => String(p.post_id) !== postId),
+          })),
+        };
+      });
+      return { snapshot };
+    },
+    onError: (error: unknown, _postId: string, context: any) => {
+      if (context?.snapshot) {
+        queryClient.setQueryData(profileKeys.posts(userId), context.snapshot);
+      }
+      notifications.show({
+        title: "Could not delete post",
+        message: error instanceof Error ? error.message : "Something went wrong",
         color: "red",
       });
     },
@@ -255,6 +294,10 @@ function useProfilePostActions(
     likeCommentMutation.mutate(commentId);
   };
 
+  const handleDeletePost = (postId: string) => {
+    deletePostMutation.mutate(postId);
+  };
+
   const handleAddComment = (postId: string, values: CreateCommentValues) => {
     createCommentMutation.mutate({ postId, values });
   };
@@ -272,6 +315,7 @@ function useProfilePostActions(
     handleToggleCommentLike,
     handleAddComment,
     submitReport,
+    handleDeletePost,
   };
 }
 
@@ -296,6 +340,7 @@ export function useLSProfileView(params: UseLSProfileViewParams) {
     createReportAction,
     likePostAction,
     likeCommentAction,
+    deletePostAction,
   } = params;
 
   const [editModalOpened, setEditModalOpened] = useState(false);
@@ -408,6 +453,7 @@ export function useLSProfileView(params: UseLSProfileViewParams) {
     createReportAction,
     likePostAction,
     likeCommentAction,
+    deletePostAction,
   });
 
   // --- Profile picture & banner upload ---
