@@ -166,6 +166,8 @@ const LSProfileMobileLayout = ({
             )
           }
           isLiked={post.isLiked ?? false}
+          likeCount={post.like_amount ?? 0}
+          commentCount={post.comments?.length ?? 0}
           showMenu={false}
           onPostClick={() => router.push(`/posts/${post.post_id}`)}
         >
@@ -338,6 +340,8 @@ const LSProfileDesktopLayout = ({
             )
           }
           isLiked={post.isLiked ?? false}
+          likeCount={post.like_amount ?? 0}
+          commentCount={post.comments?.length ?? 0}
           showMenu={false}
           onPostClick={() => router.push(`/posts/${post.post_id}`)}
         >

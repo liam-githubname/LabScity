@@ -69,7 +69,7 @@ export function LSEditProfileModal({
   opened,
   onClose,
   initialValues = defaultEditValues,
-  onSubmit = () => {},
+  onSubmit = () => { },
   isSubmitting = false,
 }: LSEditProfileModalProps) {
   const defaults = toFormDefaults(initialValues);
