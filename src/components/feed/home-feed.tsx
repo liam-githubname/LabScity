@@ -130,6 +130,8 @@ export function HomeFeed(props: HomeFeedProps) {
             }
             onLikeClick={() => handleTogglePostLike(post.id)}
             isLiked={post.isLiked ?? false}
+            likeCount={post.likeCount}
+            commentCount={post.comments.length}
             onReportClick={() => setReportTarget({ type: "post", postId: post.id })}
             onPostClick={() => router.push(`/posts/${post.id}`)}
             audienceLabel={post.audienceLabel ?? null}

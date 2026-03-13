@@ -361,24 +361,24 @@ export function useLSProfileView(params: UseLSProfileViewParams) {
 
   const editProfile: EditProfileHeroProps = isOwnProfile
     ? {
-        onOpenEditProfile: () => setEditModalOpened(true),
-        editModalOpened,
-        onEditModalClose: () => setEditModalOpened(false),
-        editInitialValues: profile
-          ? profileToEditInitialValues(profile)
-          : undefined,
-        onEditSubmit: (values) => updateProfileMutation.mutate(values),
-        isEditSubmitting: updateProfileMutation.isPending,
-      }
+      onOpenEditProfile: () => setEditModalOpened(true),
+      editModalOpened,
+      onEditModalClose: () => setEditModalOpened(false),
+      editInitialValues: profile
+        ? profileToEditInitialValues(profile)
+        : undefined,
+      onEditSubmit: (values) => updateProfileMutation.mutate(values),
+      isEditSubmitting: updateProfileMutation.isPending,
+    }
     : {};
 
   const followProfile: FollowProfileHeroProps | undefined =
     !isOwnProfile && currentUserId
       ? {
-          isFollowing,
-          onToggleFollow: () => toggleFollowMutation.mutate(),
-          isTogglePending: toggleFollowMutation.isPending,
-        }
+        isFollowing,
+        onToggleFollow: () => toggleFollowMutation.mutate(),
+        isTogglePending: toggleFollowMutation.isPending,
+      }
       : undefined;
 
   const actions = useProfilePostActions(userId, {
@@ -547,11 +547,11 @@ export function useLSProfileView(params: UseLSProfileViewParams) {
 
   const mediaUpload: ProfileMediaUploadProps | undefined = isOwnProfile
     ? {
-        onProfilePicSelect: handleProfilePicSelect,
-        isUploadingProfilePic,
-        onProfileHeaderSelect: handleProfileHeaderSelect,
-        isUploadingProfileHeader,
-      }
+      onProfilePicSelect: handleProfilePicSelect,
+      isUploadingProfilePic,
+      onProfileHeaderSelect: handleProfileHeaderSelect,
+      isUploadingProfileHeader,
+    }
     : undefined;
 
   return { actions, editProfile, followProfile, mediaUpload };

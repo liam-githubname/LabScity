@@ -15,6 +15,20 @@ export interface Post {
   comments?: FeedCommentItem[];
 }
 
+export interface Group {
+  group_id: number;
+  name: string;
+  description: string | null;
+  created_at: string; // ISO 8601 string from 'timestamp with time zone'
+  conversation_id: number | null;
+  topics: string[] | null;
+  last_activity_at: string | null;
+  privacy: 'public' | 'private' | null;
+  avatar_url: string | null;
+  cover_photo_url: string | null;
+  rules: string | null;
+}
+
 /** Extended post with optional author information */
 export interface PostWithAuthor extends Post {
   author?: {

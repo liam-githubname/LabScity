@@ -1,6 +1,6 @@
 "use client";
 
-import { ActionIcon, Anchor, Avatar, Box, Card, Flex, Group, Image, Menu, SimpleGrid, Stack, Text, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Anchor, Avatar, Box, Button, Card, Flex, Group, Image, Menu, SimpleGrid, Stack, Text, UnstyledButton } from "@mantine/core";
 import Link from "next/link";
 import {
   IconDots,
@@ -44,6 +44,8 @@ interface LSPostCardProps {
   onCommentClick?: () => void;
   onLikeClick?: () => void;
   isLiked?: boolean;
+  likeCount?: number;
+  commentCount?: number;
   onReportClick?: () => void;
   showMenu?: boolean;
   showActions?: boolean;
@@ -70,6 +72,8 @@ export function LSPostCard({
   onCommentClick,
   onLikeClick,
   isLiked = false,
+  likeCount,
+  commentCount,
   onReportClick,
   showMenu = true,
   showActions = true,
@@ -197,40 +201,54 @@ export function LSPostCard({
         ) : null}
 
         {showActions ? (
-          <SimpleGrid cols={3} spacing="sm" bg="gray.0">
-            <UnstyledButton
-              c="navy.7"
-              fw={600}
-              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "6px 10px", borderRadius: 999 }}
+          <Flex justify="space-around">
+
+            {/* like button */}
+            <Button
+              size="compact-xs"
+              mr={3} // HACK: small margin here to make things look a bit nicer
+              variant="transparent"
+              color="navy.6"
+              // like icon
+              leftSection={
+                isLiked ? (
+                  <IconHeartFilled size={18} style={{ color: "#e03131" }} />
+                ) : (
+                  <IconHeart size={18} />
+                )
+              }
               onClick={onLikeClick}
             >
-              {isLiked ? (
-                <IconHeartFilled size={18} style={{ color: "#e03131" }} />
-              ) : (
-                <IconHeart size={18} style={{ color: "var(--mantine-color-navy-6)" }} />
-              )}
-              <Text span fw="bold" fz="sm" c={isLiked ? "#e03131" : "navy.6"}>
-                {isLiked ? "Liked" : "Like"}
+              {/* like label */}
+              <Text span fz="sm" c={isLiked ? "#e03131" : "navy.6"}>
+                {
+                  typeof likeCount == "number" ? likeCount : ""
+                }
               </Text>
-            </UnstyledButton>
-            <UnstyledButton
-              c="navy.7"
-              fw={600}
-              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "6px 10px", borderRadius: 999 }}
+            </Button>
+
+            {/* comment button */}
+            <Button
+              size="compact-xs"
+              variant="transparent"
+              color="navy.6"
+              leftSection={<IconMessageCircle size={18} />}
               onClick={onCommentClick}
             >
-              <IconMessageCircle size={18} style={{ color: "var(--mantine-color-navy-6)" }} />
-              <Text span fw="bold" fz="sm" c="navy.6">Comment</Text>
-            </UnstyledButton>
-            <UnstyledButton
-              c="navy.7"
-              fw={600}
-              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "6px 10px", borderRadius: 999 }}
-            >
-              <IconShare3 size={18} style={{ color: "var(--mantine-color-navy-6)" }} />
-              <Text span fw="bold" fz="sm" c="navy.6">Share</Text>
-            </UnstyledButton>
-          </SimpleGrid>
+              <Text span fz="sm" c="navy.6">
+                {typeof commentCount === "number" ? commentCount : ""}
+              </Text>
+            </Button>
+
+            {/* share button */}
+            <Button
+              size="compact-xs"
+              variant="transparent"
+              color="navy.6"
+              leftSection={<IconShare3 size={18} />}
+            />
+
+          </Flex>
         ) : null}
 
         {children}

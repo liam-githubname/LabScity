@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import { getPostById, searchUserContent } from "../../lib/actions/data";
+import { getPostById, searchForGroups, searchForPosts, searchForUsers, searchUserContent } from "../../lib/actions/data";
 import { GetPostByIdInput, GetUserPostsInput } from "../../lib/types/data";
 import { getUserPosts } from "../../lib/actions/data";
 
@@ -44,6 +44,13 @@ async function integration_test_data_ts() {
   console.log("result6: ", result6);
   console.log("result7: ", result7);
 
+  const result8 = await searchForUsers({ query: "Lixm Harvell" }, supabaseAdmin)
+  const result9 = await searchForPosts({ query: "qokka real" }, supabaseAdmin)
+  const result10 = await searchForGroups({ query: "test" }, supabaseAdmin)
+
+  console.log("result8: ", result8)
+  console.log("result9: ", result9)
+  console.log("result10: ", result10)
 
 }
 
