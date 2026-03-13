@@ -25,6 +25,10 @@ import { IconSend, IconInfoCircle, IconPlus } from '@tabler/icons-react'
 import { useParams } from 'next/navigation'
 import { ChatPreview, getChatsWithPreview, getOldMessages } from '@/lib/actions/chat'
 import { useCreateChat, useLeaveConversation } from '@/components/chat/use-chat'
+import { searchResult } from '@/lib/types/data'
+import { useDebouncedValue } from '@mantine/hooks'
+import { searchForUsers, searchUserContent } from '@/lib/actions/data'
+import { User } from '@/lib/types/feed'
 
 interface Message {
   id: number
@@ -52,7 +56,13 @@ export default function ChatPage() {
   // -- MODAL STATE --
   const [infoModalOpen, setInfoModalOpen] = useState(false)
   const [newChatModalOpen, setNewChatModalOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
+
+  // Search state
+  const [query, setQuery] = useState("");
+  const [debounced] = useDebouncedValue(query, 300);
+  const [results, setResults] = useState<User[]>([]);
+  const [searching, setSearching] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // -- NEW CHAT MUTATION --
   const createChatMutation = useCreateChat()
@@ -64,6 +74,22 @@ export default function ChatPage() {
   const viewport = useRef<HTMLDivElement>(null)
   // We use this to tell the UI *why* the messages array changed
   const scrollReason = useRef<'init' | 'new_message' | 'pagination'>('init')
+
+  // NOTE: debounced runs automatically after 300ms when query is been updated
+  useEffect(() => {
+    if (!debounced.trim()) {
+      setResults([]);
+      return;
+    }
+    setSearching(true);
+    // NOTE: debounced is the search query
+    // searchForUsers returns User[] - User is defined in types/feed.ts
+    searchForUsers({ query: debounced }).then((res) => {
+      setResults(res.success ? (res.data ?? []) : []);
+      console.log(results)
+      setSearching(false);
+    });
+  }, [debounced]);
 
   // 1. INIT DATA
   useEffect(() => {
@@ -212,13 +238,14 @@ export default function ChatPage() {
     }
   }
 
+  // NOTE: This takes in an arry of user_id's
   const handleCreateChat = () => {
-    if (!searchQuery.trim()) return
+    if (!query.trim()) return
     // searchQuery is the user ID to invite — replace with real user lookup later
-    createChatMutation.mutate([searchQuery.trim()], {
+    createChatMutation.mutate([query.trim()], {
       onSuccess: () => {
         setNewChatModalOpen(false)
-        setSearchQuery('')
+        setQuery('')
       }
     })
   }
@@ -226,10 +253,10 @@ export default function ChatPage() {
   if (!chat_id) return <Center h="100vh"><Loader /></Center>
 
   return (
-    <Group align="stretch" gap={0} h="100vh" bg="gray.3" style={{ overflow: 'hidden'}}>
+    <Group align="stretch" gap={0} h="100vh" bg="gray.3" style={{ overflow: 'hidden' }}>
 
       {/* SIDEBAR */}
-      <Box w={320} p="md" bg="gray.3" style={{ flexShrink: 0, height: '100%'}}>
+      <Box w={320} p="md" bg="gray.3" style={{ flexShrink: 0, height: '100%' }}>
         <Paper
           radius="lg"
           shadow="sm"
@@ -288,7 +315,7 @@ export default function ChatPage() {
       {/* NEW CHAT MODAL */}
       <Modal
         opened={newChatModalOpen}
-        onClose={() => { setNewChatModalOpen(false); setSearchQuery('') }}
+        onClose={() => { setNewChatModalOpen(false); setQuery('') }}
         title={<Title order={4} c="navy.7">New Conversation</Title>}
         centered
       >
@@ -296,8 +323,9 @@ export default function ChatPage() {
           {/* TODO: replace with real search */}
           <TextInput
             placeholder="Search by name"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={query}
+            // NOTE: the search function is called every 300ms after the query is set so you don't really have to do much here to get it to work
+            onChange={(e) => setQuery(e.target.value)}
             radius="xl"
             size="md"
           />
@@ -307,7 +335,8 @@ export default function ChatPage() {
             variant="filled"
             radius="xl"
             loading={createChatMutation.isPending}
-            disabled={!searchQuery.trim()}
+            // NOTE: This probably would need to be changed?
+            disabled={!query.trim()}
             onClick={handleCreateChat}
           >
             Start Chat
@@ -370,7 +399,7 @@ export default function ChatPage() {
                   variant="light"
                   radius="xl"
                   mt="sm"
-                  onClick={() => {/* TODO: delete chat */}}
+                  onClick={() => {/* TODO: delete chat */ }}
                 >
                   Delete Chat
                 </Button>
