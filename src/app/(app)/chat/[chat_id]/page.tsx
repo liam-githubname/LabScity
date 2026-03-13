@@ -21,9 +21,10 @@ import {
   NavLink,
   Button
 } from '@mantine/core'
-import { IconSend, IconInfoCircle } from '@tabler/icons-react'
+import { IconSend, IconInfoCircle, IconPlus } from '@tabler/icons-react'
 import { useParams } from 'next/navigation'
 import { ChatPreview, getChatsWithPreview, getOldMessages } from '@/lib/actions/chat'
+import { useCreateChat } from '@/components/chat/use-chat'
 
 interface Message {
   id: number
@@ -50,6 +51,11 @@ export default function ChatPage() {
 
   // -- MODAL STATE --
   const [infoModalOpen, setInfoModalOpen] = useState(false)
+  const [newChatModalOpen, setNewChatModalOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // -- NEW CHAT MUTATION --
+  const createChatMutation = useCreateChat()
 
   // -- REFS --
   const viewport = useRef<HTMLDivElement>(null)
@@ -203,6 +209,17 @@ export default function ChatPage() {
     }
   }
 
+  const handleCreateChat = () => {
+    if (!searchQuery.trim()) return
+    // searchQuery is the user ID to invite — replace with real user lookup later
+    createChatMutation.mutate([searchQuery.trim()], {
+      onSuccess: () => {
+        setNewChatModalOpen(false)
+        setSearchQuery('')
+      }
+    })
+  }
+
   if (!chat_id) return <Center h="100vh"><Loader /></Center>
 
   return (
@@ -248,8 +265,52 @@ export default function ChatPage() {
               ))
             )}
           </ScrollArea>
+
+          {/* NEW CHAT BUTTON */}
+          <Box p="md">
+            <Button
+              fullWidth
+              color="navy.7"
+              variant="filled"
+              radius="xl"
+              leftSection={<IconPlus size="1rem" />}
+              onClick={() => setNewChatModalOpen(true)}
+            >
+              New Chat
+            </Button>
+          </Box>
         </Paper>
       </Box>
+
+      {/* NEW CHAT MODAL */}
+      <Modal
+        opened={newChatModalOpen}
+        onClose={() => { setNewChatModalOpen(false); setSearchQuery('') }}
+        title={<Title order={4} c="navy.7">New Conversation</Title>}
+        centered
+      >
+        <Stack gap="md">
+          {/* TODO: replace with real search */}
+          <TextInput
+            placeholder="Search by name"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            radius="xl"
+            size="md"
+          />
+          <Button
+            fullWidth
+            color="navy.7"
+            variant="filled"
+            radius="xl"
+            loading={createChatMutation.isPending}
+            disabled={!searchQuery.trim()}
+            onClick={handleCreateChat}
+          >
+            Start Chat
+          </Button>
+        </Stack>
+      </Modal>
 
       {/* MAIN CHAT */}
       <Box style={{ flex: 1, overflow: "hidden" }}>
@@ -300,6 +361,16 @@ export default function ChatPage() {
                     {new Date(messages[0].created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
                   </Text>
                 )}
+                <Button
+                  fullWidth
+                  color="red"
+                  variant="light"
+                  radius="xl"
+                  mt="sm"
+                  onClick={() => {/* TODO: delete chat */}}
+                >
+                  Delete Chat
+                </Button>
               </Stack>
             </Modal>
 
