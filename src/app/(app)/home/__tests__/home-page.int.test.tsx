@@ -5,7 +5,9 @@ import { HomeFeed } from "@/components/feed/home-feed";
 import {
 	createComment,
 	createPost,
+	createPostImageUploadUrl,
 	createReport,
+	deletePost,
 	getFeed,
 	likeComment,
 	likePost,
@@ -55,10 +57,13 @@ describe("HomePage / HomeFeed hydration", () => {
 			<HydrationBoundary state={dehydratedState}>
 				<HomeFeed
 					createPostAction={createPost}
+					createPostImageUploadUrlAction={createPostImageUploadUrl}
 					createCommentAction={createComment}
 					createReportAction={createReport}
 					likePostAction={likePost}
 					likeCommentAction={likeComment}
+					deletePostAction={deletePost}
+					currentUserId={null}
 				/>
 			</HydrationBoundary>,
 			{ queryClient },
@@ -96,10 +101,13 @@ describe("HomePage / HomeFeed hydration", () => {
 		renderWithProviders(
 			<HomeFeed
 				createPostAction={createPost}
+				createPostImageUploadUrlAction={createPostImageUploadUrl}
 				createCommentAction={createComment}
 				createReportAction={createReport}
 				likePostAction={likePost}
 				likeCommentAction={likeComment}
+				deletePostAction={deletePost}
+				currentUserId={null}
 			/>,
 			{ queryClient },
 		);
