@@ -258,8 +258,6 @@ const LSAppTopBar = () => {
       {searchOpen ? (
         /* Search mode: full-width input */
         <Flex h={topBarSize} w="100%" align="center" gap="xs" px="md">
-          {/* NOTE: there used to be a search icon here but i nuked it cuz it looks bad */}
-
           {/* search input field */}
           <TextInput
             ref={inputRef}
@@ -278,6 +276,15 @@ const LSAppTopBar = () => {
               input: { color: "var(--mantine-color-navy-7)" },
             }}
           />
+
+          <ActionIcon
+            variant="transparent"
+            c="gray.5"
+            onClick={submitSearch}
+            aria-label="Search"
+          >
+            <IconSearch size={24} />
+          </ActionIcon>
 
           {/* search close*/}
           <ActionIcon variant="transparent" c="gray.5" onClick={closeSearch}>
