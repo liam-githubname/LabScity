@@ -6,6 +6,7 @@ import {
   Flex,
   Group,
   Paper,
+  SegmentedControl,
   Stack,
   Text,
   UnstyledButton,
@@ -19,6 +20,7 @@ import { searchUserContent } from "@/lib/actions/data";
 import type { searchResult } from "@/lib/types/data";
 
 const FULL_RESULTS_LIMIT = 50;
+type SearchFilter = "all" | "users" | "posts" | "groups";
 
 function SearchSection({
   title,
@@ -88,6 +90,7 @@ export default function SearchPage() {
   const [results, setResults] = useState<searchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<SearchFilter>("all");
 
   useEffect(() => {
     if (!query) {
@@ -133,6 +136,13 @@ export default function SearchPage() {
   );
 
   const hasResults = results.length > 0;
+  const showUsers = filter === "all" || filter === "users";
+  const showPosts = filter === "all" || filter === "posts";
+  const showGroups = filter === "all" || filter === "groups";
+  const visibleResultCount =
+    (showUsers ? groupedResults.users.length : 0) +
+    (showPosts ? groupedResults.posts.length : 0) +
+    (showGroups ? groupedResults.groups.length : 0);
 
   return (
     <Stack maw={900} mx="auto" px="md" py="xl" gap="lg">
@@ -146,6 +156,17 @@ export default function SearchPage() {
             : "Enter a search from the navbar to see results here."}
         </Text>
       </Stack>
+
+      <SegmentedControl
+        value={filter}
+        onChange={(value) => setFilter(value as SearchFilter)}
+        data={[
+          { label: "All", value: "all" },
+          { label: "Users", value: "users" },
+          { label: "Posts", value: "posts" },
+          { label: "Groups", value: "groups" },
+        ]}
+      />
 
       {searching && (
         <Group justify="center" py="xl">
@@ -165,10 +186,20 @@ export default function SearchPage() {
         </Paper>
       )}
 
+      {!searching &&
+        !error &&
+        query &&
+        hasResults &&
+        visibleResultCount === 0 && (
+          <Paper withBorder radius="md" p="lg">
+            <Text c="dimmed">No results found for this filter.</Text>
+          </Paper>
+        )}
+
       {!searching && !error && hasResults && (
         <Paper withBorder radius="lg" p="lg">
           <Stack gap="lg">
-            {groupedResults.users.length > 0 && (
+            {showUsers && groupedResults.users.length > 0 && (
               <SearchSection title="Users">
                 {groupedResults.users.map((result) => (
                   <UnstyledButton
@@ -191,9 +222,9 @@ export default function SearchPage() {
               </SearchSection>
             )}
 
-            {groupedResults.posts.length > 0 && (
+            {showPosts && groupedResults.posts.length > 0 && (
               <>
-                {groupedResults.users.length > 0 && <Divider />}
+                {showUsers && groupedResults.users.length > 0 && <Divider />}
                 <SearchSection title="Posts">
                   {groupedResults.posts.map((result) => (
                     <SearchPostResult
@@ -205,29 +236,31 @@ export default function SearchPage() {
               </>
             )}
 
-            {groupedResults.groups.length > 0 && (
+            {showGroups && groupedResults.groups.length > 0 && (
               <>
-                {(groupedResults.users.length > 0 ||
-                  groupedResults.posts.length > 0) && <Divider />}
+                {((showUsers && groupedResults.users.length > 0) ||
+                  (showPosts && groupedResults.posts.length > 0)) && (
+                  <Divider />
+                )}
                 <SearchSection title="Groups">
                   {groupedResults.groups.map((result) => (
-                    <Paper
+                    <UnstyledButton
                       key={`group-${result.id}`}
-                      withBorder
-                      radius="md"
-                      p="md"
+                      onClick={() => router.push(`/groups/${result.id}`)}
                     >
-                      <Stack gap={6}>
-                        <Text fw={600} c="navy.7">
-                          {result.names}
-                        </Text>
-                        {result.content && (
-                          <Text c="gray.8" style={{ whiteSpace: "pre-wrap" }}>
-                            {result.content}
+                      <Paper withBorder radius="md" p="md">
+                        <Stack gap={6}>
+                          <Text fw={600} c="navy.7">
+                            {result.names}
                           </Text>
-                        )}
-                      </Stack>
-                    </Paper>
+                          {result.content && (
+                            <Text c="gray.8" style={{ whiteSpace: "pre-wrap" }}>
+                              {result.content}
+                            </Text>
+                          )}
+                        </Stack>
+                      </Paper>
+                    </UnstyledButton>
                   ))}
                 </SearchSection>
               </>
