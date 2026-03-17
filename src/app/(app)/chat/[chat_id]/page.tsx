@@ -22,9 +22,9 @@ import {
   Button
 } from '@mantine/core'
 import { IconSend, IconInfoCircle, IconPlus } from '@tabler/icons-react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { ChatPreview, getChatsWithPreview, getOldMessages } from '@/lib/actions/chat'
-import { useCreateChat, useLeaveConversation } from '@/components/chat/use-chat'
+import { useCreateChat, useLeaveConversation, useUpdateConversationName } from '@/components/chat/use-chat'
 import { searchResult } from '@/lib/types/data'
 import { useDebouncedValue } from '@mantine/hooks'
 import { searchForUsers, searchUserContent } from '@/lib/actions/data'
@@ -41,6 +41,7 @@ interface Message {
 export default function ChatPage() {
   const [supabase] = useState(() => createClient())
   const { chat_id } = useParams<{ chat_id: string }>()
+  const router = useRouter()
 
   // -- STATE --
   const [messages, setMessages] = useState<Message[]>([])
@@ -57,11 +58,15 @@ export default function ChatPage() {
   const [infoModalOpen, setInfoModalOpen] = useState(false)
   const [newChatModalOpen, setNewChatModalOpen] = useState(false)
 
+  // -- RENAME STATE --
+  const [chatName, setChatName] = useState('')
+
   // Search state
   const [query, setQuery] = useState("");
   const [debounced] = useDebouncedValue(query, 300);
   const [results, setResults] = useState<User[]>([]);
   const [searching, setSearching] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // -- NEW CHAT MUTATION --
@@ -69,6 +74,9 @@ export default function ChatPage() {
 
   // -- LEAVE CHAT MUTATION --
   const leaveConversationMutation = useLeaveConversation()
+
+  // -- RENAME CHAT MUTATION --
+  const updateConversationNameMutation = useUpdateConversationName()
 
   // -- REFS --
   const viewport = useRef<HTMLDivElement>(null)
@@ -120,17 +128,18 @@ export default function ChatPage() {
   }, [chat_id, supabase])
 
   // 2. INIT SIDEBAR
-  useEffect(() => {
-    const initSideBar = async () => {
-      try {
-        const sidebarData = await getChatsWithPreview();
-        if (!sidebarData.data) return;
-        setChats(sidebarData.data)
-      } catch (error) {
-        console.error("issue getting chat preview: ", error);
-      }
+  const fetchChats = async () => {
+    try {
+      const sidebarData = await getChatsWithPreview();
+      if (!sidebarData.data) return;
+      setChats(sidebarData.data)
+    } catch (error) {
+      console.error("issue getting chat preview: ", error);
     }
-    initSideBar()
+  }
+
+  useEffect(() => {
+    fetchChats()
   }, [])
 
   // 3. REALTIME
@@ -253,7 +262,7 @@ export default function ChatPage() {
   if (!chat_id) return <Center h="100vh"><Loader /></Center>
 
   return (
-    <Group align="stretch" gap={0} h="100vh" bg="gray.3" style={{ overflow: 'hidden' }}>
+    <Group align="stretch" gap={0} h="calc(100vh - 60px)" bg="gray.3" style={{ overflow: 'hidden' }}>
 
       {/* SIDEBAR */}
       <Box w={320} p="md" bg="gray.3" style={{ flexShrink: 0, height: '100%' }}>
@@ -315,12 +324,11 @@ export default function ChatPage() {
       {/* NEW CHAT MODAL */}
       <Modal
         opened={newChatModalOpen}
-        onClose={() => { setNewChatModalOpen(false); setQuery('') }}
+        onClose={() => { setNewChatModalOpen(false); setQuery(''); setSelectedUsers([]) }}
         title={<Title order={4} c="navy.7">New Conversation</Title>}
         centered
       >
         <Stack gap="md">
-          {/* TODO: replace with real search */}
           <TextInput
             placeholder="Search by name"
             value={query}
@@ -329,15 +337,49 @@ export default function ChatPage() {
             radius="xl"
             size="md"
           />
+          {searching && <Center><Loader size="sm" /></Center>}
+          {results.length > 0 && (
+            <Stack gap={0}>
+              {results.map((user) => {
+                const isSelected = selectedUsers.some(u => u.user_id === user.user_id)
+                return (
+                  <NavLink
+                    key={user.user_id}
+                    label={<Text fw={600} c="navy.7">{user.first_name} {user.last_name}</Text>}
+                    leftSection={<Avatar radius="xl" size="md" color="navy.7" src={user.avatar_url} />}
+                    active={isSelected}
+                    styles={{ root: { '--nav-active-bg': 'var(--mantine-color-navy-3)' } }}
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedUsers(current => current.filter(u => u.user_id !== user.user_id))
+                      } else {
+                        setSelectedUsers(current => [...current, user])
+                      }
+                    }}
+                    style={{ borderRadius: 8 }}
+                  />
+                )
+              })}
+            </Stack>
+          )}
+          {query.trim() && !searching && results.length === 0 && (
+            <Text size="sm" c="dimmed" ta="center">No users found</Text>
+          )}
           <Button
             fullWidth
             color="navy.7"
             variant="filled"
             radius="xl"
             loading={createChatMutation.isPending}
-            // NOTE: This probably would need to be changed?
-            disabled={!query.trim()}
-            onClick={handleCreateChat}
+            disabled={selectedUsers.length === 0}
+            onClick={() => createChatMutation.mutate(selectedUsers.map(u => u.user_id), {
+              onSuccess: () => {
+                setNewChatModalOpen(false)
+                setQuery('')
+                setSelectedUsers([])
+                fetchChats()
+              }
+            })}
           >
             Start Chat
           </Button>
@@ -346,7 +388,7 @@ export default function ChatPage() {
 
       {/* MAIN CHAT */}
       <Box style={{ flex: 1, overflow: "hidden" }}>
-        <Container fluid h="100vh" p={0}>
+        <Container fluid h="calc(100vh - 60px)" p={0}>
           <Stack h="100%" gap={0} bg="gray.1">
 
             {/* HEADER */}
@@ -383,34 +425,57 @@ export default function ChatPage() {
               title={<Title order={4} c="navy.7">{chats.find(c => c.conversation_id + "" === chat_id)?.name || `Chat #${chat_id}`}</Title>}
               centered
             >
-              <Stack gap="sm">
-                <Text size="sm" c="navy.7">
-                  <Text span fw={600}>Messages: </Text>{messages.length}
-                </Text>
+              <Stack gap="md">
                 {messages.length > 0 && (
                   <Text size="sm" c="navy.7">
                     <Text span fw={600}>Conversation started: </Text>
                     {new Date(messages[0].created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
                   </Text>
                 )}
+
+                {/* TODO: figure out how to get participants */}
+                <Box>
+                  <Text size="sm" fw={600} c="navy.7" mb={6}>Members</Text>
+                  <Text size="sm" c="dimmed">Placeholder</Text>
+                </Box>
+
+                {/* Update Chat Name */}
+                <Box>
+                  <Text size="sm" fw={600} c="navy.7" mb={6}>Update Chat Name</Text>
+                  <Group gap="xs">
+                    <TextInput
+                      placeholder="Enter a new name..."
+                      value={chatName}
+                      onChange={(e) => setChatName(e.target.value)}
+                      radius="xl"
+                      size="sm"
+                      style={{ flex: 1 }}
+                    />
+                    <Button
+                      color="navy.7"
+                      variant="filled"
+                      radius="xl"
+                      size="sm"
+                      disabled={!chatName.trim()}
+                      loading={updateConversationNameMutation.isPending}
+                      onClick={() => updateConversationNameMutation.mutate(
+                        { id: parseInt(chat_id), newName: chatName.trim() },
+                        { onSuccess: () => { setChatName(''); fetchChats() } }
+                      )}
+                    >
+                      Save
+                    </Button>
+                  </Group>
+                </Box>
+
                 <Button
                   fullWidth
                   color="red"
                   variant="light"
                   radius="xl"
-                  mt="sm"
-                  onClick={() => {/* TODO: delete chat */ }}
-                >
-                  Delete Chat
-                </Button>
-                <Button
-                  fullWidth
-                  color="navy.7"
-                  variant="light"
-                  radius="xl"
                   loading={leaveConversationMutation.isPending}
                   onClick={() => leaveConversationMutation.mutate(parseInt(chat_id), {
-                    onSuccess: () => setInfoModalOpen(false)
+                    onSuccess: () => { setInfoModalOpen(false); router.push('/chat') }
                   })}
                 >
                   Leave Chat
