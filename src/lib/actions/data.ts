@@ -148,6 +148,9 @@ export async function getUserPosts(input: GetUserPostsInput, supabaseClient?: Su
       query = query.eq("category", validatedInput.category);
     }
 
+    // Omit group posts from profile feeds (group content stays in group feeds only)
+    query = query.is("group_id", null);
+
     // Step 5: Apply sorting based on cursor position
 
     const sortOrder = validatedInput.sortOrder === "asc" ? "asc" : "desc";
