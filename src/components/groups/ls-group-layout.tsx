@@ -14,6 +14,7 @@ import {
   Text,
 } from "@mantine/core";
 import {
+  IconEdit,
   IconLogout,
   IconMenu2,
   IconMessageCircle,
@@ -28,6 +29,7 @@ import LSMiniProfileList from "@/components/profile/ls-mini-profile-list";
 import { LSSpinner } from "@/components/ui/ls-spinner";
 import type { User } from "@/lib/types/feed";
 import { LSCreateGroupModal } from "./ls-create-group-modal";
+import { LSEditGroupModal } from "./ls-edit-group-modal";
 import { LSGroupFeed } from "./ls-group-feed";
 import type { LSGroupLayoutProps } from "./ls-group-layout.types";
 import { LSGroupSidebar } from "./ls-group-sidebar";
@@ -49,6 +51,7 @@ export function LSGroupLayout(props: LSGroupLayoutProps) {
     addMemberByEmailAction,
     inviteUsersToGroupAction,
     removeMemberAction,
+    updateGroupAction,
     createPostAction,
     createPostImageUploadUrlAction,
     createCommentAction,
@@ -76,6 +79,10 @@ export function LSGroupLayout(props: LSGroupLayoutProps) {
     manageMembersOpened,
     openManageMembers,
     closeManageMembers,
+    editGroupOpened,
+    openEditGroup,
+    closeEditGroup,
+    updateGroupMutation,
     leaveMutation,
     deleteGroupMutation,
     addMemberMutation,
@@ -90,6 +97,7 @@ export function LSGroupLayout(props: LSGroupLayoutProps) {
     addMemberByEmailAction,
     inviteUsersToGroupAction,
     removeMemberAction,
+    updateGroupAction,
   });
 
   const currentMember = groupDetails?.members.find(
@@ -180,17 +188,28 @@ export function LSGroupLayout(props: LSGroupLayoutProps) {
                 </Button>
               )}
               {currentMember && (
-                <Group gap="xs">
+                <Group gap="xs" wrap="wrap">
                   {isAdmin && (
-                    <Button
-                      variant="light"
-                      color="navy"
-                      leftSection={<IconSettings size={16} />}
-                      onClick={openManageMembers}
-                      style={{ flex: 1 }}
-                    >
-                      Manage
-                    </Button>
+                    <>
+                      <Button
+                        variant="light"
+                        color="navy"
+                        leftSection={<IconEdit size={16} />}
+                        onClick={openEditGroup}
+                        style={{ flex: 1, minWidth: 120 }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="light"
+                        color="navy"
+                        leftSection={<IconSettings size={16} />}
+                        onClick={openManageMembers}
+                        style={{ flex: 1, minWidth: 120 }}
+                      >
+                        Manage
+                      </Button>
+                    </>
                   )}
                   {isAdmin ? (
                     <Button
@@ -199,7 +218,7 @@ export function LSGroupLayout(props: LSGroupLayoutProps) {
                       leftSection={<IconTrash size={16} />}
                       onClick={() => setDeleteConfirmOpened(true)}
                       loading={deleteGroupMutation.isPending}
-                      style={{ flex: 1 }}
+                      style={{ flex: 1, minWidth: 120 }}
                     >
                       Delete Group
                     </Button>
@@ -210,7 +229,7 @@ export function LSGroupLayout(props: LSGroupLayoutProps) {
                       leftSection={<IconLogout size={16} />}
                       onClick={() => setLeaveConfirmOpened(true)}
                       loading={leaveMutation.isPending}
-                      style={{ flex: 1 }}
+                      style={{ flex: 1, minWidth: 120 }}
                     >
                       Leave
                     </Button>
@@ -344,6 +363,15 @@ export function LSGroupLayout(props: LSGroupLayoutProps) {
           addMemberMutation={addMemberMutation}
           inviteUsersMutation={inviteUsersMutation}
           removeMemberMutation={removeMemberMutation}
+        />
+      )}
+
+      {activeGroupId && groupDetails && (
+        <LSEditGroupModal
+          opened={editGroupOpened}
+          onClose={closeEditGroup}
+          group={groupDetails}
+          updateGroupMutation={updateGroupMutation}
         />
       )}
 

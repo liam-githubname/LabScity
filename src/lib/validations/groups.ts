@@ -76,12 +76,29 @@ export const updateGroupSchema = z
     { message: "Provide at least one field to update", path: ["groupId"] },
   );
 
+/** Admin edit modal: all fields; combined with `groupId` for `updateGroup`. */
+export const editGroupFormSchema = z.object({
+  name: z
+    .string()
+    .min(1, { message: "Group name is required" })
+    .max(100, { message: "Group name must be less than 100 characters" }),
+  description: z
+    .string()
+    .max(500, { message: "Description must be less than 500 characters" }),
+  topics: z
+    .array(topicTagSchema)
+    .min(1, { message: "Select at least one scientific topic" })
+    .max(5, { message: "At most 5 topics" }),
+  privacy: z.enum(["public", "private"]),
+});
+
 export type CreateGroupValues = z.infer<typeof createGroupSchema>;
 export type AddMemberValues = z.infer<typeof addMemberSchema>;
 export type RemoveMemberValues = z.infer<typeof removeMemberSchema>;
 export type InviteMembersValues = z.infer<typeof inviteMembersSchema>;
 export type RespondToInviteValues = z.infer<typeof respondToInviteSchema>;
 export type UpdateGroupValues = z.infer<typeof updateGroupSchema>;
+export type EditGroupFormValues = z.infer<typeof editGroupFormSchema>;
 
 /** Public group discovery (authenticated browse / search). */
 export const discoverGroupsSchema = z.object({

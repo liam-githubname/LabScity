@@ -25,6 +25,7 @@ import {
   leaveGroup,
   removeMember,
   searchPublicGroups,
+  updateGroup,
 } from "@/lib/actions/groups";
 import { groupKeys } from "@/lib/query-keys";
 import { feedFilterSchema } from "@/lib/validations/post";
@@ -97,6 +98,7 @@ export default async function GroupsPage({
         addMemberByEmailAction={addMemberByEmail}
         inviteUsersToGroupAction={inviteUsersToGroup}
         removeMemberAction={removeMember}
+        updateGroupAction={updateGroup}
         createPostAction={createPost}
         createPostImageUploadUrlAction={createPostImageUploadUrl}
         createCommentAction={createComment}

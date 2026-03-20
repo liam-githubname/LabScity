@@ -11,6 +11,7 @@ import type {
   AddMemberValues,
   InviteMembersValues,
   RemoveMemberValues,
+  UpdateGroupValues,
 } from "@/lib/validations/groups";
 import type { LSGroupLayoutProps } from "./ls-group-layout.types";
 
@@ -26,6 +27,7 @@ export function useGroupLayout({
   addMemberByEmailAction,
   inviteUsersToGroupAction,
   removeMemberAction,
+  updateGroupAction,
 }: Pick<
   LSGroupLayoutProps,
   | "activeGroupId"
@@ -35,6 +37,7 @@ export function useGroupLayout({
   | "addMemberByEmailAction"
   | "inviteUsersToGroupAction"
   | "removeMemberAction"
+  | "updateGroupAction"
 >) {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -48,6 +51,8 @@ export function useGroupLayout({
     manageMembersOpened,
     { open: openManageMembers, close: closeManageMembers },
   ] = useDisclosure(false);
+  const [editGroupOpened, { open: openEditGroup, close: closeEditGroup }] =
+    useDisclosure(false);
 
   const { data: groups, isLoading: isGroupsLoading } = useQuery({
     queryKey: groupKeys.list(),
@@ -118,6 +123,37 @@ export function useGroupLayout({
     onError: (error) => {
       notifications.show({
         title: "Could not leave group",
+        message:
+          error instanceof Error ? error.message : "Something went wrong",
+        color: "red",
+      });
+    },
+  });
+
+  const updateGroupMutation = useMutation({
+    mutationFn: async (values: UpdateGroupValues) => {
+      const result = await updateGroupAction(values);
+      if (!result.success) {
+        throw new Error(result.error ?? "Failed to update group");
+      }
+      return result;
+    },
+    onSuccess: () => {
+      if (activeGroupId) {
+        queryClient.invalidateQueries({
+          queryKey: groupKeys.detail(activeGroupId),
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: groupKeys.list() });
+      notifications.show({
+        title: "Group updated",
+        message: "Your changes have been saved.",
+        color: "green",
+      });
+    },
+    onError: (error) => {
+      notifications.show({
+        title: "Could not update group",
         message:
           error instanceof Error ? error.message : "Something went wrong",
         color: "red",
@@ -319,6 +355,10 @@ export function useGroupLayout({
     manageMembersOpened,
     openManageMembers,
     closeManageMembers,
+    editGroupOpened,
+    openEditGroup,
+    closeEditGroup,
+    updateGroupMutation,
     joinMutation,
     leaveMutation,
     deleteGroupMutation,
