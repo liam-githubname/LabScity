@@ -265,6 +265,7 @@ export function LSEditProfileModal({
  * @param isFollowing - When viewing others: current follow state.
  * @param onToggleFollow - When viewing others: follow/unfollow action.
  * @param isTogglePending - When viewing others: follow mutation pending state.
+ * @param onReportClick - When viewing others: called when user clicks Report button.
  */
 export interface LSProfileHeroProps {
   profileName: string;
@@ -290,6 +291,7 @@ export interface LSProfileHeroProps {
   isFollowing?: boolean;
   onToggleFollow?: () => void;
   isTogglePending?: boolean;
+  onReportClick?: () => void;
 }
 
 /**
@@ -322,6 +324,7 @@ export default function LSProfileHero({
   isFollowing = false,
   onToggleFollow,
   isTogglePending = false,
+  onReportClick,
 }: LSProfileHeroProps) {
   const [isAvatarHovered, setIsAvatarHovered] = useState(false);
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
@@ -610,17 +613,29 @@ export default function LSProfileHero({
                 )}
               </>
             ) : (
-              onToggleFollow && (
-                <Button
-                  radius="xl"
-                  variant={isFollowing ? "outline" : "filled"}
-                  color="navy.6"
-                  onClick={onToggleFollow}
-                  loading={isTogglePending}
-                >
-                  {isFollowing ? "Unfollow" : "Follow"}
-                </Button>
-              )
+              <Group gap="sm">
+                {onToggleFollow && (
+                  <Button
+                    radius="xl"
+                    variant={isFollowing ? "outline" : "filled"}
+                    color="navy.6"
+                    onClick={onToggleFollow}
+                    loading={isTogglePending}
+                  >
+                    {isFollowing ? "Unfollow" : "Follow"}
+                  </Button>
+                )}
+                {onReportClick && (
+                  <Button
+                    radius="xl"
+                    variant="outline"
+                    color="red"
+                    onClick={onReportClick}
+                  >
+                    Report
+                  </Button>
+                )}
+              </Group>
             )}
           </Box>
         </Box>
