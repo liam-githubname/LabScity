@@ -33,7 +33,7 @@ export function LSModerationReportCard({ report }: LSModerationReportCardProps) 
       shadow="lg"
       style={{ overflow: "hidden" }}
     >
-      <Group>
+      <Flex gap="sm" align="center" justify="start">
         <Text>
           <Text span fz={"h2"} fw={"lighter"} c={"gray.6"}>{"#"}</Text>
           <Text span fz={"h2"} fw={"bold"} c={"gray.9"}>{report.reportId}</Text>
@@ -44,7 +44,7 @@ export function LSModerationReportCard({ report }: LSModerationReportCardProps) 
             <Text style={{ whiteSpace: "nowrap" }}>{report.type}</Text>
           </Badge>
         }
-      </Group>
+      </Flex>
 
       { /* reporter -> reportee */}
       <Flex direction="row" gap={8} c="gray.6">
@@ -84,11 +84,13 @@ export function LSModerationReportCard({ report }: LSModerationReportCardProps) 
           </Text>
 
           {/* post media */}
-          <Image
-            src={report.postMediaUrl}
-            radius={"sm"}
-            alt="Reported post media"
-          />
+          {report.postMediaUrl &&
+            <Image
+              src={report.postMediaUrl}
+              radius={"sm"}
+              alt="Reported post media"
+            />
+          }
         </Group>
 
         <Card bg="gray.2" c="gray.7" shadow="none" radius="sm" mt={4}>
