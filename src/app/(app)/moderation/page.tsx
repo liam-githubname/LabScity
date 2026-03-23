@@ -3,9 +3,10 @@ import { redirect } from "next/navigation";
 import {
   canAccessModerationAction,
   getModerationReportsAction,
+  getUserReportsAction,
 } from "@/lib/actions/moderation";
-import { LSModerationReportCard } from "@/components/moderation/ls-moderation-report-card";
-import { Group, Stack, Title, Text } from "@mantine/core";
+import { LSModerationQueue } from "@/components/moderation/ls-moderation-queue";
+import { Stack, Title } from "@mantine/core";
 
 export const metadata: Metadata = {
   title: "Moderation | LabScity",
@@ -29,35 +30,41 @@ export default async function ModerationPage() {
     redirect("/home");
   }
 
-  const reportsResult = await getModerationReportsAction(25);
+  const [feedResult, userResult] = await Promise.all([
+    getModerationReportsAction(25),
+    getUserReportsAction(25),
+  ]);
 
-  if (!reportsResult.success) {
+  if (!feedResult.success) {
     return (
       <main>
         <h1>Moderation Queue</h1>
-        <p>{reportsResult.error}</p>
+        <p>{feedResult.error}</p>
       </main>
     );
   }
 
-  const reports = reportsResult.data;
+  if (!userResult.success) {
+    return (
+      <main>
+        <h1>Moderation Queue</h1>
+        <p>{userResult.error}</p>
+      </main>
+    );
+  }
 
   return (
-    <Stack gap={0} p={12}>
+    <Stack
+      gap={0}
+      p={12}
+      pr={18}
+      style={{ overflowX: "hidden" }}
+    >
       <Title c="gray.8" my={12} fw={"normal"}>Reports</Title>
-
-      {reports.length === 0 ? (
-        <div>No open reports right now.</div>
-      ) : (
-        <Stack>
-          {reports.map((report) => (
-            <LSModerationReportCard
-              key={report.reportId}
-              report={report}
-            />
-          ))}
-        </Stack>
-      )}
+      <LSModerationQueue
+        feedReports={feedResult.data}
+        userReports={userResult.data}
+      />
     </Stack>
   );
 }

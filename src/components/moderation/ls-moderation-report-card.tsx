@@ -14,9 +14,10 @@ import { IconFlagFilled, IconReport, IconSpeakerphone, IconTrash, IconX } from "
 
 interface LSModerationReportCardProps {
   report: ModerationReportItem;
+  resolved?: boolean;
 }
 
-export function LSModerationReportCard({ report }: LSModerationReportCardProps) {
+export function LSModerationReportCard({ report, resolved = false }: LSModerationReportCardProps) {
   const handleDismiss = async () => {
     const formData = new FormData();
     formData.append("reportId", String(report.reportId));
@@ -61,7 +62,12 @@ export function LSModerationReportCard({ report }: LSModerationReportCardProps) 
 
         {report.type &&
           <Badge tt="none" size="lg" color="red">
-            <Text style={{ whiteSpace: "nowrap" }}>{report.type}</Text>
+            <Text style={{ whiteSpace: "normal", wordBreak: "break-word" }}>{report.type}</Text>
+          </Badge>
+        }
+        {resolved && report.status &&
+          <Badge tt="none" size="lg" color="gray">
+            <Text style={{ whiteSpace: "normal", wordBreak: "break-word" }}>{report.status}</Text>
           </Badge>
         }
       </Flex>
@@ -128,9 +134,10 @@ export function LSModerationReportCard({ report }: LSModerationReportCardProps) 
                 src={report.postMediaUrl}
                 radius={"sm"}
                 alt="Reported post media"
+                w="100%"
                 maw={500}
                 fit="contain"
-                style={{ cursor: "pointer" }}
+                style={{ cursor: "pointer", maxWidth: "100%" }}
               />
             </Link>
           }
@@ -151,15 +158,15 @@ export function LSModerationReportCard({ report }: LSModerationReportCardProps) 
       </Stack>
 
       {/* actions */}
+    {!resolved && (
       <Flex direction={"row"} gap={2} mt={8}>
         <Button flex={1} leftSection={<IconTrash width={18} />} color={"red"} p={4} onClick={handleDeletePost}>Delete</Button>
         {report.reportedUserId &&
           <Button flex={1} leftSection={<IconX width={18} />} color={"red"} p={4} onClick={handleBanUser}>Ban User</Button>
-
         }
         <Button flex={1} variant={"filled"} color={"gray.6"} p={4} onClick={handleDismiss}>Dismiss</Button>
       </Flex>
-
+    )}
     </Card >
     </>
   );
