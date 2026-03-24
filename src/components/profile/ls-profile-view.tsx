@@ -40,6 +40,7 @@ import type {
   CreateCommentAction,
   CreatePostAction,
   CreateReportAction,
+  DeletePostAction,
   LikeCommentAction,
   LikePostAction,
 } from "@/components/feed/home-feed.types";
@@ -100,6 +101,7 @@ export interface LSProfileViewProps {
   createUserReportAction: typeof createUserReport;
   likePostAction: LikePostAction;
   likeCommentAction: LikeCommentAction;
+  deletePostAction: DeletePostAction;
 }
 
 /** Props for mobile layout — single-column stack of hero, posts, friends, following. */
@@ -172,8 +174,12 @@ const LSProfileMobileLayout = ({
             )
           }
           isLiked={post.isLiked ?? false}
-          showMenu={false}
+          likeCount={post.like_amount ?? 0}
+          commentCount={post.comments?.length ?? 0}
+          showMenu={isOwnProfile}
+          onDeleteClick={isOwnProfile ? () => actions.handleDeletePost(postId) : undefined}
           onPostClick={() => router.push(`/posts/${post.post_id}`)}
+          shareUrl={`/posts/${post.post_id}`}
         >
           <Stack gap="md" w="100%">
             {activeCommentPostId === postId ? (
@@ -347,8 +353,12 @@ const LSProfileDesktopLayout = ({
             )
           }
           isLiked={post.isLiked ?? false}
-          showMenu={false}
+          likeCount={post.like_amount ?? 0}
+          commentCount={post.comments?.length ?? 0}
+          showMenu={isOwnProfile}
+          onDeleteClick={isOwnProfile ? () => actions.handleDeletePost(postId) : undefined}
           onPostClick={() => router.push(`/posts/${post.post_id}`)}
+          shareUrl={`/posts/${post.post_id}`}
         >
           <Stack gap="md" w="100%">
             {activeCommentPostId === postId ? (

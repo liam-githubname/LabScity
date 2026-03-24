@@ -21,6 +21,7 @@ import {
   createComment,
   createPost,
   createReport,
+  deletePost,
   likeComment,
   likePost,
 } from "@/lib/actions/feed";
@@ -140,6 +141,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     createUserReportAction: createUserReport,
     likePostAction: likePost,
     likeCommentAction: likeComment,
+    deletePostAction: deletePost,
   };
 
   return (

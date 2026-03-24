@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, Text, Stack, Flex, Badge } from "@mantine/core";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getTrendingScientificFields } from "@/lib/actions/feed";
 import { LSSpinner } from "../ui/ls-spinner";
@@ -10,6 +11,7 @@ interface TrendingWidgetProps {
 }
 
 export function TrendingWidget({ hashtags: initialHashtags }: TrendingWidgetProps) {
+  const router = useRouter();
   const [hashtags, setHashtags] = useState<string[]>(initialHashtags || []);
   const [isLoading, setIsLoading] = useState(!initialHashtags);
 
@@ -64,12 +66,19 @@ export function TrendingWidget({ hashtags: initialHashtags }: TrendingWidgetProp
               hashtags.map((hashtag, index) => (
                 <Badge
                   key={index}
+                  component="button"
+                  type="button"
                   color="gray.7"
                   fw="normal"
                   fz="sm"
                   p={12}
                   tt="lowercase"
                   variant="outline"
+                  style={{ cursor: "pointer" }}
+                  onClick={() =>
+                    router.push(`/search?q=${encodeURIComponent(hashtag)}`)
+                  }
+                  aria-label={`Search for ${hashtag}`}
                 >
                   {hashtag}
                 </Badge>

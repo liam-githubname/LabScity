@@ -90,6 +90,7 @@ export interface FeedPostItem {
   mediaLabel?: string | null;
   comments: FeedCommentItem[];
   isLiked?: boolean;
+  likeCount?: number;
   audienceLabel?: string | null;
 }
 
