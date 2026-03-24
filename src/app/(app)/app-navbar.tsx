@@ -6,6 +6,7 @@ import {
 } from "@mantine/core";
 import {
   IconFlaskFilled,
+  IconGavel,
   IconMessageFilled,
   IconUser,
 } from "@tabler/icons-react";
@@ -17,6 +18,7 @@ const navigation = [
   { href: "/home", icon: IconFlaskFilled, label: "Home" },
   { href: "/profile", icon: IconUser, label: "Profile" },
   { href: "/chat", icon: IconMessageFilled, label: "Chat" },
+  { href: "/moderation", icon: IconGavel, label: "Moderation " }
 ];
 
 interface LSAppNavbarProps {

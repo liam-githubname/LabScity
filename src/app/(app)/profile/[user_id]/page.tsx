@@ -15,6 +15,7 @@ import {
   updateOwnProfilePicture,
   createProfileHeaderUploadUrl,
   updateOwnProfileHeader,
+  createUserReport,
 } from "@/lib/actions/profile";
 import {
   createComment,
@@ -137,6 +138,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     createPostAction: createPost,
     createCommentAction: createComment,
     createReportAction: createReport,
+    createUserReportAction: createUserReport,
     likePostAction: likePost,
     likeCommentAction: likeComment,
     deletePostAction: deletePost,

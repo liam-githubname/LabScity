@@ -68,3 +68,33 @@ export const toggleFollowSchema = z.object({
 /** Inferred type from toggleFollowSchema. Use for toggleFollowAction input. */
 export type ToggleFollowValues = z.infer<typeof toggleFollowSchema>;
 
+/**
+ * Zod schema for user report form.
+ * Validates report type (impersonation, inappropriate name, inappropriate banner/picture, harassment, etc.)
+ * and optional additional context.
+ */
+export const createUserReportSchema = z.object({
+  type: z
+    .enum([
+      "Impersonation",
+      "Inappropriate Name",
+      "Inappropriate Profile Picture",
+      "Inappropriate Banner",
+      "Harassment/Hate",
+      "Spam/Scam",
+      "Sexual Content",
+      "Other",
+    ])
+    .or(z.literal("")),
+  reason: z
+    .string()
+    .min(1, { message: "Reason is required" })
+    .max(2000, { message: "Reason must be less than 2000 characters" }),
+}).refine((values) => values.type !== "", {
+  message: "Report type is required",
+  path: ["type"],
+});
+
+/** Inferred type from createUserReportSchema. Use for user report form values. */
+export type CreateUserReportValues = z.infer<typeof createUserReportSchema>;
+

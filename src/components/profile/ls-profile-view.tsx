@@ -10,6 +10,8 @@ import { LSPostCard } from "@/components/feed/ls-post-card";
 import { LSCommentComposer } from "@/components/feed/ls-comment-composer";
 import { LSPostCommentCard } from "@/components/feed/ls-post-comment-card";
 import { LSSpinner } from "@/components/ui/ls-spinner";
+import { LSUserReportOverlay } from "@/components/profile/ls-user-report-overlay";
+import { createUserReport } from "@/lib/actions/profile";
 
 /**
  * Formats a date string as a relative time for post/comment display.
@@ -79,6 +81,7 @@ type UpdateOwnProfileHeaderAction = typeof updateOwnProfileHeader;
  * @param createPostAction - Server action to create a post (passed for consistency; profile posts use feed actions).
  * @param createCommentAction - Server action to add a comment.
  * @param createReportAction - Server action to submit a report.
+ * @param createUserReportAction - Server action to report a user.
  * @param likePostAction - Server action to toggle post like.
  * @param likeCommentAction - Server action to toggle comment like.
  */
@@ -95,6 +98,7 @@ export interface LSProfileViewProps {
   createPostAction: CreatePostAction;
   createCommentAction: CreateCommentAction;
   createReportAction: CreateReportAction;
+  createUserReportAction: typeof createUserReport;
   likePostAction: LikePostAction;
   likeCommentAction: LikeCommentAction;
   deletePostAction: DeletePostAction;
@@ -108,6 +112,7 @@ interface LSProfileMobileLayoutProps {
   editProfile: EditProfileHeroProps;
   followProfile?: FollowProfileHeroProps;
   mediaUpload?: ProfileMediaUploadProps;
+  onReportClick?: () => void;
 }
 
 /**
@@ -128,6 +133,7 @@ const LSProfileMobileLayout = ({
   editProfile,
   followProfile,
   mediaUpload,
+  onReportClick,
 }: LSProfileMobileLayoutProps) => {
   const router = useRouter();
   const profileQuery = useUserProfile(userId);
@@ -231,6 +237,7 @@ const LSProfileMobileLayout = ({
         isFollowing={followProfile?.isFollowing}
         onToggleFollow={followProfile?.onToggleFollow}
         isTogglePending={followProfile?.isTogglePending}
+        onReportClick={onReportClick}
       />
       <LSMiniProfileList widgetTitle="Friends" profiles={friends ?? []} />
       <LSMiniProfileList widgetTitle="Following" profiles={following ?? []} />
@@ -266,6 +273,7 @@ interface LSProfileDesktopLayoutProps {
   editProfile: EditProfileHeroProps;
   followProfile?: FollowProfileHeroProps;
   mediaUpload?: ProfileMediaUploadProps;
+  onReportClick?: () => void;
 }
 
 /**
@@ -286,6 +294,7 @@ const LSProfileDesktopLayout = ({
   editProfile,
   followProfile,
   mediaUpload,
+  onReportClick,
 }: LSProfileDesktopLayoutProps) => {
   const router = useRouter();
   const profileQuery = useUserProfile(userId);
@@ -409,6 +418,7 @@ const LSProfileDesktopLayout = ({
             isFollowing={followProfile?.isFollowing}
             onToggleFollow={followProfile?.onToggleFollow}
             isTogglePending={followProfile?.isTogglePending}
+            onReportClick={onReportClick}
           />
         </Box>
         <Flex flex={3} direction="column" gap={8}>
@@ -463,8 +473,24 @@ export function LSProfileView(props: LSProfileViewProps) {
   const { actions, editProfile, followProfile, mediaUpload } =
     useLSProfileView(props);
 
+  const [reportOverlayOpen, setReportOverlayOpen] = useState(false);
+
+  const profileQuery = useUserProfile(props.userId);
+  const profile = profileQuery.data;
+  const profileName = profile
+    ? profile.first_name + " " + profile.last_name
+    : "Unknown User";
+
   return (
     <Box bg="gray.0" mih="100vh">
+      {!props.isOwnProfile && (
+        <LSUserReportOverlay
+          open={reportOverlayOpen}
+          targetUserId={props.userId}
+          targetUserName={profileName}
+          onClose={() => setReportOverlayOpen(false)}
+        />
+      )}
       {isMobile ? (
         <LSProfileMobileLayout
           userId={props.userId}
@@ -473,6 +499,7 @@ export function LSProfileView(props: LSProfileViewProps) {
           editProfile={editProfile}
           followProfile={followProfile}
           mediaUpload={mediaUpload}
+          onReportClick={() => setReportOverlayOpen(true)}
         />
       ) : (
         <LSProfileDesktopLayout
@@ -482,6 +509,7 @@ export function LSProfileView(props: LSProfileViewProps) {
           editProfile={editProfile}
           followProfile={followProfile}
           mediaUpload={mediaUpload}
+          onReportClick={() => setReportOverlayOpen(true)}
         />
       )}
     </Box>
