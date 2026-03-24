@@ -12,7 +12,7 @@ const LSAppLayout = ({ userId, children }: { userId: string, children: React.Rea
   const isMobile = useIsMobile()
 
   return (
-    <Flex direction={isMobile ? "column" : "row"} w="100vw" h="100vh">
+    <Flex direction={isMobile ? "column" : "row"} w="100%" h="100vh">
 
       <LSAppNavbar
         userId={userId}
@@ -22,10 +22,10 @@ const LSAppLayout = ({ userId, children }: { userId: string, children: React.Rea
 
       {/* needed to make room for navbar; 164 is the navbar size */}
       {!isMobile && <Space w={desktopNavbarWidth} />}
-      <Flex direction="column" w="100%">
+      <Flex direction="column" w="100%" miw={0}>
         <LSAppTopBar />
 
-        <Box>
+        <Box maw="100%" style={{ overflowX: "hidden" }}>
           {children}
         </Box>
 

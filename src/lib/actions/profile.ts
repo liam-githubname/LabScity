@@ -8,8 +8,10 @@ import type { DataResponse } from "../types/data";
 import {
   updateProfileSchema,
   toggleFollowSchema,
+  createUserReportSchema,
   type UpdateProfileValues,
   type ToggleFollowValues,
+  type CreateUserReportValues,
 } from "@/lib/validations/profile";
 
 const profilePictureBucket = "profile_pictures";
@@ -632,5 +634,68 @@ export async function getUserFriends(
   return {
     success: false,
     error: `Failed to get friends list`
+  }
+}
+
+/**
+ * Create a report for a user. The user must be authenticated to submit a report.
+ * Reports are stored in a user_report table for moderators to review.
+ *
+ * @param targetUserId - The ID of the user being reported
+ * @param values - Object containing the report type and reason
+ * @param supabaseClient - Optional Supabase client instance (used for testing)
+ * @returns Promise resolving to DataResponse with success status or error message
+ *
+ * @example
+ * ```typescript
+ * const result = await createUserReport("user-id", { type: "Impersonation", reason: "This is not who they claim to be" });
+ * if (result.success) {
+ *   console.log("Report submitted successfully");
+ * }
+ * ```
+ */
+export async function createUserReport(
+  targetUserId: string,
+  values: CreateUserReportValues,
+  supabaseClient?: SupabaseClient,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const targetIdSchema = z.string().uuid("A valid user ID is required");
+    targetIdSchema.parse(targetUserId);
+    const parsed = createUserReportSchema.parse(values);
+
+    const supabase = supabaseClient || (await createClient());
+    const { data: authData } = await supabase.auth.getUser();
+
+    if (!authData.user) {
+      return { success: false, error: "Authentication required" };
+    }
+
+    if (authData.user.id === targetUserId) {
+      return { success: false, error: "You cannot report yourself" };
+    }
+
+    const { error } = await supabase
+      .from("user_report")
+      .insert({
+        reporter_id: authData.user.id,
+         reported_id: targetUserId,
+        type: parsed.type,
+        additional_context: parsed.reason,
+      });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return {
+        success: false,
+        error: error.issues[0]?.message ?? "Validation failed",
+      };
+    }
+    return { success: false, error: "Failed to submit report" };
   }
 }
