@@ -707,10 +707,22 @@ export async function getTrendingScientificFields(supabaseClient?: any) {
 			return { success: true, data: { hashtags } };
 		}
 
-		// Aggregate posts and likes by scientific field
+		const isTrendingFieldExcluded = (field: unknown) => {
+			if (typeof field !== "string") {
+				return true;
+			}
+
+			const normalizedField = field.trim().replace(/^#+/, "").toLowerCase();
+			return !normalizedField || normalizedField === "other" || normalizedField === "null";
+		};
+
+		// Aggregate posts and likes by scientific field, excluding placeholder values
 		const fieldScores = posts.reduce(
 			(acc: Record<string, { postCount: number; totalLikes: number }>, post: any) => {
 				const field = post.scientific_field;
+				if (isTrendingFieldExcluded(field)) {
+					return acc;
+				}
 				if (!acc[field]) {
 					acc[field] = { postCount: 0, totalLikes: 0 };
 				}

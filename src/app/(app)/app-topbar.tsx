@@ -32,12 +32,12 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useSetNotificationPreference } from "@/components/notifications/use-notifications";
-import { useNotificationStore } from "@/store/notificationStore";
-import { createClient } from "@/supabase/client";
+import { LSSpinner } from "@/components/ui/ls-spinner";
 import { searchUserContent } from "@/lib/actions/data";
 import type { searchResult } from "@/lib/types/data";
+import { useNotificationStore } from "@/store/notificationStore";
+import { createClient } from "@/supabase/client";
 import { useIsMobile } from "../use-is-mobile";
-import { LSSpinner } from "@/components/ui/ls-spinner";
 
 type NotificationType =
   | "post_like"
@@ -209,6 +209,17 @@ const LSAppTopBar = () => {
     setResults([]);
   };
 
+  const submitSearch = () => {
+    const trimmedQuery = query.trim();
+
+    if (!trimmedQuery) {
+      return;
+    }
+
+    router.push(`/search?q=${encodeURIComponent(trimmedQuery)}`);
+    closeSearch();
+  };
+
   const groupedUsers = results.filter((r) => r.content_type === "user");
   const groupedPosts = results.filter((r) => r.content_type === "post");
   const groupedGroups = results.filter((r) => r.content_type === "group");
@@ -217,13 +228,15 @@ const LSAppTopBar = () => {
 
   useEffect(() => {
     document.body.style.overflow = showDropdown && isMobile ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [showDropdown]);
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobile, showDropdown]);
 
   /* to fix layout stuff */
 
-  const topBarSize = 60 // honestly im not sure what to name this but whatever
-  const desktopSearchDropdownSize = 512
+  const topBarSize = 60; // honestly im not sure what to name this but whatever
+  const desktopSearchDropdownSize = 512;
 
   /*---------------------*/
 
@@ -237,13 +250,14 @@ const LSAppTopBar = () => {
       w={"100%"}
       justify="center"
       align="center"
-      style={{ borderBottom: "1px solid var(--mantine-color-gray-3)", zIndex: 200 /* keeps topbar above profile hero banner when scrolling */ }}
+      style={{
+        borderBottom: "1px solid var(--mantine-color-gray-3)",
+        zIndex: 200 /* keeps topbar above profile hero banner when scrolling */,
+      }}
     >
       {searchOpen ? (
         /* Search mode: full-width input */
         <Flex h={topBarSize} w="100%" align="center" gap="xs" px="md">
-          {/* NOTE: there used to be a search icon here but i nuked it cuz it looks bad */}
-
           {/* search input field */}
           <TextInput
             ref={inputRef}
@@ -252,16 +266,30 @@ const LSAppTopBar = () => {
             placeholder="Search..."
             value={query}
             onChange={(e) => setQuery(e.currentTarget.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                submitSearch();
+              }
+            }}
             styles={{
-              input: { color: "var(--mantine-color-navy-7)" }
+              input: { color: "var(--mantine-color-navy-7)" },
             }}
           />
+
+          <ActionIcon
+            variant="transparent"
+            c="gray.5"
+            onClick={submitSearch}
+            aria-label="Search"
+          >
+            <IconSearch size={24} />
+          </ActionIcon>
 
           {/* search close*/}
           <ActionIcon variant="transparent" c="gray.5" onClick={closeSearch}>
             <IconX size={24} />
           </ActionIcon>
-
         </Flex>
       ) : (
         /* Normal mode: logo + right controls */
@@ -278,8 +306,7 @@ const LSAppTopBar = () => {
                 setSearchOpen(true);
                 setTimeout(() => inputRef.current?.focus(), 0);
               }}
-            >
-            </Button>
+            ></Button>
           </Flex>
 
           {/* logo */}
@@ -379,109 +406,106 @@ const LSAppTopBar = () => {
             </Menu>
           </Flex>
         </>
-      )
-      }
+      )}
 
       {/* Search results dropdown */}
-      {
-        showDropdown && (
-          <Paper
-            pos="absolute"
-            top={topBarSize}
-            shadow="xl"
-            w={isMobile ? "100%" : desktopSearchDropdownSize}
-            mah="60vh"
-            p="sm"
-            style={{ zIndex: 99, overflowY: "auto" }}
-          >
-            {searching && (
-              <Flex justify="center" py="sm">
-                <LSSpinner />
-              </Flex>
-            )}
+      {showDropdown && (
+        <Paper
+          pos="absolute"
+          top={topBarSize}
+          shadow="xl"
+          w={isMobile ? "100%" : desktopSearchDropdownSize}
+          mah="60vh"
+          p="sm"
+          style={{ zIndex: 99, overflowY: "auto" }}
+        >
+          {searching && (
+            <Flex justify="center" py="sm">
+              <LSSpinner />
+            </Flex>
+          )}
 
-            {!searching && results.length === 0 && (
-              <Text size="sm" c="dimmed" ta="center" py="sm">
-                No results
+          {!searching && results.length === 0 && (
+            <Text size="sm" c="dimmed" ta="center" py="sm">
+              No results
+            </Text>
+          )}
+
+          {!searching && groupedUsers.length > 0 && (
+            <>
+              <Text size="xs" fw={700} c="gray.5" tt="uppercase" mb={4}>
+                Users
               </Text>
-            )}
-
-            {!searching && groupedUsers.length > 0 && (
-              <>
-                <Text size="xs" fw={700} c="gray.5" tt="uppercase" mb={4}>
-                  Users
-                </Text>
-                {groupedUsers.map((r) => (
-                  <UnstyledButton
-                    key={r.id}
-                    w="100%"
-                    px="xs"
-                    py={6}
-                    style={{ borderRadius: 4 }}
-                    onClick={() => {
-                      router.push(`/profile/${r.id}`);
-                      closeSearch();
-                    }}
-                  >
-                    <Group gap="sm">
-                      <Avatar size="sm" radius="xl">
-                        {r.names?.[0]}
-                      </Avatar>
-                      <Text size="sm" fw={500} c="navy.7">
-                        {r.names}
-                      </Text>
-                    </Group>
-                  </UnstyledButton>
-                ))}
-              </>
-            )}
-
-            {!searching && groupedPosts.length > 0 && (
-              <>
-                {groupedUsers.length > 0 && <Divider my="xs" />}
-                <Text size="xs" fw={700} c="gray.5" tt="uppercase" mb={4}>
-                  Posts
-                </Text>
-                {groupedPosts.map((r) => (
-                  <Box
-                    key={r.id}
-                    px="xs"
-                    py={6}
-                    style={{ opacity: 0.5, cursor: "default" }}
-                  >
-                    <Text size="sm" c="navy.7" lineClamp={2}>
-                      {r.content}
-                    </Text>
-                  </Box>
-                ))}
-              </>
-            )}
-
-            {!searching && groupedGroups.length > 0 && (
-              <>
-                {(groupedUsers.length > 0 || groupedPosts.length > 0) && (
-                  <Divider my="xs" />
-                )}
-                <Text size="xs" fw={700} c="gray.5" tt="uppercase" mb={4}>
-                  Groups
-                </Text>
-                {groupedGroups.map((r) => (
-                  <Box
-                    key={r.id}
-                    px="xs"
-                    py={6}
-                    style={{ opacity: 0.5, cursor: "default" }}
-                  >
-                    <Text size="sm" c="navy.7">
+              {groupedUsers.map((r) => (
+                <UnstyledButton
+                  key={r.id}
+                  w="100%"
+                  px="xs"
+                  py={6}
+                  style={{ borderRadius: 4 }}
+                  onClick={() => {
+                    router.push(`/profile/${r.id}`);
+                    closeSearch();
+                  }}
+                >
+                  <Group gap="sm">
+                    <Avatar size="sm" radius="xl">
+                      {r.names?.[0]}
+                    </Avatar>
+                    <Text size="sm" fw={500} c="navy.7">
                       {r.names}
                     </Text>
-                  </Box>
-                ))}
-              </>
-            )}
-          </Paper>
-        )
-      }
+                  </Group>
+                </UnstyledButton>
+              ))}
+            </>
+          )}
+
+          {!searching && groupedPosts.length > 0 && (
+            <>
+              {groupedUsers.length > 0 && <Divider my="xs" />}
+              <Text size="xs" fw={700} c="gray.5" tt="uppercase" mb={4}>
+                Posts
+              </Text>
+              {groupedPosts.map((r) => (
+                <Box
+                  key={r.id}
+                  px="xs"
+                  py={6}
+                  style={{ opacity: 0.5, cursor: "default" }}
+                >
+                  <Text size="sm" c="navy.7" lineClamp={2}>
+                    {r.content}
+                  </Text>
+                </Box>
+              ))}
+            </>
+          )}
+
+          {!searching && groupedGroups.length > 0 && (
+            <>
+              {(groupedUsers.length > 0 || groupedPosts.length > 0) && (
+                <Divider my="xs" />
+              )}
+              <Text size="xs" fw={700} c="gray.5" tt="uppercase" mb={4}>
+                Groups
+              </Text>
+              {groupedGroups.map((r) => (
+                <Box
+                  key={r.id}
+                  px="xs"
+                  py={6}
+                  style={{ opacity: 0.5, cursor: "default" }}
+                >
+                  <Text size="sm" c="navy.7">
+                    {r.names}
+                  </Text>
+                </Box>
+              ))}
+            </>
+          )}
+        </Paper>
+      )}
 
       <Modal
         opened={optionsOpen}
@@ -511,7 +535,7 @@ const LSAppTopBar = () => {
           ))}
         </Stack>
       </Modal>
-    </Flex >
+    </Flex>
   );
 };
 

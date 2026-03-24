@@ -36,6 +36,11 @@ export function HomeFeed(props: HomeFeedProps) {
     handleAddComment,
     handleTogglePostLike,
     handleToggleCommentLike,
+    handleDeletePost,
+    currentUserId,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
   } = useHomeFeed(props);
 
   return (
@@ -133,7 +138,9 @@ export function HomeFeed(props: HomeFeedProps) {
             likeCount={post.likeCount}
             commentCount={post.comments.length}
             onReportClick={() => setReportTarget({ type: "post", postId: post.id })}
+            onDeleteClick={post.userId === currentUserId ? () => handleDeletePost(post.id) : undefined}
             onPostClick={() => router.push(`/posts/${post.id}`)}
+            shareUrl={`/posts/${post.id}`}
             audienceLabel={post.audienceLabel ?? null}
             menuId={`post-menu-${post.id}`}
           >
@@ -173,6 +180,13 @@ export function HomeFeed(props: HomeFeedProps) {
           </LSPostCard>
         ))}
       </Stack>
+
+      {/*This was for testing you can change it, remove it, make it into a scroll to the bottom to autoload. whatever.*/}
+      {true && (
+        <Button onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+          {isFetchingNextPage ? "Loading..." : "Load more"}
+        </Button>
+      )}
     </Stack>
   );
 }
