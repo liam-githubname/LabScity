@@ -252,13 +252,13 @@ const LSProfileMobileLayout = ({
         widgetTitle="Friends"
         profiles={friends ?? []}
         maxInline={8}
-        listGap={16}
+        listGap="lg"
       />
       <LSMiniProfileList
         widgetTitle="Following"
         profiles={notFollowedBack}
         maxInline={8}
-        listGap={16}
+        listGap="lg"
       />
       <LSProfileGroupsWidget userId={userId} isOwnProfile={isOwnProfile} />
       <Stack
@@ -449,7 +449,7 @@ const LSProfileDesktopLayout = ({
               widgetTitle="Friends"
               profiles={friends ?? []}
               maxInline={12}
-              listGap={16}
+              listGap="lg"
             />
           </Box>
           <Box flex={5}>
@@ -457,7 +457,7 @@ const LSProfileDesktopLayout = ({
               widgetTitle="Following"
               profiles={notFollowedBack}
               maxInline={12}
-              listGap={16}
+              listGap="lg"
             />
           </Box>
           <Box flex={3}>

@@ -14,7 +14,7 @@ const DEFAULT_INLINE_LIMIT = 6;
  * @param widgetTitle - Title shown above the list (e.g. "Friends", "Following").
  * @param profiles - List of users to display; when length > maxInline, only first maxInline shown inline.
  * @param maxInline - Cap before "Show all" (default 6). Use a higher value on profile to better fill the card.
- * @param listGap - Vertical gap between rows (Mantine spacing, default 12).
+ * @param listGap - Vertical gap between each friend/following row (Mantine spacing key or px).
  */
 export interface LSMiniProfileListProps {
   widgetTitle: string;
@@ -32,7 +32,7 @@ export default function LSMiniProfileList({
   widgetTitle,
   profiles,
   maxInline = DEFAULT_INLINE_LIMIT,
-  listGap = 12,
+  listGap = "md",
 }: LSMiniProfileListProps) {
   const [modalOpened, setModalOpened] = useState(false);
 
@@ -42,19 +42,6 @@ export default function LSMiniProfileList({
     ? profiles!.slice(0, maxInline)
     : profiles;
 
-  const listUsers = visibleProfiles?.map((profile) => (
-    <li key={profile.user_id}>
-      <LSMiniProfile
-        key={profile.user_id}
-        userId={profile.user_id}
-        posterEmail={profile.email}
-        posterName={profile.first_name + " " + profile.last_name}
-        posterResearchInterest={profile.research_interests?.at(0) ?? ""}
-        posterProfilePicURL={profile.avatar_url ?? undefined}
-      />
-    </li>
-  ));
-
   return (
     <Card shadow="sm" padding="lg" radius="md" h="100%">
       <Center mb={8}>
@@ -62,15 +49,28 @@ export default function LSMiniProfileList({
           {widgetTitle}
         </Text>
       </Center>
-      <Stack gap={listGap}>
+      <Stack gap="sm">
         {profiles && profiles.length > 0 ? (
           <>
-            <Box
+            <Stack
               component="ul"
+              gap={listGap}
               style={{ listStyle: "none", paddingLeft: 0, margin: 0 }}
             >
-              {listUsers}
-            </Box>
+              {visibleProfiles?.map((profile) => (
+                <Box component="li" key={profile.user_id}>
+                  <LSMiniProfile
+                    userId={profile.user_id}
+                    posterEmail={profile.email}
+                    posterName={profile.first_name + " " + profile.last_name}
+                    posterResearchInterest={
+                      profile.research_interests?.at(0) ?? ""
+                    }
+                    posterProfilePicURL={profile.avatar_url ?? undefined}
+                  />
+                </Box>
+              ))}
+            </Stack>
             {hasOverflow && (
               <Center>
                 <Button
