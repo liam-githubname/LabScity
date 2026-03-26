@@ -20,6 +20,7 @@ import { getProfileVisibleGroups } from "@/lib/actions/groups";
 import {
   createProfileHeaderUploadUrl,
   createProfilePictureUploadUrl,
+  createUserReport,
   getUserFollowers,
   getUserFollowing,
   getUserFriends,
@@ -154,6 +155,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     createPostAction: createPost,
     createCommentAction: createComment,
     createReportAction: createReport,
+    createUserReportAction: createUserReport,
     likePostAction: likePost,
     likeCommentAction: likeComment,
     deletePostAction: deletePost,

@@ -1,7 +1,12 @@
 "use client";
 
 import { notifications } from "@mantine/notifications";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { InfiniteData } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useState } from "react";
 import { getFeed } from "@/lib/actions/feed";
 import { feedKeys } from "@/lib/query-keys";
@@ -52,15 +57,23 @@ export function useHomeFeed({
     isLoading: isFeedLoading,
     isError: isFeedError,
     error: feedError,
-  } = useQuery({
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: feedKeys.list(defaultFeedFilter),
-    queryFn: async () => {
-      const result = await getFeed(defaultFeedFilter);
+    initialPageParam: undefined as string | undefined,
+    queryFn: async ({ pageParam }) => {
+      const input = pageParam
+        ? { ...defaultFeedFilter, cursor: pageParam }
+        : defaultFeedFilter;
+      const result = await getFeed(input);
       if (!result.success || !result.data) {
         throw new Error(result.error ?? "Failed to fetch feed");
       }
       return result.data;
     },
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
 
   const createPostMutation = useMutation({
@@ -213,24 +226,27 @@ export function useHomeFeed({
       await queryClient.cancelQueries({
         queryKey: feedKeys.list(defaultFeedFilter),
       });
-      const snapshot = queryClient.getQueryData<GetFeedResult>(
+      const snapshot = queryClient.getQueryData(
         feedKeys.list(defaultFeedFilter),
       );
-      queryClient.setQueryData<GetFeedResult>(
+      queryClient.setQueryData<InfiniteData<GetFeedResult> | undefined>(
         feedKeys.list(defaultFeedFilter),
         (old) => {
-          if (!old) return old;
+          if (!old || !("pages" in old)) return old;
           return {
             ...old,
-            posts: old.posts.map((p) =>
-              p.id === postId
-                ? {
-                    ...p,
-                    isLiked: !p.isLiked,
-                    likeCount: (p.likeCount ?? 0) + (p.isLiked ? -1 : 1),
-                  }
-                : p,
-            ),
+            pages: old.pages.map((page) => ({
+              ...page,
+              posts: page.posts.map((p) =>
+                p.id === postId
+                  ? {
+                      ...p,
+                      isLiked: !p.isLiked,
+                      likeCount: (p.likeCount ?? 0) + (p.isLiked ? -1 : 1),
+                    }
+                  : p,
+              ),
+            })),
           };
         },
       );
@@ -263,11 +279,17 @@ export function useHomeFeed({
       return result;
     },
     onSuccess: (_result, postId) => {
-      queryClient.setQueryData<GetFeedResult>(
+      queryClient.setQueryData<InfiniteData<GetFeedResult> | undefined>(
         feedKeys.list(defaultFeedFilter),
         (old) => {
-          if (!old) return old;
-          return { ...old, posts: old.posts.filter((p) => p.id !== postId) };
+          if (!old || !("pages" in old)) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              posts: page.posts.filter((p) => p.id !== postId),
+            })),
+          };
         },
       );
     },
@@ -285,13 +307,7 @@ export function useHomeFeed({
   });
 
   const likeCommentMutation = useMutation({
-    mutationFn: async ({
-      postId,
-      commentId,
-    }: {
-      postId: string;
-      commentId: string;
-    }) => {
+    mutationFn: async ({ commentId }: { commentId: string }) => {
       const result = await likeCommentAction(commentId);
       if (!result.success) {
         throw new Error(result.error ?? "Failed to update like");
@@ -311,7 +327,8 @@ export function useHomeFeed({
     },
   });
 
-  const posts: FeedPostItem[] = feedData?.posts ?? [];
+  const posts: FeedPostItem[] =
+    feedData?.pages.flatMap((page) => page.posts) ?? [];
 
   const handleSubmitPost = (
     values: CreatePostValues & { mediaFile?: File | null },
@@ -344,7 +361,8 @@ export function useHomeFeed({
   };
 
   const handleToggleCommentLike = (postId: string, commentId: string) => {
-    likeCommentMutation.mutate({ postId, commentId });
+    void postId;
+    likeCommentMutation.mutate({ commentId });
   };
 
   const handleDeletePost = (postId: string) => {
@@ -356,6 +374,9 @@ export function useHomeFeed({
     isFeedLoading,
     isFeedError,
     feedError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
     reportTarget,
     setReportTarget,
     activeCommentPostId,

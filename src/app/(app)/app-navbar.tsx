@@ -6,6 +6,7 @@ import {
 } from "@mantine/core";
 import {
   IconFlaskFilled,
+  IconGavel,
   IconMessageFilled,
   IconUser,
   IconUsers,
@@ -18,7 +19,8 @@ const navigation = [
   { href: "/home", icon: IconFlaskFilled, label: "Home" },
   { href: "/profile", icon: IconUser, label: "Profile" },
   { href: "/chat", icon: IconMessageFilled, label: "Chat" },
-  { href: "/groups", icon: IconUsers, label: "Groups"},
+  { href: "/groups", icon: IconUsers, label: "Groups" },
+  { href: "/moderation", icon: IconGavel, label: "Moderation" },
 ];
 
 interface LSAppNavbarProps {

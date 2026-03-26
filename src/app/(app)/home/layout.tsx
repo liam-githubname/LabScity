@@ -14,7 +14,6 @@ export default function HomeLayout({
   children: React.ReactNode;
 }) {
   const isMobile = useIsMobile();
-  const stickyTopOffset = "calc(60px + var(--mantine-spacing-md))";
 
   return (
     <Box mih="100vh" bg="gray.0">
@@ -26,13 +25,7 @@ export default function HomeLayout({
             {children}
           </Flex>
 
-          {/* trending + sidecards */}
-          <Flex
-            flex={4}
-            {...isMobile && { miw: "100%" }}
-            style={isMobile ? undefined : { position: "sticky", top: stickyTopOffset }}
-          >
-            {/* mobile miw makes box take full width */}
+          <Flex flex={4} {...isMobile && { miw: "100%" }} style={{ position: "sticky", top: "1rem", alignSelf: "flex-start" }}> {/* mobile miw makes box take full width */}
             <TrendingWidget />
           </Flex>
 
