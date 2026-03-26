@@ -100,7 +100,7 @@ export function LSGroupSidebar({
                     </Text>
                   }
                   leftSection={
-                    <Avatar color="navy" radius="xl">
+                    <Avatar color="navy.7" bg="navy.7" radius="xl">
                       {(group.name || "?")
                         .split(" ")
                         .filter(Boolean)

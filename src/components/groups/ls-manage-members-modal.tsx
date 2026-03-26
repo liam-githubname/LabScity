@@ -163,7 +163,8 @@ export function LSManageMembersModal({
                   >
                     <Group gap="sm">
                       <Avatar
-                        color="navy"
+                        color="navy.7"
+                        bg="navy.7"
                         radius="xl"
                         size="sm"
                         src={member.profile_pic_path}

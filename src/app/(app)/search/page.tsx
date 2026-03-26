@@ -207,7 +207,9 @@ export default function SearchPage() {
                     onClick={() => router.push(`/profile/${result.id}`)}
                   >
                     <Group gap="sm" p="sm" style={{ borderRadius: 8 }}>
-                      <Avatar radius="xl">{result.names?.[0]}</Avatar>
+                      <Avatar radius="xl" color="navy.7" bg="navy.7">
+                        {result.names?.[0]}
+                      </Avatar>
                       <Stack gap={0}>
                         <Text fw={600} c="navy.7">
                           {result.names}

@@ -310,7 +310,27 @@ const LSAppTopBar = () => {
           </Flex>
 
           {/* logo */}
-          <Image src="/logo-lightgray.png" w="auto" h="64%" />
+          <UnstyledButton
+            component={Link}
+            href="/home"
+            aria-label="LabScity home"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              height: topBarSize,
+              lineHeight: 0,
+            }}
+          >
+            <Image
+              src="/logo-lightgray.png"
+              alt=""
+              w="auto"
+              style={{
+                height: `${Math.round(topBarSize * 0.64)}px`,
+                width: "auto",
+              }}
+            />
+          </UnstyledButton>
 
           {/* anchored to right of topbar */}
           <Flex direction="row" pos="absolute" right={0} align="center">
@@ -449,7 +469,7 @@ const LSAppTopBar = () => {
                   }}
                 >
                   <Group gap="sm">
-                    <Avatar size="sm" radius="xl">
+                    <Avatar size="sm" radius="xl" color="navy.7" bg="navy.7">
                       {r.names?.[0]}
                     </Avatar>
                     <Text size="sm" fw={500} c="navy.7">
