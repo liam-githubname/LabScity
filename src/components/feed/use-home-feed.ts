@@ -39,7 +39,6 @@ export function useHomeFeed({
   likeCommentAction,
   deletePostAction,
   currentUserId,
-  popularGroupsActions,
 }: HomeFeedProps) {
   const queryClient = useQueryClient();
   const [isComposerOpen, setIsComposerOpen] = useState(false);
@@ -392,6 +391,5 @@ export function useHomeFeed({
     handleToggleCommentLike,
     handleDeletePost,
     currentUserId,
-    popularGroupsActions,
   };
 }

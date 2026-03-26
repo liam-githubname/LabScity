@@ -7,11 +7,6 @@ import type {
   likeComment,
   likePost,
 } from "@/lib/actions/feed";
-import type {
-  getGroups,
-  joinGroup,
-  searchPublicGroups,
-} from "@/lib/actions/groups";
 
 export type CreatePostAction = typeof createPost;
 export type CreatePostImageUploadUrlAction = typeof createPostImageUploadUrl;
@@ -30,10 +25,4 @@ export interface HomeFeedProps {
   likeCommentAction: LikeCommentAction;
   deletePostAction: DeletePostAction;
   currentUserId: string | null;
-  /** When set (signed-in home), shows a “Popular groups” strip above the feed. */
-  popularGroupsActions?: {
-    searchPublicGroupsAction: typeof searchPublicGroups;
-    joinGroupAction: typeof joinGroup;
-    getGroupsAction: typeof getGroups;
-  };
 }

@@ -9,7 +9,6 @@ import { LSPostCard } from "@/components/feed/ls-post-card";
 import { LSPostCommentCard } from "@/components/feed/ls-post-comment-card";
 import { LSPostComposer } from "@/components/feed/ls-post-composer";
 import { useHomeFeed } from "@/components/feed/use-home-feed";
-import { LSPopularGroupsHomeStrip } from "@/components/groups/ls-popular-groups-home-strip";
 import { ReportOverlay } from "@/components/report/report-overlay";
 
 /**
@@ -39,7 +38,6 @@ export function HomeFeed(props: HomeFeedProps) {
     handleToggleCommentLike,
     handleDeletePost,
     currentUserId,
-    popularGroupsActions,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -106,16 +104,6 @@ export function HomeFeed(props: HomeFeedProps) {
           key="open"
           onSubmit={handleSubmitPost}
           isPending={createPostMutation.isPending}
-        />
-      ) : null}
-
-      {currentUserId && popularGroupsActions ? (
-        <LSPopularGroupsHomeStrip
-          searchPublicGroupsAction={
-            popularGroupsActions.searchPublicGroupsAction
-          }
-          joinGroupAction={popularGroupsActions.joinGroupAction}
-          getGroupsAction={popularGroupsActions.getGroupsAction}
         />
       ) : null}
 
@@ -202,12 +190,18 @@ export function HomeFeed(props: HomeFeedProps) {
         ))}
       </Stack>
 
-      {/*This was for testing you can change it, remove it, make it into a scroll to the bottom to autoload. whatever.*/}
-      {true && (
-        <Button onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
-          {isFetchingNextPage ? "Loading..." : "Load more"}
+      {hasNextPage ? (
+        <Button
+          variant="subtle"
+          color="navy"
+          size="sm"
+          radius="xl"
+          onClick={() => fetchNextPage()}
+          loading={isFetchingNextPage}
+        >
+          Load more posts
         </Button>
-      )}
+      ) : null}
     </Stack>
   );
 }
