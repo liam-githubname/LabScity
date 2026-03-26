@@ -257,14 +257,14 @@ export async function getUserPosts(input: GetUserPostsInput, supabaseClient?: Su
         : null,
     }));
 
-    // Calculate next cursor from last returned post
+    // Only expose nextCursor when another page exists (matches main feed pagination).
     const nextCursor =
-      returnedPostsWithMedia.length > 0
+      hasMore && returnedPostsWithMedia.length > 0
         ? String(
-          returnedPostsWithMedia[returnedPostsWithMedia.length - 1][
-          validatedInput.sortBy as keyof (typeof returnedPosts)[0]
-          ],
-        )
+            returnedPostsWithMedia[returnedPostsWithMedia.length - 1][
+              validatedInput.sortBy as keyof (typeof returnedPosts)[0]
+            ],
+          )
         : undefined;
 
     // For backward navigation, you might want prev cursor from first item
