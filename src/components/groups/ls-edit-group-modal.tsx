@@ -187,7 +187,7 @@ export function LSEditGroupModal({
                 size={72}
                 radius="md"
                 color="navy.7"
-                bg="navy.7"
+                bg={group.avatar_url ? undefined : "navy.7"}
                 src={group.avatar_url ?? undefined}
               >
                 {groupNameInitials(group.name)}

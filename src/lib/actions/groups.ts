@@ -30,11 +30,15 @@ import { createClient } from "@/supabase/server";
 type ServerSupabase = Awaited<ReturnType<typeof createClient>>;
 
 /**
- * Use `profile_pictures` (not `post_images`) so `getPublicUrl` matches a bucket that is
- * readable for `<img>` / Mantine `Avatar` — `post_images` is often private with signed URLs only.
- * Paths: `{uid}/group_{groupId}_{uuid}.ext` under the uploader’s folder (same RLS pattern as profile pics).
+ * Use `profile_pictures` (not `post_images`) for group avatars.
+ * Paths: `{uid}/group_{groupId}_{uuid}.ext` under the uploader’s folder.
+ *
+ * URLs for `<img>` / Mantine `Avatar`: we prefer `createSignedUrl` so images work when the bucket
+ * is not public; fall back to `getPublicUrl` if signing fails (e.g. public bucket or RLS quirk).
  */
 const groupAvatarBucket = "profile_pictures";
+/** Signed URLs for group avatars (lists may cache; keep TTL comfortably long). */
+const groupAvatarSignedUrlTtlSec = 60 * 60 * 24 * 7;
 const allowedGroupAvatarMime = [
   "image/jpeg",
   "image/png",
@@ -57,13 +61,25 @@ function extensionFromGroupAvatarMime(mimeType: string) {
   }
 }
 
-function resolveGroupAvatarPublicUrl(
+async function resolveGroupAvatarUrl(
   supabase: ServerSupabase,
   stored: string | null | undefined,
-): string | null {
+): Promise<string | null> {
   if (stored == null || String(stored).trim() === "") return null;
   const s = String(stored).trim();
   if (/^https?:\/\//i.test(s)) return s;
+
+  const { data: signed, error } = await supabase.storage
+    .from(groupAvatarBucket)
+    .createSignedUrl(s, groupAvatarSignedUrlTtlSec);
+
+  if (!error && signed?.signedUrl) {
+    return signed.signedUrl;
+  }
+
+  // Public-bucket fallback, or when signing fails. If the bucket is private and paths live under
+  // another user’s folder, ensure Storage RLS allows group members to `select` those objects
+  // (or use a shared prefix policy); otherwise only the uploader gets a working signed URL.
   return supabase.storage.from(groupAvatarBucket).getPublicUrl(s).data
     .publicUrl;
 }
@@ -172,17 +188,19 @@ export async function getGroups(
       {},
     );
 
-    const result: GroupListItem[] = groups.map((g) => ({
-      group_id: g.group_id,
-      name: g.name,
-      description: g.description ?? "",
-      created_at: g.created_at,
-      conversation_id: g.conversation_id,
-      topics: Array.isArray(g.topics) ? (g.topics as string[]) : [],
-      privacy: g.privacy === "private" ? "private" : "public",
-      memberCount: countMap[g.group_id] ?? 0,
-      avatar_url: resolveGroupAvatarPublicUrl(supabase, g.avatar_url),
-    }));
+    const result: GroupListItem[] = await Promise.all(
+      groups.map(async (g) => ({
+        group_id: g.group_id,
+        name: g.name,
+        description: g.description ?? "",
+        created_at: g.created_at,
+        conversation_id: g.conversation_id,
+        topics: Array.isArray(g.topics) ? (g.topics as string[]) : [],
+        privacy: g.privacy === "private" ? "private" : "public",
+        memberCount: countMap[g.group_id] ?? 0,
+        avatar_url: await resolveGroupAvatarUrl(supabase, g.avatar_url),
+      })),
+    );
 
     return { success: true, data: result };
   } catch (error) {
@@ -276,17 +294,19 @@ export async function getProfileVisibleGroups(
       {},
     );
 
-    const result: GroupListItem[] = visible.map((g) => ({
-      group_id: g.group_id,
-      name: g.name,
-      description: g.description ?? "",
-      created_at: g.created_at,
-      conversation_id: g.conversation_id,
-      topics: Array.isArray(g.topics) ? (g.topics as string[]) : [],
-      privacy: g.privacy === "private" ? "private" : "public",
-      memberCount: countMap[g.group_id] ?? 0,
-      avatar_url: resolveGroupAvatarPublicUrl(supabase, g.avatar_url),
-    }));
+    const result: GroupListItem[] = await Promise.all(
+      visible.map(async (g) => ({
+        group_id: g.group_id,
+        name: g.name,
+        description: g.description ?? "",
+        created_at: g.created_at,
+        conversation_id: g.conversation_id,
+        topics: Array.isArray(g.topics) ? (g.topics as string[]) : [],
+        privacy: g.privacy === "private" ? "private" : "public",
+        memberCount: countMap[g.group_id] ?? 0,
+        avatar_url: await resolveGroupAvatarUrl(supabase, g.avatar_url),
+      })),
+    );
 
     return { success: true, data: result };
   } catch (error) {
@@ -397,7 +417,7 @@ export async function getGroupDetails(
       conversation_id: group.conversation_id,
       topics: Array.isArray(group.topics) ? (group.topics as string[]) : [],
       privacy: group.privacy === "private" ? "private" : "public",
-      avatar_url: resolveGroupAvatarPublicUrl(supabase, group.avatar_url),
+      avatar_url: await resolveGroupAvatarUrl(supabase, group.avatar_url),
       members: formattedMembers,
       memberCount: formattedMembers.length,
     };
@@ -467,14 +487,16 @@ export async function searchPublicGroups(
       return { success: false, error: error.message };
     }
 
-    const result: GroupDiscoverItem[] = (rows ?? []).map((g) => ({
-      group_id: g.group_id,
-      name: g.name,
-      description: g.description ?? "",
-      topics: Array.isArray(g.topics) ? (g.topics as string[]) : [],
-      privacy: g.privacy === "private" ? "private" : "public",
-      avatar_url: resolveGroupAvatarPublicUrl(supabase, g.avatar_url),
-    }));
+    const result: GroupDiscoverItem[] = await Promise.all(
+      (rows ?? []).map(async (g) => ({
+        group_id: g.group_id,
+        name: g.name,
+        description: g.description ?? "",
+        topics: Array.isArray(g.topics) ? (g.topics as string[]) : [],
+        privacy: g.privacy === "private" ? "private" : "public",
+        avatar_url: await resolveGroupAvatarUrl(supabase, g.avatar_url),
+      })),
+    );
 
     return { success: true, data: result };
   } catch (error) {

@@ -16,6 +16,10 @@ export type HomePopularGroupsActions = {
   getGroupsAction: typeof getGroups;
 };
 
+/** Keep in sync with `LSAppTopBar` (`topBarSize`) and app mobile bottom nav height. */
+const APP_TOP_BAR_PX = 60;
+const MOBILE_BOTTOM_NAV_PX = 60;
+
 export function HomeLayoutClient({
   children,
   popularGroupsActions,
@@ -25,6 +29,10 @@ export function HomeLayoutClient({
 }) {
   const isMobile = useIsMobile();
 
+  const stickySidebarMaxHeight = isMobile
+    ? `calc(100dvh - ${APP_TOP_BAR_PX + MOBILE_BOTTOM_NAV_PX}px - 1rem)`
+    : `calc(100dvh - ${APP_TOP_BAR_PX}px - 1rem)`;
+
   return (
     <Box mih="100vh" bg="gray.0">
       <Box maw={1080} mx="auto" p="md">
@@ -32,8 +40,13 @@ export function HomeLayoutClient({
           direction={isMobile ? "column-reverse" : "row"}
           gap="lg"
           align="flex-start"
+          w="100%"
+          maw="100%"
         >
-          <Flex flex={6}>{children}</Flex>
+          {/* miw={0} so the feed column can shrink; avoids stealing width from the sticky sidebar */}
+          <Flex flex={6} miw={0} maw="100%">
+            {children}
+          </Flex>
 
           <Flex
             flex={4}
@@ -44,6 +57,9 @@ export function HomeLayoutClient({
               alignSelf: "flex-start",
               minWidth: 0,
               maxWidth: "100%",
+              maxHeight: stickySidebarMaxHeight,
+              overflowY: "auto",
+              overscrollBehavior: "contain",
             }}
           >
             <Stack gap="lg" w="100%" maw="100%" style={{ minWidth: 0 }}>
