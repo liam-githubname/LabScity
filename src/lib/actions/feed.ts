@@ -106,6 +106,7 @@ export async function createPost(input: CreatePostValues, supabaseClient?: any) 
 				category: parsed.category,
 				text: parsed.content,
 				media_path: parsed.mediaPath ?? null,
+				group_id: parsed.groupId ?? null,
 			})
 			.select()
 			.single();
@@ -252,6 +253,13 @@ export async function getFeed(input: FeedFilterValues, supabaseClient?: any) {
 		// Apply category filter if provided
 		if (parsed.category) {
 			query = query.eq("category", parsed.category);
+		}
+
+		// Scope to a specific group, or exclude group posts from the home feed
+		if (parsed.groupId) {
+			query = query.eq("group_id", parsed.groupId);
+		} else {
+			query = query.is("group_id", null);
 		}
 
 		// Apply cursor pagination (fetch limit + 1 to detect if more posts exist)

@@ -101,7 +101,13 @@ export function LSPostCard({
   const userContent = (
     <Group gap="sm" align="center">
 
-      <Avatar size="md" radius="xl" color="navy.7" src={avatarUrl || undefined}>
+      <Avatar
+        size="md"
+        radius="xl"
+        color="navy.7"
+        bg="navy.7"
+        src={avatarUrl || undefined}
+      >
         {initials}
       </Avatar>
 

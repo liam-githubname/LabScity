@@ -1,14 +1,12 @@
 "use client";
 
-import {
-  Button,
-  Flex,
-} from "@mantine/core";
+import { Button, Flex } from "@mantine/core";
 import {
   IconFlaskFilled,
   IconGavel,
   IconMessageFilled,
   IconUser,
+  IconUsers,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -18,16 +16,21 @@ const navigation = [
   { href: "/home", icon: IconFlaskFilled, label: "Home" },
   { href: "/profile", icon: IconUser, label: "Profile" },
   { href: "/chat", icon: IconMessageFilled, label: "Chat" },
-  { href: "/moderation", icon: IconGavel, label: "Moderation " }
+  { href: "/groups", icon: IconUsers, label: "Groups" },
+  { href: "/moderation", icon: IconGavel, label: "Moderation" },
 ];
 
 interface LSAppNavbarProps {
-  mobileHeight: number,
-  desktopWidth: number,
-  userId: string
+  mobileHeight: number;
+  desktopWidth: number;
+  userId: string;
 }
 
-export default function LSAppNavbar({ mobileHeight, desktopWidth, userId }: LSAppNavbarProps) {
+export default function LSAppNavbar({
+  mobileHeight,
+  desktopWidth,
+  userId,
+}: LSAppNavbarProps) {
   const isMobile = useIsMobile();
   const pathname = usePathname();
 
@@ -40,7 +43,7 @@ export default function LSAppNavbar({ mobileHeight, desktopWidth, userId }: LSAp
 
   function isActive(item: (typeof navigation)[number]) {
     if (item.href === "/profile") {
-      return pathname.startsWith("/profile");
+      return pathname === `/profile/${userId}`;
     }
     return pathname === item.href;
   }
@@ -49,21 +52,15 @@ export default function LSAppNavbar({ mobileHeight, desktopWidth, userId }: LSAp
     <Flex
       bg="navy.7"
       pos="fixed"
-
       // stretch down screen if desktop ( side ); stretch across if mobile
       w={isMobile ? "100%" : desktopWidth}
       h={isMobile ? mobileHeight : "100%"}
-
       direction={isMobile ? "row" : "column"}
       align={isMobile ? "center" : "flex-start"}
-
       justify="center"
-
       p={8}
       gap={16}
-
       {...(isMobile && { bottom: 0 })}
-
       style={{ zIndex: 99999999 }}
     >
       {navigation.map((item) => {

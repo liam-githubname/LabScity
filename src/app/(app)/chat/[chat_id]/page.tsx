@@ -299,7 +299,9 @@ export default function ChatPage() {
                   py="sm"
                   label={<Text fw={600}>{chat.name || `Chat #${chat.conversation_id}`}</Text>}
                   description={<Text size="xs" c="dimmed">{chat.message?.content as string || 'No messages yet'}</Text>}
-                  leftSection={<Avatar radius="xl" size="md" color="navy.7" />}
+                  leftSection={
+                    <Avatar radius="xl" size="md" color="navy.7" bg="navy.7" />
+                  }
                 />
               ))
             )}
@@ -346,7 +348,15 @@ export default function ChatPage() {
                   <NavLink
                     key={user.user_id}
                     label={<Text fw={600} c="navy.7">{user.first_name} {user.last_name}</Text>}
-                    leftSection={<Avatar radius="xl" size="md" color="navy.7" src={user.avatar_url} />}
+                    leftSection={
+                      <Avatar
+                        radius="xl"
+                        size="md"
+                        color="navy.7"
+                        bg="navy.7"
+                        src={user.avatar_url}
+                      />
+                    }
                     active={isSelected}
                     styles={{ root: { '--nav-active-bg': 'var(--mantine-color-navy-3)' } }}
                     onClick={() => {
@@ -511,7 +521,9 @@ export default function ChatPage() {
                   const isMe = msg.sender_id === userId
                   return (
                     <Group key={msg.id} justify={isMe ? 'flex-end' : 'flex-start'} align="flex-end" gap="xs">
-                      {!isMe && <Avatar radius="xl" size="md" color="navy.7" />}
+                      {!isMe && (
+                        <Avatar radius="xl" size="md" color="navy.7" bg="navy.7" />
+                      )}
                       <Paper
                         p="sm"
                         px="md"

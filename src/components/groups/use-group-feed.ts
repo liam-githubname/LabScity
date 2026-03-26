@@ -1,16 +1,11 @@
 "use client";
 
 import { notifications } from "@mantine/notifications";
-import type { InfiniteData } from "@tanstack/react-query";
-import {
-  useInfiniteQuery,
-  useMutation,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { getFeed } from "@/lib/actions/feed";
-import { feedKeys } from "@/lib/query-keys";
-import type { FeedPostItem, GetFeedResult } from "@/lib/types/feed";
+import { groupKeys } from "@/lib/query-keys";
+import type { FeedPostItem } from "@/lib/types/feed";
 import {
   type CreateCommentValues,
   type CreatePostValues,
@@ -18,9 +13,8 @@ import {
   feedFilterSchema,
 } from "@/lib/validations/post";
 import { createClient } from "@/supabase/client";
-import type { HomeFeedProps } from "./home-feed.types";
+import type { LSGroupFeedProps } from "./ls-group-layout.types";
 
-const defaultFeedFilter = feedFilterSchema.parse({});
 const maxPostImageBytes = 5 * 1024 * 1024;
 const allowedImageMimeTypes = new Set([
   "image/jpeg",
@@ -30,16 +24,19 @@ const allowedImageMimeTypes = new Set([
 ]);
 const postMediaBucket = "post_images";
 
-export function useHomeFeed({
+/**
+ * Hook that drives LSGroupFeed: fetches group-scoped posts and exposes the
+ * same mutation surface as useHomeFeed, but with groupId baked into every call.
+ */
+export function useGroupFeed({
+  groupId,
   createPostAction,
   createPostImageUploadUrlAction,
   createCommentAction,
   createReportAction,
   likePostAction,
   likeCommentAction,
-  deletePostAction,
-  currentUserId,
-}: HomeFeedProps) {
+}: LSGroupFeedProps) {
   const queryClient = useQueryClient();
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(
@@ -51,28 +48,22 @@ export function useHomeFeed({
     | null
   >(null);
 
+  const groupFeedFilter = feedFilterSchema.parse({ groupId });
+
   const {
     data: feedData,
     isLoading: isFeedLoading,
     isError: isFeedError,
     error: feedError,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey: feedKeys.list(defaultFeedFilter),
-    initialPageParam: undefined as string | undefined,
-    queryFn: async ({ pageParam }) => {
-      const input = pageParam
-        ? { ...defaultFeedFilter, cursor: pageParam }
-        : defaultFeedFilter;
-      const result = await getFeed(input);
+  } = useQuery({
+    queryKey: groupKeys.feed(groupId, groupFeedFilter),
+    queryFn: async () => {
+      const result = await getFeed(groupFeedFilter);
       if (!result.success || !result.data) {
-        throw new Error(result.error ?? "Failed to fetch feed");
+        throw new Error(result.error ?? "Failed to fetch group feed");
       }
       return result.data;
     },
-    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
 
   const createPostMutation = useMutation({
@@ -85,7 +76,6 @@ export function useHomeFeed({
         if (!allowedImageMimeTypes.has(values.mediaFile.type)) {
           throw new Error("Only JPG, PNG, WEBP, and GIF images are allowed");
         }
-
         if (values.mediaFile.size > maxPostImageBytes) {
           throw new Error("Image must be 5MB or smaller");
         }
@@ -113,11 +103,12 @@ export function useHomeFeed({
         mediaPath = uploadInfo.data.path;
       }
 
-      const payload = {
+      const payload: CreatePostValues = {
         scientificField: values.scientificField,
         content: values.content,
         category: values.category,
         mediaPath,
+        groupId,
       };
       const result = await createPostAction(payload);
       if (!result.success) {
@@ -126,7 +117,9 @@ export function useHomeFeed({
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: feedKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: groupKeys.feed(groupId, groupFeedFilter),
+      });
       setIsComposerOpen(false);
     },
     onError: (error) => {
@@ -166,7 +159,9 @@ export function useHomeFeed({
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: feedKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: groupKeys.feed(groupId, groupFeedFilter),
+      });
       setActiveCommentPostId(null);
     },
     onError: (error) => {
@@ -221,43 +216,12 @@ export function useHomeFeed({
       }
       return result;
     },
-    onMutate: async (postId: string) => {
-      await queryClient.cancelQueries({
-        queryKey: feedKeys.list(defaultFeedFilter),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: groupKeys.feed(groupId, groupFeedFilter),
       });
-      const snapshot = queryClient.getQueryData(
-        feedKeys.list(defaultFeedFilter),
-      );
-      queryClient.setQueryData<InfiniteData<GetFeedResult> | undefined>(
-        feedKeys.list(defaultFeedFilter),
-        (old) => {
-          if (!old || !("pages" in old)) return old;
-          return {
-            ...old,
-            pages: old.pages.map((page) => ({
-              ...page,
-              posts: page.posts.map((p) =>
-                p.id === postId
-                  ? {
-                      ...p,
-                      isLiked: !p.isLiked,
-                      likeCount: (p.likeCount ?? 0) + (p.isLiked ? -1 : 1),
-                    }
-                  : p,
-              ),
-            })),
-          };
-        },
-      );
-      return { snapshot };
     },
-    onError: (error, _postId, context) => {
-      if (context?.snapshot) {
-        queryClient.setQueryData(
-          feedKeys.list(defaultFeedFilter),
-          context.snapshot,
-        );
-      }
+    onError: (error) => {
       notifications.show({
         title: "Could not update like",
         message:
@@ -265,48 +229,16 @@ export function useHomeFeed({
         color: "red",
       });
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: feedKeys.all });
-    },
-  });
-
-  const deletePostMutation = useMutation({
-    mutationFn: async (postId: string) => {
-      const result = await deletePostAction(postId);
-      if (!result.success)
-        throw new Error(result.error ?? "Failed to delete post");
-      return result;
-    },
-    onSuccess: (_result, postId) => {
-      queryClient.setQueryData<InfiniteData<GetFeedResult> | undefined>(
-        feedKeys.list(defaultFeedFilter),
-        (old) => {
-          if (!old || !("pages" in old)) return old;
-          return {
-            ...old,
-            pages: old.pages.map((page) => ({
-              ...page,
-              posts: page.posts.filter((p) => p.id !== postId),
-            })),
-          };
-        },
-      );
-    },
-    onError: (error) => {
-      notifications.show({
-        title: "Could not delete post",
-        message:
-          error instanceof Error ? error.message : "Something went wrong",
-        color: "red",
-      });
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: feedKeys.all });
-    },
   });
 
   const likeCommentMutation = useMutation({
-    mutationFn: async ({ commentId }: { commentId: string }) => {
+    mutationFn: async ({
+      postId,
+      commentId,
+    }: {
+      postId: string;
+      commentId: string;
+    }) => {
       const result = await likeCommentAction(commentId);
       if (!result.success) {
         throw new Error(result.error ?? "Failed to update like");
@@ -314,7 +246,9 @@ export function useHomeFeed({
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: feedKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: groupKeys.feed(groupId, groupFeedFilter),
+      });
     },
     onError: (error) => {
       notifications.show({
@@ -326,8 +260,7 @@ export function useHomeFeed({
     },
   });
 
-  const posts: FeedPostItem[] =
-    feedData?.pages.flatMap((page) => page.posts) ?? [];
+  const posts: FeedPostItem[] = feedData?.posts ?? [];
 
   const handleSubmitPost = (
     values: CreatePostValues & { mediaFile?: File | null },
@@ -338,10 +271,7 @@ export function useHomeFeed({
   const onSubmitReport = async (values: CreateReportValues) => {
     if (!reportTarget) return;
     await createReportMutation.mutateAsync({
-      postId:
-        reportTarget.type === "post"
-          ? reportTarget.postId
-          : reportTarget.postId,
+      postId: reportTarget.postId,
       commentId:
         reportTarget.type === "comment" ? reportTarget.commentId : null,
       values,
@@ -360,12 +290,7 @@ export function useHomeFeed({
   };
 
   const handleToggleCommentLike = (postId: string, commentId: string) => {
-    void postId;
-    likeCommentMutation.mutate({ commentId });
-  };
-
-  const handleDeletePost = (postId: string) => {
-    deletePostMutation.mutate(postId);
+    likeCommentMutation.mutate({ postId, commentId });
   };
 
   return {
@@ -373,9 +298,6 @@ export function useHomeFeed({
     isFeedLoading,
     isFeedError,
     feedError,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
     reportTarget,
     setReportTarget,
     activeCommentPostId,
@@ -389,7 +311,5 @@ export function useHomeFeed({
     handleAddComment,
     handleTogglePostLike,
     handleToggleCommentLike,
-    handleDeletePost,
-    currentUserId,
   };
 }

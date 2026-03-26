@@ -1,7 +1,13 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/components/auth/use-auth";
 import { getUser, getUserPosts } from "@/lib/actions/data";
+import { getProfileVisibleGroups } from "@/lib/actions/groups";
+import {
+  getUserFollowers,
+  getUserFollowing,
+  getUserFriends,
+} from "@/lib/actions/profile";
 import { profileKeys } from "@/lib/query-keys";
-import { getUserFollowers, getUserFollowing, getUserFriends } from "@/lib/actions/profile";
 
 // NOTE: Profile hooks now return the full React Query result objects
 // so server prefetch and client usage share the same data shape.
@@ -13,7 +19,10 @@ import { getUserFollowers, getUserFollowing, getUserFriends } from "@/lib/action
  * @param options - Optional { enabled } to pause the query.
  * @returns Full React Query result (data, status, error, etc.).
  */
-export function useUserProfile(user_id: string, options?: { enabled?: boolean }) {
+export function useUserProfile(
+  user_id: string,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: profileKeys.user(user_id),
     queryFn: async () => {
@@ -98,7 +107,10 @@ export function useUserFollowing(user_id: string) {
  * @param user_id - Profile owner's user ID.
  * @returns Full React Query result with User[] on success.
  */
-export function useUserFriends(user_id: string) {
+export function useUserFriends(
+  user_id: string,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: profileKeys.friends(user_id),
     queryFn: async () => {
@@ -108,5 +120,25 @@ export function useUserFriends(user_id: string) {
       }
       return result.data;
     },
+    enabled: Boolean(user_id) && (options?.enabled ?? true),
+  });
+}
+
+/**
+ * Groups the profile user belongs to (public-only when viewing others; full list on own profile).
+ * Requires sign-in; stays idle when logged out.
+ */
+export function useProfileGroups(profileUserId: string) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: profileKeys.groups(profileUserId),
+    queryFn: async () => {
+      const result = await getProfileVisibleGroups(profileUserId);
+      if (!result.success || !result.data) {
+        throw new Error(result.error ?? "Failed to fetch groups");
+      }
+      return result.data;
+    },
+    enabled: Boolean(user?.id && profileUserId),
   });
 }

@@ -3,20 +3,19 @@
 import { Button, Divider, Stack, Text } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import type { HomeFeedProps } from "@/components/feed/home-feed.types";
 import { LSCommentComposer } from "@/components/feed/ls-comment-composer";
 import { LSPostCard } from "@/components/feed/ls-post-card";
 import { LSPostCommentCard } from "@/components/feed/ls-post-comment-card";
 import { LSPostComposer } from "@/components/feed/ls-post-composer";
-import { useHomeFeed } from "@/components/feed/use-home-feed";
+import type { LSGroupFeedProps } from "@/components/groups/ls-group-layout.types";
+import { useGroupFeed } from "@/components/groups/use-group-feed";
 import { ReportOverlay } from "@/components/report/report-overlay";
 
 /**
- * Home feed: post composer trigger, list of LSPostCards with like/comment/report,
- * ReportOverlay for reporting posts or comments, and post click navigation to /posts/[post_id].
- * All data and mutation logic comes from useHomeFeed; actions are passed from the page as props.
+ * Group-scoped feed: identical UI to HomeFeed but backed by useGroupFeed,
+ * which filters posts to the active group and bakes groupId into mutations.
  */
-export function HomeFeed(props: HomeFeedProps) {
+export function LSGroupFeed(props: LSGroupFeedProps) {
   const router = useRouter();
   const {
     posts,
@@ -36,12 +35,7 @@ export function HomeFeed(props: HomeFeedProps) {
     handleAddComment,
     handleTogglePostLike,
     handleToggleCommentLike,
-    handleDeletePost,
-    currentUserId,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useHomeFeed(props);
+  } = useGroupFeed(props);
 
   return (
     <Stack gap="lg">
@@ -85,7 +79,6 @@ export function HomeFeed(props: HomeFeedProps) {
         onSubmit={onSubmitReport}
       />
 
-      {/* post composition */}
       <Button
         leftSection={<IconPlus size={14} />}
         radius="xl"
@@ -109,13 +102,13 @@ export function HomeFeed(props: HomeFeedProps) {
 
       {isFeedLoading ? (
         <Text size="sm" c="dimmed">
-          Loading feed...
+          Loading posts...
         </Text>
       ) : isFeedError ? (
         <Text size="sm" c="red">
           {feedError instanceof Error
             ? feedError.message
-            : "Failed to load feed"}
+            : "Failed to load group posts"}
         </Text>
       ) : null}
 
@@ -138,31 +131,21 @@ export function HomeFeed(props: HomeFeedProps) {
             }
             onLikeClick={() => handleTogglePostLike(post.id)}
             isLiked={post.isLiked ?? false}
-            likeCount={post.likeCount}
-            commentCount={post.comments.length}
             onReportClick={() =>
               setReportTarget({ type: "post", postId: post.id })
             }
-            onDeleteClick={
-              post.userId === currentUserId
-                ? () => handleDeletePost(post.id)
-                : undefined
-            }
             onPostClick={() => router.push(`/posts/${post.id}`)}
-            shareUrl={`/posts/${post.id}`}
             audienceLabel={post.audienceLabel ?? null}
-            menuId={`post-menu-${post.id}`}
+            menuId={`group-post-menu-${post.id}`}
           >
             {activeCommentPostId === post.id || post.comments.length > 0 ? (
               <Stack gap="md" w="100%">
                 {activeCommentPostId === post.id ? (
-                  <>
-                    <LSCommentComposer
-                      postId={post.id}
-                      onAddComment={handleAddComment}
-                      isSubmitting={createCommentMutation.isPending}
-                    />
-                  </>
+                  <LSCommentComposer
+                    postId={post.id}
+                    onAddComment={handleAddComment}
+                    isSubmitting={createCommentMutation.isPending}
+                  />
                 ) : null}
 
                 <Divider />
@@ -181,7 +164,7 @@ export function HomeFeed(props: HomeFeedProps) {
                         commentId,
                       })
                     }
-                    menuId={`comment-menu-${comment.id}`}
+                    menuId={`group-comment-menu-${comment.id}`}
                   />
                 ))}
               </Stack>
@@ -189,19 +172,6 @@ export function HomeFeed(props: HomeFeedProps) {
           </LSPostCard>
         ))}
       </Stack>
-
-      {hasNextPage ? (
-        <Button
-          variant="subtle"
-          color="navy"
-          size="sm"
-          radius="xl"
-          onClick={() => fetchNextPage()}
-          loading={isFetchingNextPage}
-        >
-          Load more posts
-        </Button>
-      ) : null}
     </Stack>
   );
 }
