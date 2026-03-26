@@ -1,8 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Box, Text, Card, Center, Stack, Button } from "@mantine/core";
+import {
+  Box,
+  Button,
+  Card,
+  Center,
+  ScrollArea,
+  Stack,
+  Text,
+} from "@mantine/core";
 import LSMiniProfile from "@/components/profile/ls-mini-profile";
+import { PROFILE_SIDEBAR_LIST_MAX_HEIGHT } from "@/components/profile/profile-sidebar-constants";
 import LSProfileListModal from "@/components/profile/ls-profile-list-modal";
 import type { User } from "@/lib/types/feed";
 
@@ -43,7 +52,7 @@ export default function LSMiniProfileList({
     : profiles;
 
   return (
-    <Card shadow="sm" padding="lg" radius="md" h="100%">
+    <Card shadow="sm" padding="lg" radius="md">
       <Center mb={8}>
         <Text c="navy.7" fw={600} size="xl">
           {widgetTitle}
@@ -52,25 +61,32 @@ export default function LSMiniProfileList({
       <Stack gap="sm">
         {profiles && profiles.length > 0 ? (
           <>
-            <Stack
-              component="ul"
-              gap={listGap}
-              style={{ listStyle: "none", paddingLeft: 0, margin: 0 }}
+            <ScrollArea.Autosize
+              mah={PROFILE_SIDEBAR_LIST_MAX_HEIGHT}
+              type="auto"
+              w="100%"
+              style={{ minHeight: 0 }}
             >
-              {visibleProfiles?.map((profile) => (
-                <Box component="li" key={profile.user_id}>
-                  <LSMiniProfile
-                    userId={profile.user_id}
-                    posterEmail={profile.email}
-                    posterName={profile.first_name + " " + profile.last_name}
-                    posterResearchInterest={
-                      profile.research_interests?.at(0) ?? ""
-                    }
-                    posterProfilePicURL={profile.avatar_url ?? undefined}
-                  />
-                </Box>
-              ))}
-            </Stack>
+              <Stack
+                component="ul"
+                gap={listGap}
+                style={{ listStyle: "none", paddingLeft: 0, margin: 0 }}
+              >
+                {visibleProfiles?.map((profile) => (
+                  <Box component="li" key={profile.user_id}>
+                    <LSMiniProfile
+                      userId={profile.user_id}
+                      posterEmail={profile.email}
+                      posterName={profile.first_name + " " + profile.last_name}
+                      posterResearchInterest={
+                        profile.research_interests?.at(0) ?? ""
+                      }
+                      posterProfilePicURL={profile.avatar_url ?? undefined}
+                    />
+                  </Box>
+                ))}
+              </Stack>
+            </ScrollArea.Autosize>
             {hasOverflow && (
               <Center>
                 <Button

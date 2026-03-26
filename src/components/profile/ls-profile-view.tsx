@@ -251,13 +251,13 @@ const LSProfileMobileLayout = ({
       <LSMiniProfileList
         widgetTitle="Friends"
         profiles={friends ?? []}
-        maxInline={8}
+        maxInline={6}
         listGap="lg"
       />
       <LSMiniProfileList
         widgetTitle="Following"
         profiles={notFollowedBack}
-        maxInline={8}
+        maxInline={6}
         listGap="lg"
       />
       <LSProfileGroupsWidget userId={userId} isOwnProfile={isOwnProfile} />
@@ -443,24 +443,24 @@ const LSProfileDesktopLayout = ({
             onReportClick={onReportClick}
           />
         </Box>
-        <Flex flex={3} direction="column" gap="lg">
-          <Box flex={3}>
+        <Flex flex={3} direction="column" gap="lg" miw={0} maw="100%">
+          <Box miw={0}>
             <LSMiniProfileList
               widgetTitle="Friends"
               profiles={friends ?? []}
-              maxInline={12}
+              maxInline={6}
               listGap="lg"
             />
           </Box>
-          <Box flex={5}>
+          <Box miw={0}>
             <LSMiniProfileList
               widgetTitle="Following"
               profiles={notFollowedBack}
-              maxInline={12}
+              maxInline={6}
               listGap="lg"
             />
           </Box>
-          <Box flex={3}>
+          <Box miw={0}>
             <LSProfileGroupsWidget
               userId={userId}
               isOwnProfile={isOwnProfile}
