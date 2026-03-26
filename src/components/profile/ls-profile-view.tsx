@@ -119,8 +119,7 @@ interface LSProfileMobileLayoutProps {
 }
 
 /**
- * Mobile profile layout — stacks hero, post feed, and relationship widgets
- * (friends / following) in a single column.
+ * Mobile profile layout — stacks hero, friends, following, groups, then posts.
  *
  * @param userId        - Profile owner's user ID (drives all data queries).
  * @param isOwnProfile  - Whether the viewer owns this profile (controls edit UI).
@@ -148,6 +147,11 @@ const LSProfileMobileLayout = ({
   const following = followingQuery.data;
   const friendsQuery = useUserFriends(userId);
   const friends = friendsQuery.data;
+
+  const friendIds = new Set(friends?.map((friend) => friend.user_id));
+  const notFollowedBack = following?.filter(
+    (u) => !friendIds.has(u.user_id),
+  );
 
   const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(
     null,
@@ -217,7 +221,7 @@ const LSProfileMobileLayout = ({
   });
 
   return (
-    <Stack p={8}>
+    <Stack p={8} gap="lg">
       <LSProfileHero
         profileName={username ?? "Unknown User"}
         profileResearchInterest={profile?.research_interests?.[0] ?? ""}
@@ -244,9 +248,19 @@ const LSProfileMobileLayout = ({
         isTogglePending={followProfile?.isTogglePending}
         onReportClick={onReportClick}
       />
-      <LSMiniProfileList widgetTitle="Friends" profiles={friends ?? []} />
+      <LSMiniProfileList
+        widgetTitle="Friends"
+        profiles={friends ?? []}
+        maxInline={8}
+        listGap={16}
+      />
+      <LSMiniProfileList
+        widgetTitle="Following"
+        profiles={notFollowedBack}
+        maxInline={8}
+        listGap={16}
+      />
       <LSProfileGroupsWidget userId={userId} isOwnProfile={isOwnProfile} />
-      <LSMiniProfileList widgetTitle="Following" profiles={following ?? []} />
       <Stack
         component="ul"
         gap="lg"
@@ -283,8 +297,8 @@ interface LSProfileDesktopLayoutProps {
 }
 
 /**
- * Desktop profile layout — hero and side widgets (friends / following) sit in
- * a horizontal row; the post feed renders below a divider at a narrower width.
+ * Desktop profile layout — hero and a column of friends, following, then groups;
+ * the post feed renders below a divider at a narrower width.
  *
  * @param userId        - Profile owner's user ID (drives all data queries).
  * @param isOwnProfile  - Whether the viewer owns this profile (controls edit UI).
@@ -400,7 +414,7 @@ const LSProfileDesktopLayout = ({
 
   return (
     <Box py={24} px={80}>
-      <Flex p={8} direction="row" w="100%" gap={8}>
+      <Flex p={8} direction="row" w="100%" gap={28} align="flex-start">
         <Box flex={5}>
           <LSProfileHero
             profileName={username ?? "Unknown User"}
@@ -429,20 +443,27 @@ const LSProfileDesktopLayout = ({
             onReportClick={onReportClick}
           />
         </Box>
-        <Flex flex={3} direction="column" gap={8}>
+        <Flex flex={3} direction="column" gap="lg">
           <Box flex={3}>
-            <LSMiniProfileList widgetTitle="Friends" profiles={friends ?? []} />
-          </Box>
-          <Box flex={3}>
-            <LSProfileGroupsWidget
-              userId={userId}
-              isOwnProfile={isOwnProfile}
+            <LSMiniProfileList
+              widgetTitle="Friends"
+              profiles={friends ?? []}
+              maxInline={12}
+              listGap={16}
             />
           </Box>
           <Box flex={5}>
             <LSMiniProfileList
               widgetTitle="Following"
               profiles={notFollowedBack}
+              maxInline={12}
+              listGap={16}
+            />
+          </Box>
+          <Box flex={3}>
+            <LSProfileGroupsWidget
+              userId={userId}
+              isOwnProfile={isOwnProfile}
             />
           </Box>
         </Flex>

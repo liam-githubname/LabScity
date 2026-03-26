@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Avatar,
   Badge,
   Box,
   Button,
@@ -15,6 +16,16 @@ import Link from "next/link";
 import { useAuth } from "@/components/auth/use-auth";
 import { useProfileGroups } from "@/components/profile/use-profile";
 import { LSSpinner } from "@/components/ui/ls-spinner";
+
+function groupInitials(name: string) {
+  return (name || "?")
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
 
 /**
  * Profile sidebar widget: groups this user belongs to (public-only for visitors).
@@ -64,7 +75,7 @@ export function LSProfileGroupsWidget({
           Groups
         </Text>
       </Center>
-      <Stack gap={10}>
+      <Stack gap={12}>
         {groups.length > 0 ? (
           groups.map((g) => (
             <UnstyledButton
@@ -74,32 +85,34 @@ export function LSProfileGroupsWidget({
               w="100%"
             >
               <Box
-                p="xs"
-                bg="gray.0"
+                p="sm"
+                bg="white"
                 style={{
                   borderRadius: "var(--mantine-radius-md)",
-                  border: "1px solid var(--mantine-color-gray-2)",
+                  border: "1px solid var(--mantine-color-navy-1)",
+                  boxShadow: "var(--mantine-shadow-xs)",
                 }}
               >
-                <Group justify="space-between" wrap="nowrap" gap="xs">
-                  <Text
-                    fw={600}
-                    c="navy.7"
-                    size="sm"
-                    lineClamp={1}
-                    style={{ flex: 1 }}
-                  >
-                    {g.name}
-                  </Text>
-                  {isOwnProfile && g.privacy === "private" ? (
-                    <Badge size="xs" variant="light" color="gray">
-                      Private
-                    </Badge>
-                  ) : null}
+                <Group justify="flex-start" wrap="nowrap" gap="sm" align="flex-start">
+                  <Avatar size={40} radius="md" color="navy.7" bg="navy.7">
+                    {groupInitials(g.name)}
+                  </Avatar>
+                  <Box style={{ flex: 1, minWidth: 0 }}>
+                    <Group justify="space-between" wrap="nowrap" gap="xs">
+                      <Text fw={600} c="navy.7" size="sm" lineClamp={2}>
+                        {g.name}
+                      </Text>
+                      {isOwnProfile && g.privacy === "private" ? (
+                        <Badge size="xs" variant="light" color="gray">
+                          Private
+                        </Badge>
+                      ) : null}
+                    </Group>
+                    <Text size="xs" c="dimmed" mt={4}>
+                      {g.memberCount} member{g.memberCount === 1 ? "" : "s"}
+                    </Text>
+                  </Box>
                 </Group>
-                <Text size="xs" c="dimmed">
-                  {g.memberCount} member{g.memberCount === 1 ? "" : "s"}
-                </Text>
               </Box>
             </UnstyledButton>
           ))
