@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { respondToGroupInvite } from "@/lib/actions/groups";
 import {
   checkIsMuted,
   markNotificationAsRead,
@@ -12,7 +13,8 @@ import {
   unmarkNotificationAsRead,
   unmuteItem,
 } from "@/lib/actions/notifications";
-import { notificationKeys } from "@/lib/query-keys";
+import { groupKeys, notificationKeys } from "@/lib/query-keys";
+import type { RespondToInviteValues } from "@/lib/validations/groups";
 
 /**
  * React Query hook for checking if an item is muted.
@@ -211,6 +213,25 @@ export function useUnmuteItem() {
           variables.itemType,
         ),
       });
+    },
+  });
+}
+
+/**
+ * Accept or decline a group invite from the notifications UI.
+ * Invalidates group queries on success so membership lists stay fresh.
+ */
+export function useRespondToGroupInvite() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (values: RespondToInviteValues) => {
+      const result = await respondToGroupInvite(values);
+      if (!result.success) {
+        throw new Error(result.error ?? "Could not update invite");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: groupKeys.all });
     },
   });
 }

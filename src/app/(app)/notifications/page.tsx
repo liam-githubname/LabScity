@@ -17,12 +17,15 @@ import {
   IconMessageCircleFilled,
   IconMessageFilled,
   IconUserFilled,
+  IconUsers,
   IconX,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useIsMobile } from "@/app/use-is-mobile";
+import { LSGroupInviteNotificationCard } from "@/components/notifications/ls-group-invite-notification-card";
 import { useMarkNotificationAsRead } from "@/components/notifications/use-notifications";
+import { parseGroupIdFromNotificationLink } from "@/lib/utils/group-notification";
 import { useNotificationStore } from "@/store/notificationStore";
 
 const LAST_VISITED_NOTIFICATIONS_KEY =
@@ -39,7 +42,7 @@ function getNotificationIcon(type: string) {
     case "new_follow":
       return IconUserFilled;
     case "group_invite":
-      return IconUserFilled;
+      return IconUsers;
     case "new_message":
       return IconMessageFilled;
     default:
@@ -185,14 +188,31 @@ const LSNotificationsMobileLayout = ({
   return (
     <Stack p={8} gap={12}>
       <NotificationsHeader totalCount={totalCount} />
-      {notifications.map((notification) => (
-        <NotificationCard
-          key={notification.id}
-          notification={notification}
-          isNew={isNotificationNew(notification.created_at)}
-          onDismiss={handleDismiss}
-        />
-      ))}
+      {notifications.map((notification) => {
+        const groupId =
+          notification.type === "group_invite"
+            ? parseGroupIdFromNotificationLink(notification.link)
+            : null;
+        if (groupId !== null) {
+          return (
+            <LSGroupInviteNotificationCard
+              key={notification.id}
+              notification={notification}
+              groupId={groupId}
+              isNew={isNotificationNew(notification.created_at)}
+              onDismiss={handleDismiss}
+            />
+          );
+        }
+        return (
+          <NotificationCard
+            key={notification.id}
+            notification={notification}
+            isNew={isNotificationNew(notification.created_at)}
+            onDismiss={handleDismiss}
+          />
+        );
+      })}
     </Stack>
   );
 };
@@ -223,14 +243,31 @@ const LSNotificationsDesktopLayout = ({
       </Flex>
       <Divider my={20} color="navy.1" />
       <Stack mt={20} px="20%" gap={12}>
-        {notifications.map((notification) => (
-          <NotificationCard
-            key={notification.id}
-            notification={notification}
-            isNew={isNotificationNew(notification.created_at)}
-            onDismiss={handleDismiss}
-          />
-        ))}
+        {notifications.map((notification) => {
+          const groupId =
+            notification.type === "group_invite"
+              ? parseGroupIdFromNotificationLink(notification.link)
+              : null;
+          if (groupId !== null) {
+            return (
+              <LSGroupInviteNotificationCard
+                key={notification.id}
+                notification={notification}
+                groupId={groupId}
+                isNew={isNotificationNew(notification.created_at)}
+                onDismiss={handleDismiss}
+              />
+            );
+          }
+          return (
+            <NotificationCard
+              key={notification.id}
+              notification={notification}
+              isNew={isNotificationNew(notification.created_at)}
+              onDismiss={handleDismiss}
+            />
+          );
+        })}
       </Stack>
     </Box>
   );
@@ -259,15 +296,15 @@ export default function NotificationsPage() {
       ? Number.parseInt(pendingVisitStartRaw, 10)
       : Number.NaN;
 
-    const effectivePreviousVisitAtMs = Number.isFinite(parsedPendingVisitStartMs)
+    const effectivePreviousVisitAtMs = Number.isFinite(
+      parsedPendingVisitStartMs,
+    )
       ? parsedPendingVisitStartMs
       : Number.isFinite(parsedCommittedSeenAtMs)
         ? parsedCommittedSeenAtMs
         : null;
 
-    setPreviousVisitAtMs(
-      effectivePreviousVisitAtMs,
-    );
+    setPreviousVisitAtMs(effectivePreviousVisitAtMs);
 
     if (Number.isFinite(parsedPendingVisitStartMs)) {
       window.localStorage.setItem(

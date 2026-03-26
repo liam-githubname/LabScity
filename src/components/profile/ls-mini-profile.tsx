@@ -38,7 +38,13 @@ export default function LSMiniProfile({
 
   return (
     <Box style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <Avatar size="md" radius="xl" color="navy.7" src={posterProfilePicURL || undefined}>
+      <Avatar
+        size="md"
+        radius="xl"
+        color="navy.7"
+        bg="navy.7"
+        src={posterProfilePicURL || undefined}
+      >
         {initials}
       </Avatar>
       <Box>

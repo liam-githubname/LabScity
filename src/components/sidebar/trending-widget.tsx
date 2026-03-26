@@ -39,14 +39,7 @@ export function TrendingWidget({ hashtags: initialHashtags }: TrendingWidgetProp
   }, [initialHashtags]);
 
   return (
-    <Card
-      bg="gray.0"
-      p="md"
-      w="100%"
-      h="100%"
-      radius="md"
-      shadow="sm"
-    >
+    <Card bg="gray.0" p="md" w="100%" radius="md" shadow="sm">
       <Stack gap="md">
         <Text
           c="gray.7"

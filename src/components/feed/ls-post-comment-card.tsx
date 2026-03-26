@@ -55,7 +55,14 @@ export function LSPostCommentCard({
 
   return (
     <Group align="flex-start" gap="sm" w="100%" wrap="nowrap">
-      <Avatar size={36} radius="xl" color="navy.7" src={comment.avatarUrl || undefined} style={{ flexShrink: 0 }}>
+      <Avatar
+        size={36}
+        radius="xl"
+        color="navy.7"
+        bg="navy.7"
+        src={comment.avatarUrl || undefined}
+        style={{ flexShrink: 0 }}
+      >
         {initials}
       </Avatar>
 

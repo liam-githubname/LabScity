@@ -20,6 +20,8 @@ export const profileKeys = {
   following: (user_id: string) =>
     [...profileKeys.all, "following", user_id] as const,
   posts: (user_id: string) => [...profileKeys.all, "posts", user_id] as const,
+  /** Public + private (own profile only) groups visible to the current viewer. */
+  groups: (user_id: string) => [...profileKeys.all, "groups", user_id] as const,
 };
 
 export const chatKeys = {
@@ -38,6 +40,18 @@ export const notificationKeys = {
 export const postKeys = {
   all: ["post"] as const,
   detail: (post_id: string) => [...postKeys.all, "detail", post_id] as const,
+};
+
+export const groupKeys = {
+  all: ["groups"] as const,
+  list: () => [...groupKeys.all, "list"] as const,
+  detail: (groupId: number) => [...groupKeys.all, "detail", groupId] as const,
+  feed: (groupId: number, filter: FeedFilterValues) =>
+    [...groupKeys.all, "feed", groupId, filter] as const,
+  discover: (query: string, topicTagsKey: string, limit: number) =>
+    [...groupKeys.all, "discover", query, topicTagsKey, limit] as const,
+  /** Active public groups for home / discovery highlights (by `last_activity_at`). */
+  popular: (limit: number) => [...groupKeys.all, "popular", limit] as const,
 };
 
 export const dataKeys = {
