@@ -1093,7 +1093,9 @@ export async function respondToGroupInvite(
       return { success: false, error: inviteError.message };
     }
 
-    if (!invite || invite.status !== "pending") {
+    const isPending =
+      invite?.status === "pending" || invite?.status == null;
+    if (!invite || !isPending) {
       return {
         success: false,
         error: "No pending invitation for this group",
