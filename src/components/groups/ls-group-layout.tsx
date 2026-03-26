@@ -8,6 +8,7 @@ import {
   Drawer,
   Flex,
   Group,
+  Menu,
   Modal,
   Paper,
   Stack,
@@ -20,6 +21,7 @@ import {
   IconMessageCircle,
   IconSettings,
   IconTrash,
+  IconUsers,
 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -189,47 +191,51 @@ export function LSGroupLayout(props: LSGroupLayoutProps) {
               )}
               {currentMember && (
                 <Group gap="xs" wrap="wrap">
-                  {isAdmin && (
-                    <>
-                      <Button
-                        variant="light"
-                        color="navy"
-                        leftSection={<IconEdit size={16} />}
-                        onClick={openEditGroup}
-                        style={{ flex: 1, minWidth: 120 }}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="light"
-                        color="navy"
-                        leftSection={<IconSettings size={16} />}
-                        onClick={openManageMembers}
-                        style={{ flex: 1, minWidth: 120 }}
-                      >
-                        Manage
-                      </Button>
-                    </>
-                  )}
                   {isAdmin ? (
-                    <Button
-                      variant="light"
-                      color="red"
-                      leftSection={<IconTrash size={16} />}
-                      onClick={() => setDeleteConfirmOpened(true)}
-                      loading={deleteGroupMutation.isPending}
-                      style={{ flex: 1, minWidth: 120 }}
-                    >
-                      Delete Group
-                    </Button>
+                    <Menu shadow="md" width={260} position="bottom-end">
+                      <Menu.Target>
+                        <Button
+                          variant="light"
+                          color="navy"
+                          fullWidth
+                          leftSection={<IconSettings size={16} />}
+                          aria-label="Group settings"
+                        >
+                          Settings
+                        </Button>
+                      </Menu.Target>
+                      <Menu.Dropdown>
+                        <Menu.Item
+                          leftSection={<IconEdit size={16} />}
+                          onClick={openEditGroup}
+                        >
+                          Edit group
+                        </Menu.Item>
+                        <Menu.Item
+                          leftSection={<IconUsers size={16} />}
+                          onClick={openManageMembers}
+                        >
+                          Manage members
+                        </Menu.Item>
+                        <Menu.Divider />
+                        <Menu.Item
+                          color="red"
+                          leftSection={<IconTrash size={16} />}
+                          onClick={() => setDeleteConfirmOpened(true)}
+                          disabled={deleteGroupMutation.isPending}
+                        >
+                          Delete group
+                        </Menu.Item>
+                      </Menu.Dropdown>
+                    </Menu>
                   ) : (
                     <Button
                       variant="light"
                       color="red"
+                      fullWidth
                       leftSection={<IconLogout size={16} />}
                       onClick={() => setLeaveConfirmOpened(true)}
                       loading={leaveMutation.isPending}
-                      style={{ flex: 1, minWidth: 120 }}
                     >
                       Leave
                     </Button>
