@@ -488,16 +488,21 @@ const LSAppTopBar = () => {
                 Posts
               </Text>
               {groupedPosts.map((r) => (
-                <Box
+                <UnstyledButton
                   key={r.id}
+                  w="100%"
                   px="xs"
                   py={6}
-                  style={{ opacity: 0.5, cursor: "default" }}
+                  style={{ borderRadius: 4 }}
+                  onClick={() => {
+                    router.push(`/posts/${r.id}`);
+                    closeSearch();
+                  }}
                 >
                   <Text size="sm" c="navy.7" lineClamp={2}>
                     {r.content}
                   </Text>
-                </Box>
+                </UnstyledButton>
               ))}
             </>
           )}
@@ -511,16 +516,21 @@ const LSAppTopBar = () => {
                 Groups
               </Text>
               {groupedGroups.map((r) => (
-                <Box
+                <UnstyledButton
                   key={r.id}
+                  w="100%"
                   px="xs"
                   py={6}
-                  style={{ opacity: 0.5, cursor: "default" }}
+                  style={{ borderRadius: 4 }}
+                  onClick={() => {
+                    router.push(`/groups/${r.id}`);
+                    closeSearch();
+                  }}
                 >
                   <Text size="sm" c="navy.7">
                     {r.names}
                   </Text>
-                </Box>
+                </UnstyledButton>
               ))}
             </>
           )}
