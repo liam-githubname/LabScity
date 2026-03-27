@@ -23,6 +23,7 @@ export interface ModerationReportItem {
   reporterName: string | null;
   reportedUserName: string | null;
   postText: string | null;
+  commentText: string | null;
   postMediaUrl: string | null;
 }
 
@@ -117,9 +118,13 @@ export async function getModerationReportsAction(
     const postIds = Array.from(
       new Set(unresolvedRows.map((row: any) => row.post_id).filter((id: number | null) => Boolean(id))),
     ) as number[];
+    const commentIds = Array.from(
+      new Set(unresolvedRows.map((row: any) => row.comment_id).filter((id: number | null) => Boolean(id))),
+    ) as number[];
 
     const reportedUserMap = new Map<string, string>();
     const postMap = new Map<number, { text: string | null; media_path: string | null }>();
+    const commentMap = new Map<number, { text: string | null }>();
 
     if (reportedUserIds.length > 0) {
       const { data: reportedUsers, error: reportedUsersError } = await supabase
@@ -157,6 +162,23 @@ export async function getModerationReportsAction(
       }
     }
 
+    if (commentIds.length > 0) {
+      const { data: commentsData, error: commentsError } = await supabase
+        .from("comment")
+        .select("comment_id, text")
+        .in("comment_id", commentIds);
+
+      if (commentsError) {
+        return { success: false, error: commentsError.message };
+      }
+
+      for (const comment of commentsData || []) {
+        commentMap.set(comment.comment_id, {
+          text: comment.text ?? null,
+        });
+      }
+    }
+
     const reports: ModerationReportItem[] = unresolvedRows.map((row: any) => {
       const reporterName = row.reporter
         ? `${row.reporter.first_name ?? ""} ${row.reporter.last_name ?? ""}`.trim()
@@ -178,6 +200,7 @@ export async function getModerationReportsAction(
         reporterName: reporterName || null,
         reportedUserName: reportedUserName || null,
         postText: postMap.get(row.post_id)?.text ?? null,
+        commentText: row.comment_id ? (commentMap.get(row.comment_id)?.text ?? null) : null,
         postMediaUrl: postMap.get(row.post_id)?.media_path
           ? supabase.storage
             .from("post_images")
@@ -235,9 +258,14 @@ export async function dismissReportAction(formData: FormData): Promise<void> {
 export async function deleteReportedPostAction(formData: FormData): Promise<void> {
   const reportId = formData.get("reportId");
   const postId = formData.get("postId");
+  const commentId = formData.get("commentId");
 
   try {
-    const parsed = deleteReportedPostSchema.parse({ reportId, postId });
+    const parsed = deleteReportedPostSchema.parse({
+      reportId,
+      postId,
+      commentId: commentId == null || commentId === "" ? undefined : commentId,
+    });
     const gate = await requireModerator();
 
     if (!gate.success) {
@@ -246,6 +274,31 @@ export async function deleteReportedPostAction(formData: FormData): Promise<void
     }
 
     const { supabase } = gate;
+
+    if (parsed.commentId) {
+      const { error: deleteCommentError } = await supabase
+        .from("comment")
+        .delete()
+        .eq("comment_id", parsed.commentId);
+
+      if (deleteCommentError) {
+        console.error(deleteCommentError.message);
+        return;
+      }
+
+      const { error: resolveCommentReportError } = await supabase
+        .from("feed_report")
+        .update({ status: "deleted" })
+        .eq("report_id", parsed.reportId);
+
+      if (resolveCommentReportError) {
+        console.error(resolveCommentReportError.message);
+        return;
+      }
+
+      revalidatePath("/moderation");
+      return;
+    }
 
     const { data: postData, error: postDataError } = await supabase
       .from("posts")
@@ -457,9 +510,13 @@ export async function getResolvedFeedReportsAction(
     const postIds = Array.from(
       new Set(rows.map((r: any) => r.post_id).filter(Boolean)),
     ) as number[];
+    const commentIds = Array.from(
+      new Set(rows.map((r: any) => r.comment_id).filter(Boolean)),
+    ) as number[];
 
     const reportedUserMap = await fetchUserNameMap(supabase, reportedUserIds);
     const postMap = new Map<number, { text: string | null; media_path: string | null }>();
+    const commentMap = new Map<number, { text: string | null }>();
 
     if (postIds.length > 0) {
       const { data: postsData } = await supabase
@@ -468,6 +525,16 @@ export async function getResolvedFeedReportsAction(
         .in("post_id", postIds);
       for (const post of postsData || []) {
         postMap.set(post.post_id, { text: post.text ?? null, media_path: post.media_path ?? null });
+      }
+    }
+
+    if (commentIds.length > 0) {
+      const { data: commentsData } = await supabase
+        .from("comment")
+        .select("comment_id, text")
+        .in("comment_id", commentIds);
+      for (const comment of commentsData || []) {
+        commentMap.set(comment.comment_id, { text: comment.text ?? null });
       }
     }
 
@@ -490,6 +557,7 @@ export async function getResolvedFeedReportsAction(
           reporterName: reporterName || null,
           reportedUserName: row.reported_id ? (reportedUserMap.get(row.reported_id) ?? null) : null,
           postText: postMap.get(row.post_id)?.text ?? null,
+          commentText: row.comment_id ? (commentMap.get(row.comment_id)?.text ?? null) : null,
           postMediaUrl: postMap.get(row.post_id)?.media_path
             ? supabase.storage
               .from("post_images")

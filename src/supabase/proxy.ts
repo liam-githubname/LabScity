@@ -51,6 +51,22 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  if (user?.sub) {
+    const { data: userRow, error: userError } = await supabase
+      .from('users')
+      .select('is_banned')
+      .eq('user_id', user.sub)
+      .maybeSingle()
+
+    if (!userError && userRow?.is_banned) {
+      await supabase.auth.signOut()
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      url.searchParams.set('banned', '1')
+      return NextResponse.redirect(url)
+    }
+  }
+
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
   // creating a new response object with NextResponse.next() make sure to:
   // 1. Pass the request in it, like so:
