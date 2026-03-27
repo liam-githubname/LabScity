@@ -23,9 +23,11 @@ const inputStyles = {
 };
 
 export function LSLoginForm({
-  loginAction
+  loginAction,
+  showBannedMessage = false,
 }: {
-  loginAction: LoginAction
+  loginAction: LoginAction;
+  showBannedMessage?: boolean;
 }) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -82,6 +84,11 @@ export function LSLoginForm({
               style={{ width: "auto", height: "auto", objectFit: "contain" }}
             />
           </Box>
+          {showBannedMessage && (
+            <Alert color="orange" title="Account Banned">
+              This account has been banned. If you think this is a mistake, contact support.
+            </Alert>
+          )}
           {serverError && (
             <Alert color="red" title="Error">
               {serverError}

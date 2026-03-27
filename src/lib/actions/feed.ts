@@ -159,31 +159,10 @@ export async function deletePost(postId: string, supabaseClient?: any) {
 			return { success: false, error: "Authentication required" };
 		}
 
-		const { data: postData, error: postDataError } = await supabase
-			.from("posts")
-			.select("media_path")
-			.eq("post_id", postIdStr)
-			.eq("user_id", authData.user.id)
-			.maybeSingle();
-
-		if (postDataError) {
-			return { success: false, error: postDataError.message };
-		}
-
-		if (postData?.media_path) {
-			const { error: removeMediaError } = await supabase.storage
-				.from(postMediaBucket)
-				.remove([postData.media_path]);
-
-			if (removeMediaError) {
-				return { success: false, error: removeMediaError.message };
-			}
-		}
-
-		// Delete post from database (only if user owns it)
+		// Soft-take down post from database (only if user owns it)
 		const { error } = await supabase
 			.from("posts")
-			.delete()
+			.update({ taken_down: true })
 			.eq("post_id", postIdStr)
 			.eq("user_id", authData.user.id);
 
@@ -248,6 +227,7 @@ export async function getFeed(input: FeedFilterValues, supabaseClient?: any) {
 				likes(user_id)
 			`
 			)
+			.eq("taken_down", false)
 			.order("created_at", { ascending: false });
 
 		// Apply category filter if provided
@@ -315,6 +295,7 @@ export async function getFeed(input: FeedFilterValues, supabaseClient?: any) {
 					`
 					)
 					.eq("post_id", post.post_id)
+					.eq("taken_down", false)
 					.order("created_at", { ascending: false });
 
 				return { post, comments: comments || [] };
@@ -461,10 +442,10 @@ export async function deleteComment(commentId: string, supabaseClient?: any) {
 			return { success: false, error: "Authentication required" };
 		}
 
-		// Delete comment from database (only if user owns it)
+		// Soft-take down comment from database (only if user owns it)
 		const { error } = await supabase
 			.from("comment")
-			.delete()
+			.update({ taken_down: true })
 			.eq("comment_id", commentIdStr)
 			.eq("user_id", authData.user.id);
 
@@ -703,6 +684,7 @@ export async function getTrendingScientificFields(supabaseClient?: any) {
 		const { data: posts, error } = await supabase
 			.from("posts")
 			.select("scientific_field, like_amount")
+			.eq("taken_down", false)
 			.gte("created_at", thirtyDaysAgo.toISOString());
 
 		if (error) {
@@ -901,6 +883,7 @@ export async function getPostDetail(postId: string, supabaseClient?: any): Promi
 			`
 			)
 			.eq("post_id", postIdStr)
+			.eq("taken_down", false)
 			.maybeSingle();
 
 		if (error) {
@@ -936,6 +919,7 @@ export async function getPostDetail(postId: string, supabaseClient?: any): Promi
 			`
 			)
 			.eq("post_id", postIdStr)
+			.eq("taken_down", false)
 			.order("created_at", { ascending: false });
 
 		const mediaUrl = post.media_path

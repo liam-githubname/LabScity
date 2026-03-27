@@ -63,6 +63,7 @@ export async function getPostById(input: GetPostByIdInput, supabaseClient?: any)
    `);
 
     query = query.eq('post_id', validatedInput.post_id);
+    query = query.eq('taken_down', false);
 
     const { data: data, error: dbError } = await query;
 
@@ -143,6 +144,7 @@ export async function getUserPosts(input: GetUserPostsInput, supabaseClient?: Su
 
     // Step 4: Apply filters
     query = query.eq("user_id", validatedInput.user_id);
+    query = query.eq("taken_down", false);
 
     if (validatedInput.category) {
       query = query.eq("category", validatedInput.category);
@@ -217,6 +219,7 @@ export async function getUserPosts(input: GetUserPostsInput, supabaseClient?: Su
             comment_likes(user_id)
           `)
           .eq("post_id", post.post_id)
+          .eq("taken_down", false)
           .order("created_at", { ascending: false });
 
         return {
@@ -354,9 +357,37 @@ export async function searchUserContent(input: SearchInput, supabaseClient?: Sup
 
     const validatedSearchResults = searchResultSchema.array().parse(data);
 
+    const postIds = validatedSearchResults
+      .filter((row) => row.content_type?.toLowerCase() === "post")
+      .map((row) => Number(row.id))
+      .filter((id) => Number.isFinite(id));
+
+    if (postIds.length === 0) {
+      return {
+        success: true,
+        data: validatedSearchResults,
+      }
+    }
+
+    const { data: visiblePosts, error: visiblePostsError } = await supabase
+      .from("posts")
+      .select("post_id")
+      .in("post_id", postIds)
+      .eq("taken_down", false);
+
+    if (visiblePostsError) {
+      return { success: false, error: `Failed to filter search results: ${visiblePostsError.message}` };
+    }
+
+    const visiblePostIdSet = new Set((visiblePosts ?? []).map((post: any) => Number(post.post_id)));
+    const filteredSearchResults = validatedSearchResults.filter((row) => {
+      if (row.content_type?.toLowerCase() !== "post") return true;
+      return visiblePostIdSet.has(Number(row.id));
+    });
+
     return {
       success: true,
-      data: validatedSearchResults,
+      data: filteredSearchResults,
     }
 
   } catch (error) {
@@ -433,7 +464,31 @@ export async function searchForPosts(input: SearchInput, supabaseClient?: Supaba
     if (error) {
       return { success: false, error: "Failed to search for posts: " + error.message }
     }
-    return { success: true, data: data as Post[] }
+
+    const rawPosts = (data as Post[]) ?? [];
+    const postIds = rawPosts
+      .map((post) => Number(post.post_id))
+      .filter((id) => Number.isFinite(id));
+
+    if (postIds.length === 0) {
+      return { success: true, data: [] }
+    }
+
+    const { data: visiblePosts, error: visiblePostsError } = await supabase
+      .from("posts")
+      .select("post_id")
+      .in("post_id", postIds)
+      .eq("taken_down", false);
+
+    if (visiblePostsError) {
+      return { success: false, error: "Failed to filter taken down posts: " + visiblePostsError.message }
+    }
+
+    const visiblePostIdSet = new Set((visiblePosts ?? []).map((post: any) => Number(post.post_id)));
+    return {
+      success: true,
+      data: rawPosts.filter((post) => visiblePostIdSet.has(Number(post.post_id))),
+    }
   } catch (error) {
     return { success: false, error: "An unexpected error occurred in searchForPosts: " + error }
   }

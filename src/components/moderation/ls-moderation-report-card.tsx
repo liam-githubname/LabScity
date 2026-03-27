@@ -18,6 +18,9 @@ interface LSModerationReportCardProps {
 }
 
 export function LSModerationReportCard({ report, resolved = false }: LSModerationReportCardProps) {
+  const isCommentReport = Boolean(report.commentId);
+  const displayedText = isCommentReport ? report.commentText : report.postText;
+
   const handleDismiss = async () => {
     const formData = new FormData();
     formData.append("reportId", String(report.reportId));
@@ -28,6 +31,9 @@ export function LSModerationReportCard({ report, resolved = false }: LSModeratio
     const formData = new FormData();
     formData.append("reportId", String(report.reportId));
     formData.append("postId", String(report.postId));
+    if (report.commentId) {
+      formData.append("commentId", String(report.commentId));
+    }
     await deleteReportedPostAction(formData);
   };
 
@@ -122,13 +128,13 @@ export function LSModerationReportCard({ report, resolved = false }: LSModeratio
               <Text
                 span c={"gray.7"}
               >
-                {`"${report.postText ?? "(no post text)"}"`}
+                {`"${displayedText ?? (isCommentReport ? "(no comment text)" : "(no post text)")}"`}
               </Text>
             </Text>
           </Link>
 
           {/* post media */}
-          {report.postMediaUrl &&
+          {report.postMediaUrl && !isCommentReport &&
             <Link href={`/posts/${report.postId}`}>
               <Image
                 src={report.postMediaUrl}
@@ -160,7 +166,7 @@ export function LSModerationReportCard({ report, resolved = false }: LSModeratio
       {/* actions */}
     {!resolved && (
       <Flex direction={"row"} gap={2} mt={8}>
-        <Button flex={1} leftSection={<IconTrash width={18} />} color={"red"} c="gray.0" p={4} onClick={handleDeletePost}>Delete</Button>
+        <Button flex={1} leftSection={<IconTrash width={18} />} color={"red"} c="gray.0" p={4} onClick={handleDeletePost}>{isCommentReport ? "Delete Comment" : "Delete Post"}</Button>
         {report.reportedUserId &&
           <Button flex={1} leftSection={<IconX width={18} />} color={"red"} c="gray.0" p={4} onClick={handleBanUser}>Ban User</Button>
         }

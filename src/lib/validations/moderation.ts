@@ -12,6 +12,7 @@ export const dismissReportSchema = z.object({
 export const deleteReportedPostSchema = z.object({
 	reportId: reportIdSchema,
 	postId: postIdSchema,
+	commentId: z.coerce.number().int().positive("Comment ID is required").optional(),
 });
 
 export const banUserSchema = z.object({

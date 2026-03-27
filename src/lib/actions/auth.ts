@@ -60,6 +60,23 @@ export async function loginAction(formData: FormData) {
         error: error.message ?? "Invalid email or password",
       };
     }
+
+    if (data.user) {
+      const { data: userRow, error: userError } = await supabase
+        .from("users")
+        .select("is_banned")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
+
+      if (!userError && userRow?.is_banned) {
+        await supabase.auth.signOut();
+        return {
+          success: false,
+          error: "This account has been banned.",
+        };
+      }
+    }
+
     return { success: true, data };
   } catch (error) {
     if (error instanceof z.ZodError) {
