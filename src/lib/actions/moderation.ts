@@ -276,19 +276,19 @@ export async function deleteReportedPostAction(formData: FormData): Promise<void
     const { supabase } = gate;
 
     if (parsed.commentId) {
-      const { error: deleteCommentError } = await supabase
+      const { error: takedownCommentError } = await supabase
         .from("comment")
-        .delete()
+        .update({ taken_down: true })
         .eq("comment_id", parsed.commentId);
 
-      if (deleteCommentError) {
-        console.error(deleteCommentError.message);
+      if (takedownCommentError) {
+        console.error(takedownCommentError.message);
         return;
       }
 
       const { error: resolveCommentReportError } = await supabase
         .from("feed_report")
-        .update({ status: "deleted" })
+        .update({ status: "taken_down" })
         .eq("report_id", parsed.reportId);
 
       if (resolveCommentReportError) {
@@ -300,34 +300,19 @@ export async function deleteReportedPostAction(formData: FormData): Promise<void
       return;
     }
 
-    const { data: postData, error: postDataError } = await supabase
+    const { error: takedownPostError } = await supabase
       .from("posts")
-      .select("media_path")
-      .eq("post_id", parsed.postId)
-      .maybeSingle();
-
-    if (postDataError) {
-      console.error(postDataError.message);
-      return;
-    }
-
-    if (postData?.media_path) {
-      await supabase.storage.from("post_images").remove([postData.media_path]);
-    }
-
-    const { error: deletePostError } = await supabase
-      .from("posts")
-      .delete()
+      .update({ taken_down: true })
       .eq("post_id", parsed.postId);
 
-    if (deletePostError) {
-      console.error(deletePostError.message);
+    if (takedownPostError) {
+      console.error(takedownPostError.message);
       return;
     }
 
     const { error: resolveReportError } = await supabase
       .from("feed_report")
-      .update({ status: "deleted" })
+      .update({ status: "taken_down" })
       .eq("report_id", parsed.reportId);
 
     if (resolveReportError) {
@@ -378,6 +363,39 @@ export async function banUserAction(formData: FormData): Promise<void> {
     }
 
     if (parsed.reportId) {
+      const { data: reportRow, error: reportRowError } = await supabase
+        .from("feed_report")
+        .select("post_id, comment_id")
+        .eq("report_id", parsed.reportId)
+        .maybeSingle();
+
+      if (reportRowError) {
+        console.error(reportRowError.message);
+        return;
+      }
+
+      if (reportRow?.comment_id) {
+        const { error: takedownCommentError } = await supabase
+          .from("comment")
+          .update({ taken_down: true })
+          .eq("comment_id", reportRow.comment_id);
+
+        if (takedownCommentError) {
+          console.error(takedownCommentError.message);
+          return;
+        }
+      } else if (reportRow?.post_id) {
+        const { error: takedownPostError } = await supabase
+          .from("posts")
+          .update({ taken_down: true })
+          .eq("post_id", reportRow.post_id);
+
+        if (takedownPostError) {
+          console.error(takedownPostError.message);
+          return;
+        }
+      }
+
       const { error: resolveError } = await supabase
         .from("feed_report")
         .update({ status: "banned" })
