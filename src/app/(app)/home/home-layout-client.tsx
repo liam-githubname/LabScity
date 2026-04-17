@@ -16,9 +16,8 @@ export type HomePopularGroupsActions = {
   getGroupsAction: typeof getGroups;
 };
 
-/** Keep in sync with `LSAppTopBar` (`topBarSize`) and app mobile bottom nav height. */
+/** Keep in sync with `LSAppTopBar` (`topBarSize`). */
 const APP_TOP_BAR_PX = 60;
-const MOBILE_BOTTOM_NAV_PX = 60;
 
 export function HomeLayoutClient({
   children,
@@ -29,9 +28,22 @@ export function HomeLayoutClient({
 }) {
   const isMobile = useIsMobile();
 
-  const stickySidebarMaxHeight = isMobile
-    ? `calc(100dvh - ${APP_TOP_BAR_PX + MOBILE_BOTTOM_NAV_PX}px - 1rem)`
-    : `calc(100dvh - ${APP_TOP_BAR_PX}px - 1rem)`;
+  const sidebarStyle = isMobile
+    ? {
+        alignSelf: "stretch" as const,
+        minWidth: 0,
+        maxWidth: "100%",
+      }
+    : {
+        position: "sticky" as const,
+        top: "1rem",
+        alignSelf: "flex-start" as const,
+        minWidth: 0,
+        maxWidth: "100%",
+        maxHeight: `calc(100dvh - ${APP_TOP_BAR_PX}px - 1rem)`,
+        overflowY: "auto" as const,
+        overscrollBehavior: "contain" as const,
+      };
 
   return (
     <Box mih="100vh" bg="gray.0">
@@ -51,16 +63,7 @@ export function HomeLayoutClient({
           <Flex
             flex={4}
             {...(isMobile && { miw: "100%" })}
-            style={{
-              position: "sticky",
-              top: "1rem",
-              alignSelf: "flex-start",
-              minWidth: 0,
-              maxWidth: "100%",
-              maxHeight: stickySidebarMaxHeight,
-              overflowY: "auto",
-              overscrollBehavior: "contain",
-            }}
+            style={sidebarStyle}
           >
             <Stack gap="lg" w="100%" maw="100%" style={{ minWidth: 0 }}>
               <TrendingWidget />
