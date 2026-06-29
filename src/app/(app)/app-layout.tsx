@@ -12,7 +12,7 @@ const LSAppLayout = ({ userId, isModerator, children }: { userId: string, isMode
   const isMobile = useIsMobile()
 
   return (
-    <Flex direction={isMobile ? "column" : "row"} w="100%" h="100vh">
+    <Flex direction={isMobile ? "column" : "row"} w="100%" mih="100vh">
 
       <LSAppNavbar
         userId={userId}
@@ -26,7 +26,7 @@ const LSAppLayout = ({ userId, isModerator, children }: { userId: string, isMode
       <Flex direction="column" w="100%" miw={0}>
         <LSAppTopBar />
 
-        <Box maw="100%" style={{ overflowX: "hidden" }}>
+        <Box maw="100%" style={{ overflowX: "clip" }}>
           {children}
         </Box>
 

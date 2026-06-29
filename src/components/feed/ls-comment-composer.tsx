@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, Group, Stack, Textarea } from "@mantine/core";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   createCommentSchema,
@@ -21,6 +21,13 @@ export interface LSCommentComposerProps {
   isSubmitting?: boolean;
 }
 
+function noPropagate(fn?: () => void) {
+  return (e: React.MouseEvent) => {
+    e.stopPropagation();
+    fn?.();
+  };
+}
+
 /**
  * Inline comment form (textarea + Comment button) used inside post cards and on post detail.
  * Resets content on success; on error the hook shows a notification and form is not reset so user can retry.
@@ -32,6 +39,7 @@ export function LSCommentComposer({
 }: LSCommentComposerProps) {
   const {
     handleSubmit,
+    control,
     register,
     reset,
     formState: { errors, isSubmitting, isValid },
@@ -57,18 +65,26 @@ export function LSCommentComposer({
   return (
     <form onSubmit={onCommentSubmit}>
       <Stack gap="sm">
-        <Textarea
-          labelProps={{ fw: "bold" }}
-          placeholder="Share a thought..."
-          error={errors.content?.message}
-          styles={{ label: { color: "var(--mantine-color-navy-7)" } }}
-          {...register("content")}
+        <Controller 
+          name='content'
+          control={control}
+          render={({ field }) => (
+            <Textarea
+              labelProps={{ fw: "bold" }}
+              placeholder="Share a thought..."
+              error={errors.content?.message}
+              styles={{ label: { color: "var(--mantine-color-navy-7)" } }}
+              {...register("content")}
+              onClick={noPropagate()}
+            />
+          )}
         />
         <Group justify="flex-end">
           <Button
             type="submit"
             disabled={!isValid || isSubmitting || isMutationPending}
             loading={isMutationPending}
+            onClick={noPropagate()}
           >
             Comment
           </Button>

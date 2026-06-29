@@ -56,6 +56,8 @@ export async function setNotificationPreference(
  * await setNotificationPreferenceAllLikes(false);
  * ```
  */
+
+// mutation
 export async function setNotificationPreferenceAllLikes(newValue: boolean) {
   const supabase = await createClient();
   const { data: authData } = await supabase.auth.getUser();

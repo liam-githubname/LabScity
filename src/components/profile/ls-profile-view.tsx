@@ -1,6 +1,20 @@
 "use client";
 
-import { Box, Button, Divider, Flex, Stack } from "@mantine/core";
+import { 
+  Text, 
+  Box, 
+  Button, 
+  Divider, 
+  Flex, 
+  Group, 
+  Popover, 
+  Stack, 
+  Tabs, 
+  UnstyledButton, 
+  Anchor, 
+  TextInput, 
+  Collapse, 
+} from "@mantine/core";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useIsMobile } from "@/app/use-is-mobile";
@@ -62,6 +76,14 @@ import type {
   updateOwnProfilePicture,
   updateProfileAction,
 } from "@/lib/actions/profile";
+import LSPublication from "./publications/ls-publication";
+import { useAuthContext } from "../auth/auth-provider";
+import { IconHelp, IconPlus } from "@tabler/icons-react";
+import { useDisclosure } from "@mantine/hooks";
+import { useAddPubByDoi, useDeletePublication, usePublications, useSetFeaturedPublication } from "./publications/use-publications";
+import { useForm } from "@mantine/form";
+import { DoiFormValues, doiSchema } from "@/lib/validations/publication";
+import { MAX_FEATURED_PUBLICATIONS } from "@/lib/constants/publications";
 
 type UpdateProfileAction = typeof updateProfileAction;
 type ToggleFollowAction = typeof toggleFollowAction;
@@ -212,8 +234,8 @@ const LSProfileMobileLayout = ({
                   <LSPostCommentCard
                     key={comment.id}
                     comment={comment}
-                    onLikeClick={(commentId) =>
-                      actions.handleToggleCommentLike(commentId)
+                    onLikeClick={() =>
+                      actions.handleToggleCommentLike({postId, commentId: comment.id})
                     }
                     showMenu={false}
                   />
@@ -336,21 +358,10 @@ const LSProfileDesktopLayout = ({
   const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(
     null,
   );
+  const [doiInputExpanded, { toggle: toggleDoiInput }] = useDisclosure(false);
 
   const hasNextPage = userPostsQuery.hasNextPage ?? false;
   const isFetchingNextPage = userPostsQuery.isFetchingNextPage ?? false;
-
-  if (profileQuery.status === "pending") {
-    return (
-      <Flex justify="center" align="center" h="calc(100vh - 120px)">
-        <LSSpinner />
-      </Flex>
-    );
-  }
-
-  if (profileQuery.status === "error") {
-    return <div> Error loading Profile... </div>;
-  }
 
   const friendIds = new Set(friends?.map((friend) => friend.user_id));
 
@@ -361,7 +372,6 @@ const LSProfileDesktopLayout = ({
   const listPosts = posts.map((post) => {
     const postId = String(post.post_id);
     const comments = post.comments ?? [];
-
     return (
       <li key={postId}>
         <LSPostCard
@@ -392,6 +402,8 @@ const LSProfileDesktopLayout = ({
           }
           isEditPending={actions.updatePostMutation.isPending}
           onPostClick={() => router.push(`/posts/${post.post_id}`)}
+          mediaHeight={post.media_height}
+          mediaWidth={post.media_width}
           shareUrl={`/posts/${post.post_id}`}
         >
           <Stack gap="md" w="100%">
@@ -410,8 +422,8 @@ const LSProfileDesktopLayout = ({
                   <LSPostCommentCard
                     key={comment.id}
                     comment={comment}
-                    onLikeClick={(commentId) =>
-                      actions.handleToggleCommentLike(commentId)
+                    onLikeClick={() =>
+                      actions.handleToggleCommentLike({postId, commentId: comment.id})
                     }
                     showMenu={false}
                   />
@@ -423,9 +435,51 @@ const LSProfileDesktopLayout = ({
       </li>
     );
   });
+  const pubsQuery = usePublications(userId);
+  const publications = pubsQuery.data;
+  
+  const doiForm = useForm<DoiFormValues>({
+    mode: 'uncontrolled',
+    initialValues: { doi: ''},
+    validate: {
+      doi: (val) => {
+        if(!val.trim()) return null;
+        const res = doiSchema.safeParse(val);
+        return res.success ? null : res.error.issues[0].message;
+      }
+    },
+    validateInputOnBlur: true
+  });
+
+  const addPubByDoi = useAddPubByDoi({ 
+    userId,
+    onSuccess: () => {
+      doiForm.reset();
+      toggleDoiInput();
+    }
+  });  
+  const handleDoiSubmit = doiForm.onSubmit((vals) => {
+    addPubByDoi.mutate(vals.doi);
+  })
+
+  const deletePub = useDeletePublication(userId);
+
+  const setFeaturedPub = useSetFeaturedPublication(userId);
+  const featuredCount = publications?.filter((p) => p.is_featured).length ?? 0;
+
+  if (profileQuery.status === "pending") {
+    return (
+      <Flex justify="center" align="center" h="calc(100vh - 120px)">
+        <LSSpinner />
+      </Flex>
+    );
+  }
+  if (profileQuery.status === "error") {
+    return <div> Error loading Profile... </div>;
+  }
 
   return (
-    <Box py={24} px={80}>
+    <Box pt={24} pb={300} px={80}>
       <Flex p={8} direction="row" w="100%" gap={28} align="flex-start">
         <Box flex={5}>
           <LSProfileHero
@@ -480,29 +534,155 @@ const LSProfileDesktopLayout = ({
           </Box>
         </Flex>
       </Flex>
-      <Divider my={20} color="navy.1" />
-      <Stack mt={20} px="20%">
-        <Stack
-          component="ul"
-          gap="lg"
-          w="100%"
-          style={{ listStyle: "none", paddingLeft: 0, margin: 0 }}
-        >
-          {listPosts}
-        </Stack>
-        {hasNextPage ? (
-          <Button
-            variant="subtle"
-            color="navy"
-            size="sm"
-            radius="xl"
-            onClick={() => userPostsQuery.fetchNextPage()}
-            loading={isFetchingNextPage}
-          >
-            Load more posts
-          </Button>
-        ) : null}
-      </Stack>
+      
+      <Divider mt={20} color="navy.1" />
+      <Tabs defaultValue='posts' activateTabWithKeyboard={false}
+        styles={{
+          panel: {
+            display: 'flex',
+            justifyContent: 'center'
+          }
+        }}
+      >
+
+        <Tabs.List mb={20} grow justify='center'>
+          <Tabs.Tab value='posts'>
+            Posts
+          </Tabs.Tab>
+          <Tabs.Tab value='publications'>
+            Publications
+          </Tabs.Tab>
+          <Tabs.Tab value='products'>
+            Research Products
+          </Tabs.Tab>
+        </Tabs.List>
+
+        <Tabs.Panel value='posts'>
+          <Stack w='100%' maw='600'>
+            <Stack
+              component="ul"
+              gap="lg"
+              w="100%"
+              style={{ listStyle: "none", paddingLeft: 0, margin: 0 }}
+            >
+              {listPosts}
+            </Stack>
+            {hasNextPage ? (
+              <Button
+                variant="subtle"
+                color="navy"
+                size="sm"
+                radius="xl"
+                onClick={() => userPostsQuery.fetchNextPage()}
+                loading={isFetchingNextPage}
+              >
+                Load more posts
+              </Button>
+            ) : null}
+          </Stack>
+        </Tabs.Panel>
+
+        <Tabs.Panel value='publications'>
+          <Stack w='700'>
+            {
+              isOwnProfile && 
+              <Group wrap='nowrap' justify='space-between'>
+                <Group wrap='nowrap'>
+                  <Button 
+                    onClick={toggleDoiInput} 
+                    rightSection={
+                      <IconPlus 
+                        size='1rem'
+                        style={{
+                          transform: doiInputExpanded ? 'rotate(45deg)' : 'rotate(0deg)',
+                          transition: 'transform 200ms ease',
+                        }}
+                      />
+                    }
+                  >
+                    Add Research
+                  </Button>
+                  <Collapse in={doiInputExpanded} flex='1'>
+                    <form onSubmit={handleDoiSubmit}>
+                      <TextInput 
+                        placeholder="doi.org/..." 
+                        bdrs='md' 
+                        disabled={addPubByDoi.isPending}
+                        key={doiForm.key('doi')}
+                        {...doiForm.getInputProps("doi")}
+                      />
+                    </form>
+                  </Collapse>
+                </Group>
+                <Group wrap='nowrap'>
+                  <Button variant='outline'>
+                    Link With ORCID iD
+                  </Button>
+                  <Popover width='200' position='top' shadow='xs'>
+                    <Popover.Target>
+                      <UnstyledButton variant='none' bdrs='100'>
+                        <Flex>
+                          <IconHelp size='2rem' stroke='1' color='var(--mantine-color-dimmed)'/>  
+                        </Flex>
+                      </UnstyledButton>  
+                    </Popover.Target>  
+                    <Popover.Dropdown 
+                      bdrs='md' 
+                      bd='1px solid navy.2'
+                      styles={{
+                        arrow: {
+                          border: '1px solid var(--mantine-color-navy-2)'
+                        }
+                      }}
+                    >
+                      <Text fz='xs'>
+                        An <Text component='span' fz='xs' fw='600'>ORCID iD </Text> 
+                        is a unique identifier researchers can use to link all of your 
+                        research with you. Linking your account with an ORCID iD will
+                        enable LabScity to automatically fetch data about your 
+                        publications. 
+                      </Text>
+                      <Anchor fz='xs' href='https://info.orcid.org/researchers/' target="_blank" rel="noopener noreferrer">
+                        Learn more at orcid.org
+                      </Anchor>
+                    </Popover.Dropdown>
+                  </Popover>
+                </Group>
+              </Group>
+            }
+            
+            <Stack maw='800'>
+            {
+              (publications && publications.length > 0)
+              ? 
+              publications.map((pub, i) => 
+                <LSPublication 
+                  key={pub.publication_id}
+                  pub={pub}
+                  isOwner={isOwnProfile}
+                  onDeleteClick={() => deletePub.mutate(pub.publication_id)}
+                  isDeleting={deletePub.isPending && deletePub.variables === pub.publication_id}
+                  onFeaturedClick={() => setFeaturedPub.mutate({ 
+                    publicationId: pub.publication_id, 
+                    isFeatured: !pub.is_featured
+                  })}
+                  featureBtnDisabled={!pub.is_featured && featuredCount >= MAX_FEATURED_PUBLICATIONS}
+                />
+              )
+              :
+              <>
+                No Publications found
+              </>
+            }
+            </Stack>
+          </Stack>
+        </Tabs.Panel>
+
+        <Tabs.Panel value='products'>
+          Products
+        </Tabs.Panel>
+
+      </Tabs>
     </Box>
   );
 };

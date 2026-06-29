@@ -71,3 +71,8 @@ export const dataKeys = {
     [...dataKeys.all, "searchGroups", query, limit] as const,
   user: (userId: string) => [...dataKeys.all, "user", userId] as const,
 };
+
+export const publicationKeys = {
+  all: ["publications"] as const,
+  list: (userId: string) => [...publicationKeys.all, 'list', userId] as const
+}

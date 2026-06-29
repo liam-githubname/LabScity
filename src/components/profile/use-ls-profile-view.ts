@@ -217,12 +217,37 @@ function useProfilePostActions(
   });
 
   const likeCommentMutation = useMutation({
-    mutationFn: async (commentId: string) => {
+    mutationFn: async ( {postId, commentId} : { postId: string, commentId: string}) => {
       const result = await actions.likeCommentAction(commentId);
       if (!result.success) {
         throw new Error(result.error ?? "Failed to update like");
       }
       return result;
+    },
+    onMutate: async ( {postId, commentId} ) => {
+      await queryClient.cancelQueries({ queryKey: profileKeys.posts(userId) });
+      const snapshot = queryClient.getQueryData(profileKeys.posts(userId));
+      queryClient.setQueryData(profileKeys.posts(userId), (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page: any) => ({
+            ...page,
+            posts: page.posts.map((p: any) =>
+              String(p.post_id) === postId
+                ? { ...p, 
+                  comments: p.comments.map((c: any) => 
+                    String(c.id) === commentId
+                    ? { ...c, isLiked: !c.isLiked }
+                    : c
+                  )
+                }
+                : p
+            ),
+          })),
+        };
+      });
+      return { snapshot };
     },
     onSuccess: () => {
       invalidatePosts();
@@ -326,8 +351,8 @@ function useProfilePostActions(
     likePostMutation.mutate(postId);
   };
 
-  const handleToggleCommentLike = (commentId: string) => {
-    likeCommentMutation.mutate(commentId);
+  const handleToggleCommentLike = ({ postId, commentId }: { postId: string; commentId: string }) => {
+    likeCommentMutation.mutate({postId, commentId});
   };
 
   const handleDeletePost = (postId: string) => {

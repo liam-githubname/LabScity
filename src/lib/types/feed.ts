@@ -37,6 +37,8 @@ export interface Post {
   user_id: string;
   content: string;
   media_url: string | null;
+  mediaWidth?: number | null;
+  mediaHeight?: number | null;
   category: PostCategory;
   link: string | null;
   created_at: string;
@@ -87,6 +89,8 @@ export interface FeedPostItem {
   content: string;
   timeAgo: string;
   mediaUrl?: string | null;
+  mediaHeight?: number;
+  mediaWidth?: number;
   mediaLabel?: string | null;
   comments: FeedCommentItem[];
   isLiked?: boolean;
@@ -111,4 +115,14 @@ export interface FeedCommentItem {
 export interface GetFeedResult {
   posts: FeedPostItem[];
   nextCursor: string | null;
+}
+
+export interface GetFeedPaginatedResult {
+  pages: GetFeedResult[];
+  pageParams: (string | undefined)[];
+}
+
+export interface GetPostDetailResult {
+  success: boolean;
+  data: FeedPostItem;
 }

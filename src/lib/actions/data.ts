@@ -138,6 +138,8 @@ export async function getUserPosts(input: GetUserPostsInput, supabaseClient?: Su
         scientific_field,
         text,
         media_path,
+        media_width,
+        media_height,
         like_amount,
         likes(user_id)
       `);
@@ -555,7 +557,7 @@ export async function getUser(user_id: string, supabaseClient?: SupabaseClient):
     const user = data[0];
     const { data: profileData, error: profileError } = await supabase
       .from("profile")
-      .select("header_pic_path, about, workplace, occupation, skill, articles")
+      .select("header_pic_path, about, workplace, profession, occupation, skill, articles")
       .eq("user_id", user_id)
       .maybeSingle();
 

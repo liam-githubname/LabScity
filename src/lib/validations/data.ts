@@ -95,6 +95,8 @@ export const postSchema = z.object({
     .optional(),
   media_path: z.string().nullable().optional(),
   media_url: z.string().nullable().optional(),
+  media_width: z.number().nullable().optional(),
+  media_height: z.number().nullable().optional(),
   created_at: z.string(),
   category: z.string().optional(),
   scientific_field: z.string().nullable().optional(),

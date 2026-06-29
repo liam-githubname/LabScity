@@ -11,6 +11,13 @@ interface PostFollowButtonProps {
   targetUserId: string;
 }
 
+function noPropagate(fn?: () => void) {
+  return (e: React.MouseEvent) => {
+    e.stopPropagation();
+    fn?.();
+  };
+}
+
 export function PostFollowButton({
   currentUserId,
   targetUserId,
@@ -93,7 +100,7 @@ export function PostFollowButton({
       radius="xl"
       variant="light"
       color="navy"
-      onClick={() => toggleFollowMutation.mutate()}
+      onClick={noPropagate(toggleFollowMutation.mutate)}
       loading={toggleFollowMutation.isPending}
     >
       Follow

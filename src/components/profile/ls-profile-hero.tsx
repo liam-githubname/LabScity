@@ -340,7 +340,7 @@ export default function LSProfileHero({
   return (
     <Card shadow="sm" padding="none" radius="md">
 
-      <Box mb={-64} pos="relative" style={{ zIndex: 110 }}>
+      <Box mb={-64} pos="relative" style={{ zIndex: 1 }}>
         {isOwnProfile && onProfileHeaderSelect ? (
           <FileButton onChange={onProfileHeaderSelect} accept="image/jpeg,image/png,image/webp,image/gif">
             {(props) => (
@@ -433,7 +433,7 @@ export default function LSProfileHero({
                     background: "transparent",
                     cursor: "pointer",
                     position: "relative",
-                    zIndex: 120,
+                    zIndex: 2,
                     width: 80,
                     height: 80,
                     borderRadius: "50%",
@@ -455,7 +455,7 @@ export default function LSProfileHero({
                       style={{
                         position: "absolute",
                         inset: 0,
-                        zIndex: 130,
+                        zIndex: 3,
                         borderRadius: "50%",
                         background: "rgba(0,0,0,0.45)",
                         display: "flex",
@@ -488,7 +488,7 @@ export default function LSProfileHero({
               radius="xl"
               color="navy.7"
               bg={profilePicURL ? undefined : "navy.7"}
-              style={{ position: "relative", zIndex: 120 }}
+              style={{ position: "relative", zIndex: 2 }}
             >
               {avatarInitials}
             </Avatar>

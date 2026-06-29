@@ -3,15 +3,10 @@ import {
   HydrationBoundary,
   QueryClient,
 } from "@tanstack/react-query";
-import { getFeed } from "@/lib/actions/feed";
 import { getGroups, joinGroup, searchPublicGroups } from "@/lib/actions/groups";
-import { feedKeys, groupKeys } from "@/lib/query-keys";
-import { feedFilterSchema } from "@/lib/validations/post";
+import { groupKeys } from "@/lib/query-keys";
 import { createClient } from "@/supabase/server";
-import type { GetFeedResult } from "@/lib/types/feed";
 import { HomeLayoutClient } from "./home-layout-client";
-
-const defaultFeedFilter = feedFilterSchema.parse({});
 
 /**
  * Prefetch + hydrate the whole home shell (feed + sidebar) from one QueryClient
@@ -29,23 +24,6 @@ export default async function HomeLayout({
   } = await supabase.auth.getUser();
 
   const queryClient = new QueryClient();
-
-  await queryClient.prefetchInfiniteQuery({
-    queryKey: feedKeys.list(defaultFeedFilter),
-    queryFn: async ({ pageParam }) => {
-      const input = pageParam
-        ? { ...defaultFeedFilter, cursor: pageParam }
-        : defaultFeedFilter;
-      const result = await getFeed(input);
-      if (!result.success || !result.data) {
-        throw new Error(result.error ?? "Failed to fetch feed");
-      }
-      return result.data;
-    },
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage: GetFeedResult) =>
-      lastPage.nextCursor ?? undefined,
-  });
 
   const popularLimit = 6;
   if (user?.id) {

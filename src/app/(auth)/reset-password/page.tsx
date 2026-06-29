@@ -73,7 +73,8 @@ function ResetPasswordContent() {
       }
 
       setIsSuccessful(true);
-    } catch {
+    } catch (error) {
+      console.error(error);
       setErrorMessage("An unexpected error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);

@@ -31,6 +31,7 @@ export function LSLoginForm({
 }) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [signInSuccess, setSignInSuccess] = useState(false);
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -50,8 +51,10 @@ export function LSLoginForm({
       formData.append("password", data.password);
       const result = await loginAction(formData);
       if (result.success) {
+        setSignInSuccess(true);
         router.push("/home");
       } else if (result.error) {
+        setSignInSuccess(false);
         setServerError(result.error);
       }
     } catch (error) {
@@ -61,9 +64,9 @@ export function LSLoginForm({
 
   // check if we are on mobile to change some layout stuff around
   const isMobile = useIsMobile()
-
   return (
     <Paper
+      miw={400}
       maw={isMobile ? "90%" : "30%"} // limit box size on larger screen 
       bg="navy.0"
       p="2rem"
@@ -78,8 +81,8 @@ export function LSLoginForm({
             <Image
               src="/logo.png"
               alt="LabScity Logo"
-              width={200}
-              height={200}
+              width={320}
+              height={108}
               priority
               style={{ width: "auto", height: "auto", objectFit: "contain" }}
             />
@@ -121,10 +124,11 @@ export function LSLoginForm({
             <Controller
               name="password"
               control={form.control}
-              render={({ field }) => (
+              render={({ field, fieldState }) => (
                 <PasswordInput
                   {...field}
                   styles={{ input: inputStyles, root: { width: "100%" } }}
+                  error={fieldState.error?.message}
                 />
               )}
             />
@@ -134,7 +138,7 @@ export function LSLoginForm({
           </Anchor>
           <Button
             type="submit"
-            loading={form.formState.isSubmitting}
+            loading={form.formState.isSubmitting || signInSuccess}
             bg="navy.7"
             c="navy.0"
             fw={600}

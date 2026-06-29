@@ -1,16 +1,8 @@
 import type { Metadata } from "next";
-import { HomeFeed } from "@/components/feed/home-feed";
-import {
-  createComment,
-  createPost,
-  createPostImageUploadUrl,
-  createReport,
-  deletePost,
-  likeComment,
-  likePost,
-  updatePost,
-} from "@/lib/actions/feed";
+import { Suspense } from "react";
 import { createClient } from "@/supabase/server";
+import HomeFeedSkeleton from "@/components/feed/home-feed-skeleton";
+import HomeFeedServer from "@/components/feed/home-feed-server";
 
 export const metadata: Metadata = {
   title: "Home | LabScity",
@@ -22,18 +14,10 @@ export default async function HomePage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
+  
   return (
-    <HomeFeed
-      createPostAction={createPost}
-      createPostImageUploadUrlAction={createPostImageUploadUrl}
-      createCommentAction={createComment}
-      createReportAction={createReport}
-      likePostAction={likePost}
-      likeCommentAction={likeComment}
-      deletePostAction={deletePost}
-      updatePostAction={updatePost}
-      currentUserId={user?.id ?? null}
-    />
+    <Suspense fallback={<HomeFeedSkeleton />}>
+      <HomeFeedServer />
+    </Suspense>
   );
 }

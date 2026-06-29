@@ -163,14 +163,14 @@ export function LSGroupFeed(props: LSGroupFeedProps) {
                   <LSPostCommentCard
                     key={comment.id}
                     comment={comment}
-                    onLikeClick={(commentId) =>
-                      handleToggleCommentLike(post.id, commentId)
+                    onLikeClick={ () =>
+                      handleToggleCommentLike(post.id, comment.id)
                     }
-                    onReportClick={(commentId) =>
+                    onReportClick={() =>
                       setReportTarget({
                         type: "comment",
                         postId: post.id,
-                        commentId,
+                        commentId: comment.id,
                       })
                     }
                     menuId={`group-comment-menu-${comment.id}`}

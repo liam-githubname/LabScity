@@ -8,7 +8,6 @@ import {
   Divider,
   Flex,
   Group,
-  Image,
   Menu,
   Modal,
   Paper,
@@ -18,6 +17,7 @@ import {
   TextInput,
   UnstyledButton,
 } from "@mantine/core";
+import Image from 'next/image';
 import { useDebouncedValue } from "@mantine/hooks";
 import {
   IconBell,
@@ -235,8 +235,8 @@ const LSAppTopBar = () => {
 
   /* to fix layout stuff */
 
-  const topBarSize = 60; // honestly im not sure what to name this but whatever
-  const desktopSearchDropdownSize = 512;
+  const topBarHeight = 60 // honestly im not sure what to name this but whatever
+  const desktopSearchDropdownSize = 512
 
   /*---------------------*/
 
@@ -245,19 +245,19 @@ const LSAppTopBar = () => {
       pos="sticky"
       bg="gray.0"
       top={0}
-      left={isMobile ? 0 : topBarSize}
-      h={topBarSize}
+      left={isMobile ? 0 : topBarHeight}
+      h={topBarHeight}
       w={"100%"}
       justify="center"
       align="center"
       style={{
         borderBottom: "1px solid var(--mantine-color-gray-3)",
-        zIndex: 200 /* keeps topbar above profile hero banner when scrolling */,
+        zIndex: 10 /* keeps topbar above profile hero banner when scrolling */,
       }}
     >
       {searchOpen ? (
         /* Search mode: full-width input */
-        <Flex h={topBarSize} w="100%" align="center" gap="xs" px="md">
+        <Flex h={topBarHeight} w="100%" align="center" gap="xs" px="md">
           {/* search input field */}
           <TextInput
             ref={inputRef}
@@ -317,18 +317,17 @@ const LSAppTopBar = () => {
             style={{
               display: "flex",
               alignItems: "center",
-              height: topBarSize,
+              height: topBarHeight,
               lineHeight: 0,
             }}
           >
-            <Image
+            <Image 
               src="/logo-lightgray.png"
-              alt=""
-              w="auto"
-              style={{
-                height: `${Math.round(topBarSize * 0.64)}px`,
-                width: "auto",
-              }}
+              width={500}
+              height={60}
+              style={{width: 'auto', height: '38px', margin: '11px'}}
+              alt='LabScity Logo'
+              priority={true}
             />
           </UnstyledButton>
 
@@ -429,21 +428,22 @@ const LSAppTopBar = () => {
       )}
 
       {/* Search results dropdown */}
-      {showDropdown && (
-        <Paper
-          pos="absolute"
-          top={topBarSize}
-          shadow="xl"
-          w={isMobile ? "100%" : desktopSearchDropdownSize}
-          mah="60vh"
-          p="sm"
-          style={{ zIndex: 99, overflowY: "auto" }}
-        >
-          {searching && (
-            <Flex justify="center" py="sm">
-              <LSSpinner />
-            </Flex>
-          )}
+      {
+        showDropdown && (
+          <Paper
+            pos="absolute"
+            top={topBarHeight}
+            shadow="xl"
+            w={isMobile ? "100%" : desktopSearchDropdownSize}
+            mah="60vh"
+            p="sm"
+            style={{ zIndex: 9, overflowY: "auto" }}
+          >
+            {searching && (
+              <Flex justify="center" py="sm">
+                <LSSpinner />
+              </Flex>
+            )}
 
           {!searching && results.length === 0 && (
             <Text size="sm" c="dimmed" ta="center" py="sm">

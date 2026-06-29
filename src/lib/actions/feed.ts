@@ -126,6 +126,8 @@ export async function createPost(
         category: parsed.category,
         text: parsed.content,
         media_path: parsed.mediaPath ?? null,
+        media_width: parsed.mediaWidth ?? null,
+        media_height: parsed.mediaHeight ?? null,
         group_id: parsed.groupId ?? null,
       })
       .select()
@@ -289,6 +291,8 @@ export async function getFeed(input: FeedFilterValues, supabaseClient?: any) {
 				scientific_field,
 				user_id,
 				media_path,
+        media_width,
+        media_height,
 				users:user_id(user_id, first_name, last_name, profile_pic_path),
 				likes(user_id)
 			`,
@@ -374,52 +378,47 @@ export async function getFeed(input: FeedFilterValues, supabaseClient?: any) {
       }),
     );
 
-    // Format the response
-    const formattedPosts = postsWithComments.map(({ post, comments }: any) => {
-      const mediaUrl = post.media_path
-        ? supabase.storage.from(postMediaBucket).getPublicUrl(post.media_path)
-            .data.publicUrl
-        : null;
-      const postAvatarUrl = post.users?.profile_pic_path
-        ? supabase.storage
-            .from("profile_pictures")
-            .getPublicUrl(post.users.profile_pic_path).data.publicUrl
-        : null;
+		// Format the response
+		const formattedPosts = postsWithComments.map(({ post, comments }: any) => {
+			const mediaUrl = post.media_path
+				? supabase.storage.from(postMediaBucket).getPublicUrl(post.media_path).data.publicUrl
+				: null;
+      const mediaWidth: number | undefined = post.media_width;
+      const mediaHeight: number | undefined = post.media_height;
+			const postAvatarUrl = post.users?.profile_pic_path
+				? supabase.storage.from("profile_pictures").getPublicUrl(post.users.profile_pic_path).data.publicUrl
+				: null;
 
-      return {
-        id: post.post_id,
-        userId: post.user_id,
-        userName: `${post.users?.first_name} ${post.users?.last_name}`.trim(),
-        avatarUrl: postAvatarUrl,
-        scientificField: post.scientific_field,
-        content: post.text,
-        mediaUrl,
-        timeAgo: getTimeAgo(post.created_at),
-        comments: comments.map((comment: any) => ({
-          id: comment.comment_id,
-          userId: comment.user_id,
-          userName:
-            `${comment.users?.first_name} ${comment.users?.last_name}`.trim(),
-          avatarUrl: comment.users?.profile_pic_path
-            ? supabase.storage
-                .from("profile_pictures")
-                .getPublicUrl(comment.users.profile_pic_path).data.publicUrl
-            : null,
-          content: comment.text,
-          timeAgo: getTimeAgo(comment.created_at),
-          isLiked: authData.user
-            ? comment.comment_likes?.some(
-                (like: any) => like.user_id === authData.user?.id,
-              )
-            : false,
-        })),
-        isLiked:
-          post.likes && post.likes.length > 0 && authData.user
-            ? post.likes.some((like: any) => like.user_id === authData.user?.id)
-            : false,
-        likeCount: post.like_amount ?? 0,
-      };
-    });
+			return {
+			id: post.post_id,
+			userId: post.user_id,
+			userName: `${post.users?.first_name} ${post.users?.last_name}`.trim(),
+			avatarUrl: postAvatarUrl,
+			scientificField: post.scientific_field,
+			content: post.text,
+			mediaUrl,
+      mediaWidth,
+      mediaHeight,
+			timeAgo: getTimeAgo(post.created_at),
+			comments: comments.map((comment: any) => ({
+				id: comment.comment_id,
+				userId: comment.user_id,
+				userName: `${comment.users?.first_name} ${comment.users?.last_name}`.trim(),
+				avatarUrl: comment.users?.profile_pic_path
+					? supabase.storage.from("profile_pictures").getPublicUrl(comment.users.profile_pic_path).data.publicUrl
+					: null,
+				content: comment.text,
+				timeAgo: getTimeAgo(comment.created_at),
+				isLiked: authData.user
+					? comment.comment_likes?.some((like: any) => like.user_id === authData.user?.id)
+					: false,
+			})),
+			isLiked: post.likes && post.likes.length > 0 && authData.user
+				? post.likes.some((like: any) => like.user_id === authData.user?.id)
+				: false,
+			likeCount: post.like_amount ?? 0,
+			};
+		});
 
     const data: GetFeedResult = {
       posts: formattedPosts,
@@ -777,11 +776,11 @@ export async function getTrendingScientificFields(supabaseClient?: any) {
       return { success: false, error: error.message };
     }
 
-    if (!posts || posts.length === 0) {
-      // No posts this month, return array filled with #FeedMeMorePosts
-      const hashtags = Array(5).fill("#FeedMeMorePosts");
-      return { success: true, data: { hashtags } };
-    }
+		if (!posts || posts.length === 0) {
+			// No posts this month, return array filled with #FeedMeMorePosts
+			const hashtags = Array(5).fill("FeedMeMorePosts");
+			return { success: true, data: { hashtags } };
+		}
 
     const isTrendingFieldExcluded = (field: unknown) => {
       if (typeof field !== "string") {
@@ -831,12 +830,12 @@ export async function getTrendingScientificFields(supabaseClient?: any) {
     const topFields = fieldRankings
       .sort((a, b) => b.score - a.score)
       .slice(0, 5)
-      .map(({ field }) => `#${field}`);
+      .map(({ field }) => `${field}`);
 
     // Fill remaining slots with #FeedMeMorePosts if fewer than 5 fields
     const hashtags = [
       ...topFields,
-      ...Array(Math.max(0, 5 - topFields.length)).fill("#FeedMeMorePosts"),
+      ...Array(Math.max(0, 5 - topFields.length)).fill("FeedMeMorePosts"),
     ];
 
     return { success: true, data: { hashtags } };
@@ -985,6 +984,8 @@ export async function getPostDetail(
 				scientific_field,
 				user_id,
 				media_path,
+        media_width,
+        media_height,
 				users:user_id(user_id, first_name, last_name, profile_pic_path),
 				likes(user_id)
 			`,
@@ -1043,39 +1044,35 @@ export async function getPostDetail(
           .getPublicUrl(post.users.profile_pic_path).data.publicUrl
       : null;
 
-    const formatted: FeedPostItem = {
-      id: post.post_id,
-      userId: post.user_id,
-      userName: `${post.users?.first_name} ${post.users?.last_name}`.trim(),
-      avatarUrl: postAvatarUrl,
-      scientificField: post.scientific_field,
-      content: post.text,
-      mediaUrl,
-      timeAgo: getTimeAgo(post.created_at),
-      comments: (comments || []).map((comment: any) => ({
-        id: comment.comment_id,
-        userId: comment.user_id,
-        userName:
-          `${comment.users?.first_name} ${comment.users?.last_name}`.trim(),
-        avatarUrl: comment.users?.profile_pic_path
-          ? supabase.storage
-              .from("profile_pictures")
-              .getPublicUrl(comment.users.profile_pic_path).data.publicUrl
-          : null,
-        content: comment.text,
-        timeAgo: getTimeAgo(comment.created_at),
-        isLiked: authData.user
-          ? comment.comment_likes?.some(
-              (like: any) => like.user_id === authData.user?.id,
-            )
-          : false,
-      })),
-      isLiked:
-        post.likes && post.likes.length > 0 && authData.user
-          ? post.likes.some((like: any) => like.user_id === authData.user?.id)
-          : false,
-      likeCount: post.like_amount ?? 0,
-    };
+		const formatted: FeedPostItem = {
+			id: post.post_id,
+			userId: post.user_id,
+			userName: `${post.users?.first_name} ${post.users?.last_name}`.trim(),
+			avatarUrl: postAvatarUrl,
+			scientificField: post.scientific_field,
+			content: post.text,
+			mediaUrl,
+			timeAgo: getTimeAgo(post.created_at),
+			comments: (comments || []).map((comment: any) => ({
+				id: comment.comment_id,
+				userId: comment.user_id,
+				userName: `${comment.users?.first_name} ${comment.users?.last_name}`.trim(),
+				avatarUrl: comment.users?.profile_pic_path
+					? supabase.storage.from("profile_pictures").getPublicUrl(comment.users.profile_pic_path).data.publicUrl
+					: null,
+				content: comment.text,
+				timeAgo: getTimeAgo(comment.created_at),
+				isLiked: authData.user
+					? comment.comment_likes?.some((like: any) => like.user_id === authData.user?.id)
+					: false,
+			})),
+			isLiked: post.likes && post.likes.length > 0 && authData.user
+				? post.likes.some((like: any) => like.user_id === authData.user?.id)
+				: false,
+			likeCount: post.like_amount ?? 0,
+      mediaWidth: post.media_width,
+      mediaHeight: post.media_height
+		};
 
     return { success: true, data: formatted };
   } catch (error) {

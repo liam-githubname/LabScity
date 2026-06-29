@@ -374,6 +374,7 @@ export async function updateProfileAction(
       occupation: emptyToNull(validated.occupation),
       skill: validated.skill.length ? validated.skill : null,
       articles: validated.articles?.length ? validated.articles : null,
+      timezone: emptyToNull(validated.timezone),
     };
 
     const { error: profileError } = await supabase

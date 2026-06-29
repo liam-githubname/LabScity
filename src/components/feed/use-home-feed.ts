@@ -9,8 +9,8 @@ import {
 } from "@tanstack/react-query";
 import { useState } from "react";
 import { getFeed } from "@/lib/actions/feed";
-import { feedKeys } from "@/lib/query-keys";
-import type { FeedPostItem, GetFeedResult } from "@/lib/types/feed";
+import { feedKeys, postKeys } from "@/lib/query-keys";
+import { GetPostDetailResult, type FeedPostItem, type GetFeedPaginatedResult, type GetFeedResult } from "@/lib/types/feed";
 import {
   type CreateCommentValues,
   type CreatePostValues,
@@ -20,6 +20,7 @@ import {
 } from "@/lib/validations/post";
 import { createClient } from "@/supabase/client";
 import type { HomeFeedProps } from "./home-feed.types";
+import { getImageDims } from "@/lib/utils";
 
 const defaultFeedFilter = feedFilterSchema.parse({});
 const maxPostImageBytes = 5 * 1024 * 1024;
@@ -78,10 +79,12 @@ export function useHomeFeed({
   });
 
   const createPostMutation = useMutation({
-    mutationFn: async (
-      values: CreatePostValues & { mediaFile?: File | null },
-    ) => {
-      let mediaPath: string | undefined;
+    mutationFn: async (values: CreatePostValues & { mediaFile?: File | null }) => {
+      let media: {mediaPath?: string, mediaWidth?: number, mediaHeight?: number} = {
+        mediaPath: undefined,
+        mediaWidth: undefined,
+        mediaHeight: undefined
+      };
 
       if (values.mediaFile) {
         if (!allowedImageMimeTypes.has(values.mediaFile.type)) {
@@ -112,19 +115,23 @@ export function useHomeFeed({
           throw new Error(uploadError.message || "Image upload failed");
         }
 
-        mediaPath = uploadInfo.data.path;
+        media.mediaPath = uploadInfo.data.path;
+        const { width, height } = await getImageDims(values.mediaFile);
+        media.mediaWidth = width;
+        media.mediaHeight = height;
       }
 
       const payload = {
         scientificField: values.scientificField,
         content: values.content,
         category: values.category,
-        mediaPath,
+        ...media,
       };
       const result = await createPostAction(payload);
       if (!result.success) {
         throw new Error(result.error ?? "Failed to create post");
       }
+      
       return result;
     },
     onSuccess: () => {
@@ -167,8 +174,9 @@ export function useHomeFeed({
       }
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (_data, { postId }) => {
       queryClient.invalidateQueries({ queryKey: feedKeys.all });
+      queryClient.invalidateQueries({ queryKey: postKeys.detail(postId.toString()) });
       setActiveCommentPostId(null);
     },
     onError: (error) => {
@@ -224,12 +232,12 @@ export function useHomeFeed({
       return result;
     },
     onMutate: async (postId: string) => {
-      await queryClient.cancelQueries({
-        queryKey: feedKeys.list(defaultFeedFilter),
-      });
-      const snapshot = queryClient.getQueryData(
-        feedKeys.list(defaultFeedFilter),
-      );
+      await queryClient.cancelQueries({queryKey: feedKeys.list(defaultFeedFilter),});
+      await queryClient.cancelQueries({queryKey: postKeys.detail(postId),});
+
+      const feedSnapshot = queryClient.getQueryData(feedKeys.list(defaultFeedFilter));
+      const detailSnapshot = queryClient.getQueryData(postKeys.detail(postId));
+      
       queryClient.setQueryData<InfiniteData<GetFeedResult> | undefined>(
         feedKeys.list(defaultFeedFilter),
         (old) => {
@@ -251,14 +259,25 @@ export function useHomeFeed({
           };
         },
       );
-      return { snapshot };
+      queryClient.setQueryData<GetPostDetailResult>(postKeys.detail(postId.toString()), (old) => {
+        if(!old) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            isLiked: !old.data.isLiked,
+            likeCount: (old.data?.likeCount ?? 0) + ((old.data?.isLiked ?? false) ? -1 : 1) 
+          }
+        }
+      })
+      return { feedSnapshot, detailSnapshot };
     },
-    onError: (error, _postId, context) => {
-      if (context?.snapshot) {
-        queryClient.setQueryData(
-          feedKeys.list(defaultFeedFilter),
-          context.snapshot,
-        );
+    onError: (error, postId, onMutateResult, context) => {
+      if(onMutateResult?.feedSnapshot) {
+        context.client.setQueryData(feedKeys.list(defaultFeedFilter), onMutateResult.feedSnapshot)
+      }
+      if(onMutateResult?.detailSnapshot) {
+        context.client.setQueryData(postKeys.detail(postId.toString()), onMutateResult.detailSnapshot);
       }
       notifications.show({
         title: "Could not update like",
@@ -267,8 +286,9 @@ export function useHomeFeed({
         color: "red",
       });
     },
-    onSettled: () => {
+    onSettled: (_data, _error, postId) => {
       queryClient.invalidateQueries({ queryKey: feedKeys.all });
+      queryClient.invalidateQueries({ queryKey: postKeys.detail(postId.toString()) });
     },
   });
 
@@ -321,15 +341,53 @@ export function useHomeFeed({
       }
       return result;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: feedKeys.all });
-      notifications.show({
-        title: "Post updated",
-        message: "Your post has been saved.",
-        color: "green",
+    onMutate: async ({ postId, values }) => {
+      await queryClient.cancelQueries({ queryKey: feedKeys.list(defaultFeedFilter) });
+      await queryClient.cancelQueries({queryKey: postKeys.detail(postId),});
+      
+      const feedSnapshot = queryClient.getQueryData(feedKeys.list(defaultFeedFilter));
+      const detailSnapshot = queryClient.getQueryData(postKeys.detail(postId));
+    
+      queryClient.setQueryData<GetFeedPaginatedResult>(feedKeys.list(defaultFeedFilter), (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page) => ({ 
+            ...page,
+            posts: page.posts.map((p) =>
+              p.id === postId
+                ? 
+                {
+                  ...p,
+                  content: values.content
+                }
+                : p
+              ),
+          }))
+        };
       });
+
+      queryClient.setQueryData<GetPostDetailResult>(postKeys.detail(postId), (old) => {
+        if(!old) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            content: values.content
+          }
+        }
+      });
+
+      return { feedSnapshot, detailSnapshot}
     },
-    onError: (error) => {
+  onError: (error, { postId }, onMutateResult, context) => {
+      if(onMutateResult?.feedSnapshot) {
+        context.client.setQueryData(feedKeys.list(defaultFeedFilter), onMutateResult.feedSnapshot)
+      }
+      if(onMutateResult?.detailSnapshot) {
+        context.client.setQueryData(postKeys.detail(postId.toString()), onMutateResult.detailSnapshot);
+      }
+      console.error(error);
       notifications.show({
         title: "Could not update post",
         message:
@@ -337,26 +395,91 @@ export function useHomeFeed({
         color: "red",
       });
     },
+    onSuccess: () => {
+      notifications.show({
+        title: "Post updated",
+        message: "Your post has been saved.",
+        color: "green",
+      });
+    },
+    onSettled: (_data, _error, { postId }) => {
+      queryClient.invalidateQueries({ queryKey: feedKeys.all });
+      queryClient.invalidateQueries({ queryKey: postKeys.detail(postId.toString()) });
+    }
   });
 
   const likeCommentMutation = useMutation({
-    mutationFn: async ({ commentId }: { commentId: string }) => {
+    mutationFn: async ({ postId, commentId }: { postId: string, commentId: string }) => {
       const result = await likeCommentAction(commentId);
       if (!result.success) {
         throw new Error(result.error ?? "Failed to update like");
       }
       return result;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: feedKeys.all });
+    onMutate: async ({ postId, commentId }, context) => {
+      await context.client.cancelQueries({ queryKey: feedKeys.list(defaultFeedFilter) });
+      await context.client.cancelQueries({ queryKey: postKeys.detail(postId) });
+
+      const feedSnapshot = context.client.getQueryData<GetFeedResult>(feedKeys.list(defaultFeedFilter));
+      const detailSnapshot = context.client.getQueryData<GetFeedResult>(postKeys.detail(postId));
+
+      context.client.setQueryData<GetFeedPaginatedResult>(feedKeys.list(defaultFeedFilter), (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page) => ({ 
+            ...page,
+            posts: page.posts.map((p) =>
+              p.id === postId
+                ? 
+                {
+                  ...p,
+                  comments: p.comments.map((c) => 
+                    c.id === commentId
+                      ? {...c, isLiked: !c.isLiked}
+                      : c
+                  ) 
+                }
+                : p
+              ),
+          }))
+        };
+      });
+
+      context.client.setQueryData<GetPostDetailResult>(postKeys.detail(postId.toString()), (old) => {
+        if(!old) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            comments: old.data.comments.map((c) => 
+              c.id === commentId
+                ? {...c, isLiked: !c.isLiked}
+                : c
+            )
+          }
+        }
+      });
+      return { feedSnapshot, detailSnapshot };
     },
-    onError: (error) => {
+    onError: (error, postId, onMutateResult, context) => {
+      if(onMutateResult?.feedSnapshot) {
+        context.client.setQueryData(feedKeys.list(defaultFeedFilter), onMutateResult.feedSnapshot)
+      }
+      if(onMutateResult?.detailSnapshot) {
+        context.client.setQueryData(postKeys.detail(postId.toString()), onMutateResult.detailSnapshot);
+      }
+      console.error(error);
       notifications.show({
         title: "Could not update like",
         message:
           error instanceof Error ? error.message : "Something went wrong",
         color: "red",
       });
+    },
+    onSettled: (_data, _error, { postId }) => {
+      queryClient.invalidateQueries({ queryKey: feedKeys.all });
+      queryClient.invalidateQueries({ queryKey: postKeys.detail(postId.toString()) });
     },
   });
 
@@ -394,8 +517,7 @@ export function useHomeFeed({
   };
 
   const handleToggleCommentLike = (postId: string, commentId: string) => {
-    void postId;
-    likeCommentMutation.mutate({ commentId });
+    likeCommentMutation.mutate({ postId, commentId });
   };
 
   const handleDeletePost = (postId: string) => {

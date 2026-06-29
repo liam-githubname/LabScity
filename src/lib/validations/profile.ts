@@ -18,6 +18,15 @@ export const updateProfileSchema = z.object({
     .max(256, { message: "About must be at most 256 characters" })
     .optional()
     .or(z.literal("")),
+  timezone: z
+    .string()
+    .refine(
+      (value) =>
+        !value ||
+        Intl.supportedValuesOf("timeZone").includes(value),
+        { message : "Invalid timezone" }
+    )
+    .optional(),
   workplace: z
     .string()
     .min(2, { message: "Workplace must be at least 2 characters" })

@@ -24,7 +24,10 @@
 .DS_Store
 *.pem
 *.sql
+!supabase/migrations/*.sql
+!supabase/seed.sql
 notes.md
+.vscode/
 
 # debug
 npm-debug.log*

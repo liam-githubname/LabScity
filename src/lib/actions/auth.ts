@@ -16,7 +16,7 @@ import { createClient } from "@/supabase/server";
  */
 function getAppBaseUrl() {
   const explicitUrl = process.env.NEXT_SITE_URL;
-  const resolvedUrl = explicitUrl ?? "http://labscity.org";
+  const resolvedUrl = explicitUrl ?? "https://labscity.org";
   return resolvedUrl.replace(/\/$/, "");
 }
 
@@ -42,6 +42,13 @@ export async function loginAction(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const supabase = await createClient();
+
+  const { data: ping, error: pingError } = await supabase
+    .from("users")
+    .select("*")
+    .limit(1);
+
+  console.log("SUPABASE PING:", { ping, pingError });
 
   // Validate with Zod schema
   try {
@@ -121,6 +128,13 @@ export async function signupAction(formData: FormData) {
   const workplace = formData.get("workplace") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
   const supabase = await createClient();
+
+  const { data: ping, error: pingError } = await supabase
+    .from("Users")
+    .select("*")
+    .limit(1);
+
+  console.log("SUPABASE PING:", { ping, pingError });
 
   // Validate with Zod schema
   try {
@@ -246,34 +260,9 @@ export async function resetPasswordAction(formData: FormData) {
 
   try {
     const parsed = resetPasswordSchema.parse({
-      tokenHash: tokenHash ?? undefined,
-      code: code ?? undefined,
       password,
       confirmPassword,
     });
-
-    if (parsed.tokenHash) {
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        type: "recovery",
-        token_hash: parsed.tokenHash,
-      });
-
-      if (verifyError) {
-        return {
-          success: false,
-          error: verifyError.message ?? "Invalid or expired reset link",
-        };
-      }
-    } else if (parsed.code) {
-      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(parsed.code);
-
-      if (exchangeError) {
-        return {
-          success: false,
-          error: exchangeError.message ?? "Invalid or expired reset link",
-        };
-      }
-    }
 
     const { error: updateError } = await supabase.auth.updateUser({
       password: parsed.password,

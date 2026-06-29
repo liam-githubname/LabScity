@@ -1,4 +1,5 @@
 import { FeedCommentItem, User } from '@/lib/types/feed'
+import { PublicationType } from './publication';
 
 /** Core post type aligned with database schema */
 export interface Post {
@@ -7,6 +8,8 @@ export interface Post {
   text?: string;
   media_path?: string | null;
   media_url?: string | null;
+  media_height?: number | null;
+  media_width?: number | null;
   created_at: string;
   category?: string;
   scientific_field?: string | null;
@@ -29,6 +32,50 @@ export interface Group {
   rules: string | null;
 }
 
+export interface Product {
+  product_id: number;
+  title: string;
+  short_summary: string | null;
+  website_link: string | null;
+  publication_id: number | null;
+  image_path: string | null;
+  github_link: string | null;
+  other_links: string[] | null;
+  contributors: string[] | null;
+  is_featured: boolean | null;
+  product_type: string | null;
+}
+
+export interface Publication {
+  publication_id: number;
+  title: string;
+  doi: string | null;
+  journal: string | null;
+  date_published: string | null;
+  authors: string[] | null;
+  preview_path: string | null;
+  is_oa: boolean;
+  pdf_url: string | null;
+  type: PublicationType | null;
+  is_featured: boolean;
+  topics: Array<string> | null;
+}
+
+export interface Job {
+  id: number;
+  title: string;
+  description: string;
+  created_at: string;
+  poster_id: string;
+  summary: string | null;
+  location: string | null;
+  department: string | null;
+  organization: string | null;
+  work_mode: "on-site" | "remote" | "hybrid" | null;
+  job_type: "Full-time" | "Part-time" | "Internship" | "Contract" | null;
+  academia_role: "Postdoc" | "Faculty" | "PhD" | "Grad Student"  | null;
+  application_link: string | null;
+}
 /** Extended post with optional author information */
 export interface PostWithAuthor extends Post {
   author?: {

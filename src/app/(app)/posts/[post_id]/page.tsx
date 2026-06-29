@@ -20,11 +20,12 @@ import {
   likePost,
   updatePost,
 } from "@/lib/actions/feed";
-import { postKeys } from "@/lib/query-keys";
-import type {
-  CreateReportValues,
-  UpdatePostValues,
-} from "@/lib/validations/post";
+import { feedKeys, postKeys } from "@/lib/query-keys";
+import { feedFilterSchema, type CreateReportValues, type UpdatePostValues } from "@/lib/validations/post";
+import { FeedPostItem, GetFeedPaginatedResult, GetFeedResult, GetPostDetailResult } from "@/lib/types/feed";
+import { keyof } from "zod";
+
+const defaultFeedFilter = feedFilterSchema.parse({});
 
 /**
  * Post detail page: single post with comments, like/comment/report actions, and ReportOverlay.
@@ -45,8 +46,55 @@ export default function PostDetailPage() {
   >(null);
 
   /** Refetches post detail after successful like or comment so counts and list stay in sync. */
-  const invalidate = () =>
+  const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: postKeys.detail(post_id) });
+    queryClient.invalidateQueries({ queryKey: feedKeys.all });
+  }
+
+  const optimisticPostUpdate = async (
+    detailUpdater: (post: FeedPostItem) =>  FeedPostItem,
+    feedUpdater: (post: FeedPostItem) =>  FeedPostItem = detailUpdater
+  ) => {
+    await queryClient.cancelQueries({ queryKey: postKeys.detail(post_id) });
+    await queryClient.cancelQueries({ queryKey: feedKeys.all });
+
+    console.log(feedKeys.all);
+
+    const detailSnapshot = queryClient.getQueryData<GetPostDetailResult>(postKeys.detail(post_id));
+    const feedSnapshots = queryClient.getQueriesData<GetFeedPaginatedResult>({ queryKey: feedKeys.all });
+
+    queryClient.setQueryData<GetPostDetailResult>(
+      postKeys.detail(post_id),
+      (old) => (old ? { ...old, data: detailUpdater(old.data) }: old)
+    )
+
+    queryClient.setQueriesData<GetFeedPaginatedResult>({ queryKey: feedKeys.all }, (old) => {
+      if (!old) return old;
+      return {
+        ...old,
+        pages: old.pages.map((page) => ({
+          ...page,
+          posts: page.posts.map((p) =>
+            p.id === post_id ? feedUpdater(p) : p,
+          ) 
+        }))
+      }
+    })
+
+    return { detailSnapshot, feedSnapshots }
+  }
+
+  const rollback = (context: Awaited<ReturnType<typeof optimisticPostUpdate>>) => {
+    if(context.detailSnapshot) {
+      queryClient.setQueryData<GetPostDetailResult>(
+        postKeys.detail(post_id), 
+        context.detailSnapshot
+      );
+    }
+    context.feedSnapshots?.forEach(([key, data]) => 
+      queryClient.setQueryData<GetFeedPaginatedResult>(key, data)
+    )
+  }
 
   const createCommentMutation = useMutation({
     mutationFn: async ({
@@ -75,12 +123,19 @@ export default function PostDetailPage() {
   const likePostMutation = useMutation({
     mutationFn: async (postId: string) => {
       const result = await likePost(postId);
-      if (!result.success)
+      if (!result.success) {
         throw new Error(result.error ?? "Failed to update like");
+      }
       return result;
     },
-    onSuccess: invalidate,
-    onError: (error) => {
+    onMutate: () => 
+      optimisticPostUpdate((post) => ({
+        ...post,
+        isLiked: !post.isLiked,
+        likeCount: (post.likeCount ?? 0) + (post.isLiked ? -1 : 1),
+      })),
+    onError: (error, _vars, context) => {
+      if (context) rollback(context);
       notifications.show({
         title: "Could not update like",
         message:
@@ -88,23 +143,50 @@ export default function PostDetailPage() {
         color: "red",
       });
     },
+    onSettled: invalidate
   });
 
   const likeCommentMutation = useMutation({
     mutationFn: async (commentId: string) => {
       const result = await likeComment(commentId);
-      if (!result.success)
+      if (!result.success) {
         throw new Error(result.error ?? "Failed to update like");
+      }
       return result;
     },
-    onSuccess: invalidate,
-    onError: (error) => {
+    onMutate: async (commentId) => {
+      await queryClient.cancelQueries({ queryKey: postKeys.detail(post_id) });
+      const snapshot = queryClient.getQueryData<GetPostDetailResult>(postKeys.detail(post_id));
+      queryClient.setQueryData<GetPostDetailResult>(postKeys.detail(post_id), (old) => {
+        if (!old) return old;
+        const post = old.data;
+        return {
+          ...old,
+          data: {
+            ...post,
+            comments: post.comments.map((c) => 
+              c.id === commentId
+                ? { ...c, isLiked: !c.isLiked }
+                : c
+            )
+          }
+        };
+      });
+      return { snapshot };
+    },
+    onError: (error, _postId, context) => {
+      if (context?.snapshot) {
+        queryClient.setQueryData(postKeys.detail(post_id), context.snapshot);
+      }
       notifications.show({
-        title: "Could not update like",
-        message:
-          error instanceof Error ? error.message : "Something went wrong",
+        title: "Could not update comment like",
+        message: error instanceof Error ? error.message : "Something went wrong",
         color: "red",
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: feedKeys.all });
+      invalidate();
     },
   });
 
@@ -218,7 +300,7 @@ export default function PostDetailPage() {
       </Flex>
     );
   }
-
+  
   return (
     <Stack p="md" maw={700} mx="auto">
       <ActionIcon
@@ -234,20 +316,23 @@ export default function PostDetailPage() {
         open={reportTarget !== null}
         title={reportTarget?.type === "post" ? "Report post" : "Report comment"}
         preview={
-          reportTarget?.type === "post" ? (
-            <LSPostCard
-              userId={post.userId}
-              userName={post.userName}
-              avatarUrl={post.avatarUrl ?? null}
-              field={post.scientificField}
-              timeAgo={post.timeAgo}
-              content={post.content}
-              mediaUrl={post.mediaUrl ?? null}
-              showMenu={false}
-              showActions={false}
-            />
-          ) : (
-            post.comments
+          reportTarget?.type === "post"
+            ? (
+              <LSPostCard
+                userId={post.userId}
+                userName={post.userName}
+                avatarUrl={post.avatarUrl ?? null}
+                field={post.scientificField}
+                timeAgo={post.timeAgo}
+                content={post.content}
+                mediaUrl={post.mediaUrl ?? null}
+                mediaHeight={post.mediaHeight}
+                mediaWidth={post.mediaWidth}
+                showMenu={false}
+                showActions={false}
+              />
+            )
+            : post.comments
               .filter((c) => c.id === reportTarget?.commentId)
               .map((c) => (
                 <LSPostCommentCard
@@ -257,7 +342,6 @@ export default function PostDetailPage() {
                   showActions={false}
                 />
               ))
-          )
         }
         onClose={() => setReportTarget(null)}
         onSubmit={onSubmitReport}
@@ -283,6 +367,10 @@ export default function PostDetailPage() {
         showActions
         showMenu
         menuId={`post-menu-${post.id}`}
+        mediaHeight={post.mediaHeight}
+        mediaWidth={post.mediaWidth}
+        likeCount={post.likeCount}
+        commentCount={post.comments.length}
       >
         <Stack gap="md" w="100%">
           <LSCommentComposer
@@ -291,6 +379,7 @@ export default function PostDetailPage() {
             isSubmitting={createCommentMutation.isPending}
           />
 
+          
           {post.comments.length > 0 ? (
             <>
               <Divider />
@@ -298,15 +387,9 @@ export default function PostDetailPage() {
                 <LSPostCommentCard
                   key={comment.id}
                   comment={comment}
-                  onLikeClick={(commentId) =>
-                    likeCommentMutation.mutate(commentId)
-                  }
-                  onReportClick={(commentId) =>
-                    setReportTarget({
-                      type: "comment",
-                      postId: post.id,
-                      commentId,
-                    })
+                  onLikeClick={() => likeCommentMutation.mutate(comment.id)}
+                  onReportClick={() =>
+                    setReportTarget({ type: "comment", postId: post.id, commentId: comment.id })
                   }
                   menuId={`comment-menu-${comment.id}`}
                 />

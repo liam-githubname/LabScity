@@ -1,9 +1,10 @@
 "use client";
 
-import { ActionIcon, Anchor, Avatar, Box, Group, Menu, Text, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Anchor, Avatar, Box, Group, Menu, noop, Spoiler, Text, UnstyledButton } from "@mantine/core";
 import Link from "next/link";
 import { IconDots, IconHeart, IconHeartFilled } from "@tabler/icons-react";
 import type { FeedCommentItem } from "@/lib/types/feed";
+import { useRef } from "react";
 
 /**
  * Props for LSPostCommentCard.
@@ -17,8 +18,8 @@ import type { FeedCommentItem } from "@/lib/types/feed";
  */
 interface LSPostCommentCardProps {
   comment: FeedCommentItem;
-  onLikeClick?: (commentId: string) => void;
-  onReportClick?: (commentId: string) => void;
+  onLikeClick?: () => void;
+  onReportClick?: () => void;
   showMenu?: boolean;
   showActions?: boolean;
   menuId?: string;
@@ -36,6 +37,15 @@ export function LSPostCommentCard({
   showActions = true,
   menuId,
 }: LSPostCommentCardProps) {
+  const noPropagate = (fn?: () => void) => {
+    return (e: React.MouseEvent) => {
+      e.stopPropagation();
+      fn?.();
+    };
+  }
+ 
+  const spoilerControlRef = useRef<HTMLButtonElement>(null);
+
   const initials = comment.userName
     .split(" ")
     .filter(Boolean)
@@ -44,7 +54,7 @@ export function LSPostCommentCard({
     .join("");
 
   const nameNode = comment.userId ? (
-    <Anchor component={Link} href={`/profile/${comment.userId}`} underline="hover" c="navy.7">
+    <Anchor onClick={noPropagate()} component={Link} href={`/profile/${comment.userId}`} underline="hover" c="navy.7">
       <Text component="span" fw="bold" c="navy.7" size="sm" style={{ cursor: "pointer" }}>
         {comment.userName}
       </Text>
@@ -67,9 +77,31 @@ export function LSPostCommentCard({
       </Avatar>
 
       <Box style={{ flex: 1, minWidth: 0 }}>
-        <Text size="sm" c="navy.7" fw="normal">
-          {nameNode}{" "}{comment.content}
-        </Text>
+        <Box
+          onClick={(e) => {
+            if (spoilerControlRef.current?.contains(e.target as Node)) {
+              e.stopPropagation();
+            }
+          }}
+        >
+          <Spoiler 
+            controlRef={spoilerControlRef}
+            fz="sm" 
+            maxHeight={92} // Enough for about 4 lines worth of comment
+            showLabel='Show more'
+            hideLabel='Hide'
+            style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}
+            styles={{
+              control: {
+                color: 'var(--mantine-color-indigo-7)',
+                fontSize: 'var(--mantine-font-size-sm)',
+                fontWeight: 600
+              }
+            }}
+          >
+            {nameNode}{" "}{comment.content}
+          </Spoiler>
+        </Box>
 
         <Group justify="flex-start" gap="xs" mt={4}>
           <Text size="xs" c="navy.5" style={{ whiteSpace: "nowrap" }}>{comment.timeAgo}</Text>
@@ -84,12 +116,12 @@ export function LSPostCommentCard({
               id={menuId}
             >
               <Menu.Target>
-                <ActionIcon variant="subtle" color="navy.6" aria-label="Comment options">
+                <ActionIcon onClick={noPropagate()} variant="subtle" color="navy.6" aria-label="Comment options">
                   <IconDots size={16} />
                 </ActionIcon>
               </Menu.Target>
               <Menu.Dropdown>
-                <Menu.Item onClick={() => onReportClick?.(comment.id)}>Report</Menu.Item>
+                <Menu.Item onClick={noPropagate(onReportClick)}>Report</Menu.Item>
               </Menu.Dropdown>
             </Menu>
           ) : null}
@@ -99,7 +131,7 @@ export function LSPostCommentCard({
       {showActions ? (
         <UnstyledButton
           style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "4px", borderRadius: 999, flexShrink: 0 }}
-          onClick={() => onLikeClick?.(comment.id)}
+          onClick={noPropagate(onLikeClick)}
         >
           {comment.isLiked ? (
             <IconHeartFilled size={18} style={{ color: "#e03131" }} />

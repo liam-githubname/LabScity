@@ -1,22 +1,28 @@
 "use client";
 
-import {
-  ActionIcon,
-  Anchor,
-  Avatar,
-  Box,
-  Button,
-  Card,
-  Flex,
-  Group,
-  Image,
-  Menu,
+import { 
+  ActionIcon, 
+  Anchor, 
+  Avatar, 
+  Box, 
+  Button, 
+  Card, 
+  Flex, 
+  Group, 
+  SimpleGrid, 
+  Image, 
+  Menu, 
+  Stack, 
+  Text, 
+  UnstyledButton, 
+  AspectRatio,
   Modal,
-  Stack,
   Textarea,
-  Text,
-} from "@mantine/core";
+  Spoiler
+ } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import Link from "next/link";
+import NextImage from 'next/image';
 import { notifications } from "@mantine/notifications";
 import {
   IconDots,
@@ -28,8 +34,7 @@ import {
   IconShare3,
   IconTrash,
 } from "@tabler/icons-react";
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * Props for LSPostCard.
@@ -62,6 +67,8 @@ interface LSPostCardProps {
   content: string;
   mediaLabel?: string | null;
   mediaUrl?: string | null;
+  mediaWidth?: number | null;
+  mediaHeight?: number | null;
   avatarUrl?: string | null;
   onCommentClick?: () => void;
   onLikeClick?: () => void;
@@ -81,6 +88,16 @@ interface LSPostCardProps {
   children?: React.ReactNode;
 }
 
+// Helper to prevent clicks on things like the like button or profile name from
+// bubbling up to handling onPostClick, since post card overlaps with each 
+// part 
+function noPropagate(fn?: () => void) {
+  return (e: React.MouseEvent) => {
+    e.stopPropagation();
+    fn?.();
+  };
+}
+
 /**
  * Card component for a single post: author avatar/name, field, time, content, optional media,
  * like/comment actions, and optional children (e.g. comment composer and comments).
@@ -95,6 +112,8 @@ export function LSPostCard({
   content,
   mediaLabel,
   mediaUrl,
+  mediaWidth,
+  mediaHeight,
   avatarUrl,
   onCommentClick,
   onLikeClick,
@@ -119,6 +138,8 @@ export function LSPostCard({
   ] = useDisclosure(false);
   const [editOpen, { open: openEdit, close: closeEdit }] = useDisclosure(false);
   const [draftContent, setDraftContent] = useState(content);
+
+  const spoilerControlRef = useRef<HTMLButtonElement>(null);
 
   const initials = userName
     .split(" ")
@@ -152,7 +173,7 @@ export function LSPostCard({
     }
   };
 
-  const userContent = (
+  const postHeader = (
     <Group gap="sm" align="center">
       <Avatar
         size="md"
@@ -172,6 +193,7 @@ export function LSPostCard({
               href={`/profile/${userId}`}
               underline="hover"
               c="navy.7"
+              onClick={noPropagate()}
             >
               <Text
                 component="span"
@@ -226,10 +248,12 @@ export function LSPostCard({
             </Button>
             <Button
               color="red"
-              onClick={() => {
-                closeConfirmDelete();
-                onDeleteClick?.();
-              }}
+              onClick={
+                noPropagate(() => {
+                  closeConfirmDelete();
+                  onDeleteClick?.();
+                })
+              }
             >
               Delete
             </Button>
@@ -269,12 +293,16 @@ export function LSPostCard({
         padding="md"
         radius="md"
         shadow="sm"
-        style={{ overflow: "hidden" }}
+        onClick={onPostClick}
+        style={{ 
+          cursor: onPostClick ? 'pointer' : undefined, 
+          overflow: "hidden", 
+        }}
       >
-        <Stack gap={16}>
+        <Stack gap="lg">
           <Box>
             <Group align="flex-start" justify="space-between">
-              {userContent}
+              {postHeader}
               <Group gap="xs" align="center">
                 <Text size="xs" c="navy.5" style={{ whiteSpace: "nowrap" }}>
                   {timeAgo}
@@ -294,11 +322,7 @@ export function LSPostCard({
                     id={menuId}
                   >
                     <Menu.Target>
-                      <ActionIcon
-                        variant="subtle"
-                        color="navy.6"
-                        aria-label="Post options"
-                      >
+                      <ActionIcon onClick={noPropagate()} variant="subtle" color="navy.6" aria-label="Post options">
                         <IconDots size={18} />
                       </ActionIcon>
                     </Menu.Target>
@@ -306,7 +330,7 @@ export function LSPostCard({
                       {onEditSubmit ? (
                         <Menu.Item
                           leftSection={<IconEdit size={14} />}
-                          onClick={openEdit}
+                          onClick={noPropagate(openEdit)}
                         >
                           Edit post
                         </Menu.Item>
@@ -317,7 +341,7 @@ export function LSPostCard({
                           <Menu.Item
                             color="red"
                             leftSection={<IconTrash size={14} />}
-                            onClick={openConfirmDelete}
+                            onClick={noPropagate(openConfirmDelete)}
                           >
                             Delete post
                           </Menu.Item>
@@ -325,7 +349,7 @@ export function LSPostCard({
                         </>
                       ) : null}
                       {onReportClick ? (
-                        <Menu.Item onClick={onReportClick}>Report</Menu.Item>
+                        <Menu.Item onClick={noPropagate(onReportClick)}>Report</Menu.Item>
                       ) : null}
                     </Menu.Dropdown>
                   </Menu>
@@ -333,42 +357,58 @@ export function LSPostCard({
               </Group>
             </Group>
           </Box>
-
-          <Text
-            fz="sm"
-            c="navy.7"
-            onClick={onPostClick}
-            style={onPostClick ? { cursor: "pointer" } : undefined}
+        
+          <Box
+            onClick={(e) => {
+              if (spoilerControlRef.current?.contains(e.target as Node)) {
+                e.stopPropagation();
+              }
+            }}
           >
-            {content}
-          </Text>
+            <Spoiler
+              controlRef={spoilerControlRef}
+              fz="sm"
+              c="navy.7"
+              maxHeight={176} // Enough for about 8 lines worth of content
+              showLabel='Show more'
+              hideLabel='Hide'
+              style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}
+              styles={{
+                control: {
+                  color: 'var(--mantine-color-indigo-7)',
+                  fontSize: 'var(--mantine-font-size-sm)',
+                  fontWeight: 600
+                }
+              }}
+            >
+              {content}
+            </Spoiler>
+          </Box>
 
           {mediaUrl ? (
-            <Flex
-              c="navy.0"
-              mih={180}
-              justify="center"
-              align="center"
+            <Box
+              pos="relative"
+              mah={600}
+              maw='100%'
               fw={600}
-              onClick={onPostClick}
               style={{
-                letterSpacing: "0.3px",
+                aspectRatio: `${(mediaWidth ?? 1) / (mediaHeight ?? 1)}`,
                 overflow: "hidden",
-                cursor: onPostClick ? "pointer" : undefined,
+                letterSpacing: "0.3px",
               }}
             >
               <Image
+                component={NextImage}
                 src={mediaUrl}
                 alt="Post attachment"
-                radius="md"
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  display: "block",
-                }}
+                bdrs="lg"
+                bg='navy.0'
+                fill
+                mah={600}
+                style={{ objectFit: "contain" }}
               />
-            </Flex>
+            </Box>
+
           ) : mediaLabel ? (
             <Flex
               bg="navy.7"
@@ -378,12 +418,7 @@ export function LSPostCard({
               align="center"
               ta="center"
               fw={600}
-              onClick={onPostClick}
-              style={{
-                letterSpacing: "0.3px",
-                overflow: "hidden",
-                cursor: onPostClick ? "pointer" : undefined,
-              }}
+              style={{ letterSpacing: "0.3px", overflow: "hidden" }}
             >
               <Text component="span" style={{ whiteSpace: "pre-line" }}>
                 {mediaLabel}
@@ -392,11 +427,12 @@ export function LSPostCard({
           ) : null}
 
           {showActions ? (
-            <Flex justify="space-around">
+            <SimpleGrid cols={3}>
+
               {/* like button */}
+              <Flex justify="center">
               <Button
-                size="compact-xs"
-                mr={3} // HACK: small margin here to make things look a bit nicer
+                size="compact-md"
                 variant="transparent"
                 color="navy.6"
                 // like icon
@@ -407,28 +443,31 @@ export function LSPostCard({
                     <IconHeart size={18} />
                   )
                 }
-                onClick={onLikeClick}
+                onClick={noPropagate(onLikeClick)}
               >
-                {/* like label */}
                 <Text span fz="sm" c={isLiked ? "#e03131" : "navy.6"}>
                   {typeof likeCount === "number" ? likeCount : ""}
                 </Text>
               </Button>
+              </Flex>
 
               {/* comment button */}
+              <Flex justify="center">
               <Button
-                size="compact-xs"
+                size="compact-md"
                 variant="transparent"
                 color="navy.6"
                 leftSection={<IconMessageCircle size={18} />}
-                onClick={onCommentClick}
+                onClick={noPropagate(onCommentClick)}
               >
                 <Text span fz="sm" c="navy.6">
                   {typeof commentCount === "number" ? commentCount : ""}
                 </Text>
               </Button>
+              </Flex>
 
               {/* share button */}
+              <Flex justify="center">
               <Menu
                 withinPortal
                 position="top"
@@ -447,27 +486,28 @@ export function LSPostCard({
                     variant="transparent"
                     color="navy.6"
                     leftSection={<IconShare3 size={18} />}
+                    onClick={noPropagate()}
                   />
                 </Menu.Target>
                 <Menu.Dropdown>
                   <Menu.Item
                     leftSection={<IconLink size={14} />}
-                    onClick={() => {
+                    onClick={noPropagate(() => {
                       const url = shareUrl
                         ? window.location.origin + shareUrl
                         : window.location.href;
                       navigator.clipboard.writeText(url);
-                    }}
+                    })}
                   >
                     Copy link
                   </Menu.Item>
                 </Menu.Dropdown>
               </Menu>
-            </Flex>
-          ) : null}
-
-          {children}
+              </Flex>
+            </SimpleGrid>
+          ) : null }
         </Stack>
+          {children}
       </Card>
     </>
   );

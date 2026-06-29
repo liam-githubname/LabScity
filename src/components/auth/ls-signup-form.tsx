@@ -74,9 +74,10 @@ export function LSSignupForm({
 
   return (
     <Paper
-      maw={isMobile ? "90%" : "30%"} // limit box size on larger screen 
+      miw={400}
+      maw={isMobile ? "500px" : "700px"} // limit box size on larger screen 
       bg="navy.0"
-      p="2rem"
+      p="1rem 3rem"
       style={{ borderRadius: "0.625rem" }}
     >
       <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -88,8 +89,8 @@ export function LSSignupForm({
             <Image
               src="/logo.png"
               alt="LabScity Logo"
-              width={200}
-              height={200}
+              width={320}
+              height={108}
               priority
               style={{ width: "auto", height: "auto", objectFit: "contain" }}
             />

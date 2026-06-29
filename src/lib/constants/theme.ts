@@ -1,6 +1,10 @@
 "use client";
 
-import { createTheme } from "@mantine/core";
+import { 
+  Button,
+  createTheme, 
+  CSSVariablesResolver, 
+} from "@mantine/core";
 
 /** Mantine theme: Konkhmer Sleokchher font, navy and gray color palettes, primary color "navy". */
 export const theme = createTheme({
@@ -32,5 +36,23 @@ export const theme = createTheme({
       "#2A3A47",
     ],
   },
-  primaryColor: "navy",
+  primaryColor: "navy",  
+  components: {
+    Button: Button.extend({
+      defaultProps: {
+        color: 'var(--mantine-color-navy-7)',
+        bdrs: 'md'
+      }
+    })
+  }
+});
+
+export const cssVariablesResolver: CSSVariablesResolver = () => ({
+  variables: {},
+  light: {
+    '--mantine-color-text': 'var(--mantine-color-navy-7)' // Set the default color for text
+  },
+  dark: {
+    '--mantine-color-text': '#FFFFFF'
+  }
 });

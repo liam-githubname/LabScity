@@ -65,7 +65,7 @@ export default function LSAppNavbar({
       p={8}
       gap={16}
       {...(isMobile && { bottom: 0 })}
-      style={{ zIndex: 99999999 }}
+      style={{ zIndex: 10 }}
     >
       {navigation.map((item) => {
         const active = isActive(item);

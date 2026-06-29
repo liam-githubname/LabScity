@@ -8,11 +8,12 @@ export const metadata: Metadata = {
 };
 
 /** Login route; renders LSLoginForm with loginAction. */
-export default function LoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
-  searchParams?: { banned?: string };
+  searchParams?: Promise<{ banned?: string }>;
 }) {
-  const showBannedMessage = searchParams?.banned === "1";
+  const params = await searchParams;
+  const showBannedMessage = params?.banned === "1";
   return <LSLoginForm loginAction={loginAction} showBannedMessage={showBannedMessage} />;
 }

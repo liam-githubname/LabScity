@@ -12,6 +12,8 @@ import {
 
 const postComposerSchema = createPostSchema.extend({
   mediaFile: z.any().optional().nullable(),
+  imageWidth: z.number().optional().nullable(),
+  imageHeight: z.number().optional().nullable()
 });
 
 /**
@@ -32,6 +34,7 @@ export interface LSPostComposerProps {
 export function LSPostComposer({ onSubmit: onSubmitProp, isPending }: LSPostComposerProps) {
   const {
     control,
+    setValue,
     handleSubmit,
     formState: { errors, isSubmitting, isValid },
     register,
